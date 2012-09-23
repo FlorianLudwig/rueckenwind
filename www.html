@@ -91,6 +91,73 @@
 </pre></div>
 </div>
 </div>
+<div class="section" id="routing">
+<h2>Routing<a class="headerlink" href="#routing" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="rw.www.get">
+<tt class="descclassname">rw.www.</tt><tt class="descname">get</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expose a function for HTTP GET requests</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rw.www.post">
+<tt class="descclassname">rw.www.</tt><tt class="descname">post</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expose a function for HTTP POST requests</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/save&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rw.www.put">
+<tt class="descclassname">rw.www.</tt><tt class="descname">put</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.put" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expose a function for HTTP PUT requests</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/elements/&lt;name&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rw.www.delete">
+<tt class="descclassname">rw.www.</tt><tt class="descname">delete</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expose a function for HTTP DELETE requests</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@delete</span><span class="p">(</span><span class="s">&#39;/elements/&lt;name&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="rw.www.mount">
+<tt class="descclassname">rw.www.</tt><tt class="descname">mount</tt><big>(</big><em>path</em>, <em>mod</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#mount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.mount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mount <cite>RequestHandler</cite> within another handler.</p>
+<p>Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">A</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
+    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="s">&#39;index of A&#39;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">B</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
+    <span class="n">mount</span><span class="p">(</span><span class="s">&#39;/a&#39;</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -103,6 +170,7 @@
   <ul>
 <li><a class="reference internal" href="#">Basic HTTP and Services</a><ul>
 <li><a class="reference internal" href="#request-handlers">Request handlers</a></li>
+<li><a class="reference internal" href="#routing">Routing</a></li>
 </ul>
 </li>
 </ul>

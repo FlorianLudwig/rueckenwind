@@ -12,6 +12,13 @@ Contents:
    www.rst
    static_data.rst
 
+* TODO: Write docs about
+ * plugin / bus system
+ * i18n
+ * database usage
+ * deployment
+
+
 Indices and tables
 ==================
 

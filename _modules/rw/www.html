@@ -498,7 +498,7 @@
         <span class="n">tornado</span><span class="o">.</span><span class="n">autoreload</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../www.html#rw.www.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Expose a function for HTTP GET requests</span>
 
 <span class="sd">    Example usage:</span>
@@ -513,8 +513,8 @@
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
-
-<span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+</div>
+<div class="viewcode-block" id="post"><a class="viewcode-back" href="../../www.html#rw.www.post">[docs]</a><span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Expose a function for HTTP POST requests</span>
 
 <span class="sd">    Example usage:</span>
@@ -529,8 +529,8 @@
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
-
-<span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+</div>
+<div class="viewcode-block" id="put"><a class="viewcode-back" href="../../www.html#rw.www.put">[docs]</a><span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Expose a function for HTTP PUT requests</span>
 
 <span class="sd">    Example usage:</span>
@@ -545,8 +545,8 @@
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
-
-<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+</div>
+<div class="viewcode-block" id="delete"><a class="viewcode-back" href="../../www.html#rw.www.delete">[docs]</a><span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Expose a function for HTTP DELETE requests</span>
 
 <span class="sd">    Example usage:</span>
@@ -561,8 +561,8 @@
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
-
-<span class="k">def</span> <span class="nf">mount</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mod</span><span class="p">):</span>
+</div>
+<div class="viewcode-block" id="mount"><a class="viewcode-back" href="../../www.html#rw.www.mount">[docs]</a><span class="k">def</span> <span class="nf">mount</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mod</span><span class="p">):</span>
     <span class="c"># get the dict where our request class is constructed by traveling up the</span>
     <span class="c"># interpreter stack</span>
     <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
@@ -572,7 +572,7 @@
     <span class="c"># RequestHandler.__new__</span>
     <span class="n">f_locals</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">&#39;_mounts&#39;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">mod</span><span class="p">))</span>
 
-
+</div>
 <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s">&#39;Main&#39;</span><span class="p">)</span>
 
