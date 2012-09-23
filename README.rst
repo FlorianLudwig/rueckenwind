@@ -11,6 +11,4 @@ Documentation can either be build from source using:
 
 ``sphinx-build -b html sphinx/ docs.html/``
 
-or viewed online at:
-
-``raise NotImplementedError("WIP")``
+or viewed `online <http://florianludwig.github.com/rueckenwind/index.html>`_ .
