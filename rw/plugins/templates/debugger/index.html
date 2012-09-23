@@ -1,0 +1,8 @@
+<html>
+<body>
+<ol>
+{% for i, exception in enumerate(exceptions) %}
+ <li><a href="/_p/rw.debugger/{{ i }}">{{ str(exception.value) }}, {{ exception.datetime }}</a>
+{% endfor %}
+</ol>
+</body>

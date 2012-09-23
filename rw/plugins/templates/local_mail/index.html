@@ -1,0 +1,19 @@
+{% extends "rw:html5" %}
+
+{% block head %}
+	<title>{% block title %}{% endblock %} - Local Web Mail - rückenwind</title>
+{% endblock %}
+
+{% block body %}
+    {% for i, mail in enumerate(mails) %}
+       To: {{ repr(mail.toaddrs) }} <br/>
+       Subject: {{ mail.subject }} <br/>
+       {{ mail.body.replace('\n', '<br/>') }}
+       <br />
+       <form action="/_p/rw.mail_local/delete" method="post">
+       	<input type="hidden" name="mid" value="{{ i }}">
+        <input type="submit" value="delete">
+       </form>
+      <hr/>
+    {% endfor %}
+{% endblock %}
