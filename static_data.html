@@ -1,0 +1,134 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Static Content &mdash; Rückenwind 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Rückenwind 0.0.1 documentation" href="index.html" />
+    <link rel="prev" title="Basic HTTP and Services" href="www.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="www.html" title="Basic HTTP and Services"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="static-content">
+<span id="getting-started"></span><h1>Static Content<a class="headerlink" href="#static-content" title="Permalink to this headline">¶</a></h1>
+<p>You probably got content that is for every user the same on every request. Typically this is content like images, css or javascript. Downloads (as in content that is not directly dispalyed fron html) or for this matter large files in generall should treated a little different.</p>
+<p>You probably remember that there is a function called &#8220;static&#8221; to refer to your
+static content:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{{</span> <span class="n">static</span><span class="p">(</span><span class="s">&#39;main.css&#39;</span><span class="p">)</span> <span class="p">}}</span>
+</pre></div>
+</div>
+<p>The url it generates looks something like this:</p>
+<div class="highlight-python"><pre>/static/simpleblog/main.css?v=a37b</pre>
+</div>
+<p>All static content is below /static/. Followed by the modules name (simpleblog here). Appended is version string to ensure the browser got the right thing in its cache. The version is the first few bytes of the hexdecimal representation of the md5 of the content of the main.css.</p>
+<div class="section" id="dynamic-static-content">
+<h2>Dynamic Static Content<a class="headerlink" href="#dynamic-static-content" title="Permalink to this headline">¶</a></h2>
+<p>The definition of &#8220;static content&#8221; in rückenwind is content that is the same on every request for every user.</p>
+</div>
+<div class="section" id="deployment">
+<h2>Deployment<a class="headerlink" href="#deployment" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Static Content</a><ul>
+<li><a class="reference internal" href="#dynamic-static-content">Dynamic Static Content</a></li>
+<li><a class="reference internal" href="#deployment">Deployment</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="www.html"
+                        title="previous chapter">Basic HTTP and Services</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/static_data.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="www.html" title="Basic HTTP and Services"
+             >previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Florian Ludwig.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

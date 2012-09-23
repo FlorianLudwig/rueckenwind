@@ -1,0 +1,294 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Getting started &mdash; Rückenwind 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Rückenwind 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Basic HTTP and Services" href="www.html" />
+    <link rel="prev" title="Welcome to Rückenwind’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="www.html" title="Basic HTTP and Services"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Rückenwind’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="getting-started">
+<span id="id1"></span><h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="design-princeples-and-goals">
+<span id="installing-docdir"></span><h2>Design Princeples and Goals<a class="headerlink" href="#design-princeples-and-goals" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><strong>KISS</strong>
+Keept it simple, stupid.</li>
+<li><strong>Convention over configuration</strong>
+But don&#8217;t take it too far.</li>
+<li><strong>Reusablity</strong>
+I will not repeat myself.</li>
+<li><strong>Don&#8217;t try to please everyone</strong></li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Rückenwind is in <strong>alpha</strong> stage of development, backwards compatibility will break.</p>
+</div>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<p>Use pip:</p>
+<div class="highlight-python"><pre>virtualenv --distribute my_playground
+. ./my_playground/bin/activate
+pip install -e git@github.com:FlorianLudwig/rueckenwind.git#egg=rueckenwind</pre>
+</div>
+</div>
+<div class="section" id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h2>
+<p>After installing rückenwind you got a new command at your disposal: <em>rw</em>.
+You can use it to generate a new rückendwind project skelton:</p>
+<div class="highlight-python"><pre>rw skel --name my_new_project</pre>
+</div>
+<p>To start your new project:</p>
+<div class="highlight-python"><pre>rw serv my_new_project</pre>
+</div>
+<p>Go and visit <a class="reference external" href="http://127.0.0.1:8000/">127.0.0.1:8000</a> to grab your <em>hello world</em> while it is hot.</p>
+</div>
+<div class="section" id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h2>
+<p>The most basic entity in rückenwind is a module. A rückenwind module
+is a normal python module with some added convention.</p>
+<p>The basic structure:</p>
+<div class="highlight-python"><pre>module/
+        __init__.py
+        www.py
+        static/
+        templates/
+        locale/</pre>
+</div>
+<p>The obvious: all your static files go into the static/ folder and
+your <a class="reference external" href="http://jinja.pocoo.org/">jinja2</a> templates into
+the templates/ folder.</p>
+<p>The www.py must contain a class named Main that derives from rw.RequestHandler.
+It is the entry point for all http requests to this module.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Rückenwind does not try to be a framework for everyone and
+everything. As one of the consequenes only a single templateing engine is supported.
+This keeps rückendwind code KISS. Don&#8217;t like jinja? Sorry,
+rückenwind is not for you, switch to
+<a class="reference external" href="http://wiki.python.org/moin/WebFrameworks">one of the many other frameworks</a>.</p>
+</div>
+</div>
+<div class="section" id="routing">
+<h2>Routing<a class="headerlink" href="#routing" title="Permalink to this headline">¶</a></h2>
+<p>At the heard of rückenwind there is routing of http requests. It draws insparation from several other projects, like <a class="reference external" href="http://flask.pocoo.org/">Flask</a> .</p>
+<p>Design notes</p>
+<blockquote>
+<div><ul class="simple">
+<li><strong>Classes</strong> are used to allow request handlers to be reused via inheritance.</li>
+<li><strong>HTTP methods</strong> are strictly seperated. You cannot have one python function answering GET and POST.</li>
+</ul>
+</div></blockquote>
+<p>An example RequestHandler:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Registration</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
+    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&#39;register.html&#39;</span><span class="p">)</span>
+
+    <span class="nd">@post</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">register_post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">email</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;email&#39;</span><span class="p">),</span>
+                 <span class="n">username</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;password&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">redirect</span><span class="p">(</span><span class="n">url_fur</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">main</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">Main</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
+    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">strftime</span><span class="p">(</span><span class="s">&quot;%a, </span><span class="si">%d</span><span class="s"> %b %Y %H:%M:%S +0000&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&#39;index.html&#39;</span><span class="p">)</span>
+
+    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/entry/&lt;id&gt;&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;entries&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_entry_from_id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&#39;main.html&#39;</span><span class="p">)</span>
+
+    <span class="n">mount</span><span class="p">(</span><span class="s">&#39;/register&#39;</span><span class="p">,</span> <span class="n">Registration</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For details see: <a class="reference internal" href="www.html"><em>Basic HTTP and Services</em></a></p>
+</div>
+<div class="section" id="templates">
+<h2>Templates<a class="headerlink" href="#templates" title="Permalink to this headline">¶</a></h2>
+<p>For documentation about the Jinja templating engine please look at its beautiful <a class="reference external" href="http://jinja.pocoo.org/docs/">online documentation</a> .</p>
+<p>Assigning variables:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Main</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
+    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">strftime</span><span class="p">(</span><span class="s">&quot;%a, </span><span class="si">%d</span><span class="s"> %b %Y %H:%M:%S +0000&quot;</span><span class="p">,</span> <span class="n">gmtime</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&#39;index.html&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Within the template:</p>
+<div class="highlight-python"><pre>The current time is {{ time }}.</pre>
+</div>
+<p>If you refer to another resource there are two helper functions
+for creating URIs. For static files use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{{</span> <span class="n">static</span><span class="p">(</span><span class="s">&#39;main.css&#39;</span><span class="p">)</span> <span class="p">}}</span>
+</pre></div>
+</div>
+<p>This will insert an URI to your <em>main.css</em>, assuming there is one in your modules static folder.</p>
+<p>If you want to link to another page there is:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{{</span> <span class="n">url_for</span><span class="p">(</span><span class="n">handler</span><span class="o">.</span><span class="n">login</span><span class="p">)</span> <span class="p">}}</span>
+</pre></div>
+</div>
+<p>Some more examples, same routes as before:</p>
+<div class="highlight-python"><pre>class Main(RequestHandler):
+    @get('/')
+    def main(self):
+        # ...
+
+    @get('/register')
+    def register(self):
+        # ...
+
+    @get('/entry/&lt;id&gt;')
+    def entry(self, id):
+        # ...</pre>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="76%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">command</th>
+<th class="head">result</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>url_for(handler.login)</td>
+<td>/</td>
+</tr>
+<tr class="row-odd"><td>url_for(handler.register)</td>
+<td>/register</td>
+</tr>
+<tr class="row-even"><td>url_for(handler.entry, id=1)</td>
+<td>/entry/1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting started</a><ul>
+<li><a class="reference internal" href="#design-princeples-and-goals">Design Princeples and Goals</a></li>
+<li><a class="reference internal" href="#install">Install</a></li>
+<li><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li><a class="reference internal" href="#modules">Modules</a></li>
+<li><a class="reference internal" href="#routing">Routing</a></li>
+<li><a class="reference internal" href="#templates">Templates</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Rückenwind&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="www.html"
+                        title="next chapter">Basic HTTP and Services</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/getting_started.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="www.html" title="Basic HTTP and Services"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Rückenwind’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Florian Ludwig.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
