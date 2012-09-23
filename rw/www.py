@@ -450,7 +450,8 @@ def setup(app_name, address=None, port=None):
 def get(path):
     """Expose a function for HTTP GET requests
 
-    Example usage:
+    Example usage::
+
         @get('/')
         def index(self):
             ...
@@ -466,7 +467,8 @@ def get(path):
 def post(path):
     """Expose a function for HTTP POST requests
 
-    Example usage:
+    Example usage::
+
         @get('/save')
         def save(self):
             ...
@@ -482,7 +484,8 @@ def post(path):
 def put(path):
     """Expose a function for HTTP PUT requests
 
-    Example usage:
+    Example usage::
+
         @get('/elements/<name>')
         def save(self, name):
             ...
@@ -498,7 +501,8 @@ def put(path):
 def delete(path):
     """Expose a function for HTTP DELETE requests
 
-    Example usage:
+    Example usage::
+
         @delete('/elements/<name>')
         def delete(self, name):
             ...
@@ -512,8 +516,20 @@ def delete(path):
 
 
 def mount(path, mod):
-    # get the dict where our request class is constructed by traveling up the
-    # interpreter stack
+    """Mount `RequestHandler` within another handler.
+
+    Example usage::
+
+        class A(RequestHandler):
+            @get('/')
+            def index(self):
+                self.finish('index of A')
+
+        class B(RequestHandler):
+            mount('/a', A)
+    """
+    # get the locals from where our request class is constructed
+    # by traveling up the interpreter stack by one frame
     frame = inspect.stack()[1][0]
     f_locals = frame.f_locals
 
