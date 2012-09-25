@@ -14,6 +14,7 @@ Contents:
 
 * TODO: Write docs about
  * plugin / bus system
+ * debugging
  * i18n
  * database usage
  * deployment
