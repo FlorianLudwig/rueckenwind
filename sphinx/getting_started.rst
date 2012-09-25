@@ -8,7 +8,7 @@ Getting started
 .. _installing-docdir:
 
 
-Design Princeples and Goals
+Design Principles and Goals
 ===========================
 
  * **KISS**
