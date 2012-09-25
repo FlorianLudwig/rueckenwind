@@ -123,7 +123,9 @@ class StaticURL(object):
             raw = pkg_resources.resource_string(module, 'static/' + fname)
         except IOError:
             try:
-                raw = pkg_resources.resource_string(module, 'static/' + fname)
+                main = rw.get_module(module).www.Main
+                template = main.template_env.get_template('static/' + fname)
+                return template.render()
             except IOError:
                 raise IOError('Unable to find static content {0}:{1}' \
                               .format(module, fname))

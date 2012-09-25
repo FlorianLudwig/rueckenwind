@@ -1,0 +1,4 @@
+something dynamic:
+{% for i in range(3) -%}
+{{ i }}
+{% endfor %}

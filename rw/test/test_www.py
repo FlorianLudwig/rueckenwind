@@ -44,6 +44,18 @@ def test_inheritance():
     assert routes == set(['/anmeldung', '/foobar', '/logout'])
 
 
+def test_static_content():
+    app = rw.load('rw.test.simple_app')
+    content = app.www.Main._static.get_content('static')
+    assert content == 'something static\n'
+
+
+def test_dynamic_static_content():
+    app = rw.load('rw.test.simple_app')
+    content = app.www.Main._static.get_content('dynamic')
+    assert content == 'something dynamic:\n0\n1\n2\n'
+
+
 def test_templates():
     class Main(rw.www.RequestHandler):
         @get('/')
