@@ -94,29 +94,7 @@ def drop_privileges(uid_name='nobody', gid_name=None):
     os.umask(077)
 
 
-
-purge_line = re.compile(' line [0-9]*,')
-
-ERROR_PATH = '/error path not set/'
-
-
 class RWIOLoop(tornado.ioloop.IOLoop):
-    #def handle_callback_exception(self, callback):
-    #    """This method is called whenever a callback run by the IOLoop
-    #    throws an exception.
-    #
-    #    The exception itself is not passed explicitly, but is available
-    #    in sys.exc_info.
-    #    """
-    #    t = traceback.format_exc()
-    #    error_id = hashlib.md5(purge_line.sub('', t)).hexdigest()
-    #    fname = ERROR_PATH + '/' + error_id
-    #    if not os.path.exists(fname):
-    #        open(fname, 'w').write(t)
-    #
-    #    open(fname, 'a').write(time.strftime("%Y-%m-%d (%a) %H:%M:%S\n"))
-    #    logging.error(t)
-
     def handle_callback_exception(self, callback):
         exctype, value, exception = sys.exc_info()
         traceback.print_exception(exctype, value, exception)
@@ -126,17 +104,6 @@ class RWIOLoop(tornado.ioloop.IOLoop):
             print 'ERROR calling exception handler'
             exctype, value, exception = sys.exc_info()
             traceback.print_exception(exctype, value, exception)
-        #if DEBUG:
-        #    rbus.rw.
-        #    html = debug_handler.get_error_html(500, exception=True)
-        #    page = str(int(time.time()))
-        #    MainHandler.pages[page] = str(html)
-        #    url = 'http://127.0.0.1:8888/?page=' + page
-        #    logging.error('Debug via: ' + url)
-        #    webbrowser.open(url)
-        #else:
-        #    fname = 'errors/%s' % time.strftime('%Y-%m-%d_%H.%M.%S')
-        #    open(fname, 'w').write(traceback.format_exc())
 
 io_loop = tornado.ioloop.IOLoop._instance = RWIOLoop()
 
