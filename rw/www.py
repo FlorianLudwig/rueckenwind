@@ -75,10 +75,12 @@ class StaticURL(object):
     def __call__(self, fname):
         if ':' in fname:
             module, fname = fname.split(':', 1)
+            main = rw.get_module(module).www.Main
+            data = main._static.get_content(fname)
         else:
             module = self.module
+            data = self.get_content(fname)
         url = '/static/' + module + '/' + fname
-        data = self.get_content(fname, module=module)
         if isinstance(data, unicode):
             data = data.encode('utf-8')
         if not data:
@@ -105,34 +107,32 @@ class StaticURL(object):
         return data
 
     def search(self, fname):
-        data = self.get_content(fname, module=self.module)
+        data = self.get_content(fname)
         if data:
             return data
         return self.handler._parents
 
-    #def get_path(self, fname, module, template=False):
-    #    mod_path = os.path.dirname(sys.modules[module].__file__)
-    #    if template:
-    #        mod_path += '/templates'
-    #    return mod_path + '/static/' + fname
-
-    def get_content(self, fname, module=None):
-        if not module:
-            module = self.module
+    def get_content(self, fname):
         try:
-            raw = pkg_resources.resource_string(module, 'static/' + fname)
+            raw = pkg_resources.resource_string(self.module, 'static/' + fname)
         except IOError:
+            main = self.handler
             try:
-                main = rw.get_module(module).www.Main
                 template = main.template_env.get_template('static/' + fname)
+            except IOError, e:
+                # we could not find the static file ourself,
+                # lets go ask our parents
+                for parent in main._parents:
+                    try:
+                        return parent._static.get_content(fname)
+                    except:
+                        pass
+                raise IOError('File not found {0}:{1}'.format(self.module, fname))
+            try:
                 return template.render()
             except IOError, e:
-                ref = '{0}:{1}'.format(module, fname)
-                if e.message.strip() == '':
-                    raise IOError('File not found ' + ref)
-                if not ref in e.message:
-                    raise IOError(e.message + ', referenced in ' + ref)
-                raise e
+                raise IOError('Not found: ' + e.filename +
+                              ', referenced in {0}:{1}'.format(self.module, fname))
         return raw
 
 
