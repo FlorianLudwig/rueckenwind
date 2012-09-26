@@ -126,9 +126,13 @@ class StaticURL(object):
                 main = rw.get_module(module).www.Main
                 template = main.template_env.get_template('static/' + fname)
                 return template.render()
-            except IOError:
-                raise IOError('Unable to find static content {0}:{1}' \
-                              .format(module, fname))
+            except IOError, e:
+                ref = '{0}:{1}'.format(module, fname)
+                if e.message.strip() == '':
+                    raise IOError('File not found ' + ref)
+                if not ref in e.message:
+                    raise IOError(e.message + ', referenced in ' + ref)
+                raise e
         return raw
 
 
@@ -161,7 +165,7 @@ def urlencode(uri, **query):
 
 class RequestHandlerMeta(type):
     def __new__(cls, name, bases, dct):
-        is_base_class = bases == (debug.DebugRequestHandler, dict)
+        is_base_class = bases == (tornado.web.RequestHandler, dict)
         routes = []
         mounts = dct.get('_mounts', [])
         if '_mounts' in dct:
@@ -299,7 +303,7 @@ class TornadoMultiDict(object):
         return self.handler.get_arguments(name, strip=False)
 
 
-class RequestHandler(debug.DebugRequestHandler, dict):
+class RequestHandler(tornado.web.RequestHandler, dict):
     __metaclass__ = RequestHandlerMeta
 
     def __init__(self, application, request, **kwargs):
@@ -373,14 +377,21 @@ class RequestHandler(debug.DebugRequestHandler, dict):
             self.write(template.render(**self))
         super(RequestHandler, self).finish(chunk)
 
-    def _handle_request_exception(self, e):
-        super(RequestHandler, self)._handle_request_exception(e)
-
     def _handle_request(self):
         for rule in self.routes:
             if rule.match(self, self.request):
                 return True
         return False
+
+    def send_error(self, status_code, **kwargs):
+        if 'exc_info' in kwargs:
+            # TODO check self._headers_written
+            ioloop = tornado.ioloop.IOLoop.instance()
+            ioloop.handle_callback_exception(None)
+            if not self._finished:
+                self.finish(self.application.get_error_html(status_code, **kwargs))
+        else:
+            super(RequestHandler, self).send_error(status_code, **kwargs)
 
 
 class Main(RequestHandler):
@@ -416,7 +427,8 @@ def setup(app_name, address=None, port=None):
             request.original_path = request.path
             # werzeug debugger
             if rw.DEBUG and '__debugger__' in request.uri:
-                handler = rw.debug.WSGIHandler(self, request, self._debugger_app)
+                print 'DEBUG CALL'
+                handler = rw.debug.WSGIHandler(self, request, rw.debug.DEBUG_APP)
                 handler.delegate()
                 handler.finish()
                 return

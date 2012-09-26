@@ -1,8 +1,26 @@
 <html>
+<head>
+<style>
+div {
+ border: 1px solid #f00; background-color: #fbb; margin: 10px;
+}
+
+div:hover {
+ border: 1px solid #faa; background-color: #fdd;
+}
+</style>
+
+</head>
+
 <body>
-<ol>
+
+
 {% for i, exception in enumerate(exceptions) %}
- <li><a href="/_p/rw.debugger/{{ i }}">{{ str(exception.value) }}, {{ exception.datetime }}</a>
+<div onclick="window.location='/_p/rw.debugger/{{ i }}'"> 
+{{ exception.datetime }}
+<pre>
+{{ str(exception.werkzeug_tb.plaintext) }}
+</pre>
+</div>
 {% endfor %}
-</ol>
 </body>

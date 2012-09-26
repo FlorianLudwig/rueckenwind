@@ -15,26 +15,41 @@
 import sys
 import urllib
 import StringIO
+import datetime
 
 import tornado.ioloop
 import tornado.web
 import werkzeug.debug
-from werkzeug.debug.tbtools import get_current_traceback
+from werkzeug.debug.tbtools import get_current_traceback, Traceback
 
 
-class DebugRequestHandler(tornado.web.RequestHandler):
-    def __init__(self, *args, **kwargs):
-        tornado.web.RequestHandler.__init__(self, *args, **kwargs)
-        self._tracebacks = {}
-        self._frames = {}
+def FakeWSGIApp(env, start_response):
+    start_response('200 OK', [])
+    return ['Interpreter frame not found. '
+            'Either the server restarted and the frame is lost '
+            'or you triggered a bug in rw itself. Sorry.']
 
-    def get_error_html(self, status_code, **kwargs):
-        if 'exception' in kwargs:
-            print self.application
+DEBUG_APP = werkzeug.debug.DebuggedApplication(FakeWSGIApp, evalex=True)
+EXCEPTIONS = []
 
-            return self.application.get_error_html(status_code, **kwargs)
-        else:
-            return tornado.web.RequestHandler.get_error_html(status_code, **kwargs)
+
+class CapturedException(object):
+    def __init__(self, tb):
+        self.datetime = datetime.datetime.now()
+        self.werkzeug_tb = tb
+
+    def __cmp__(self, o):
+        return cmp(self.datetime, o.datetimes)
+
+
+def save_current_traceback():
+    traceback = get_current_traceback(skip=1, show_hidden_frames=False,
+                                      ignore_system_exceptions=True)
+    for frame in traceback.frames:
+        DEBUG_APP.frames[frame.id] = frame
+    DEBUG_APP.tracebacks[traceback.id] = traceback
+    EXCEPTIONS.append(CapturedException(traceback))
+    return traceback
 
 
 class WSGIHandler(tornado.web.RequestHandler):
@@ -55,7 +70,6 @@ class WSGIHandler(tornado.web.RequestHandler):
         if self._status_code not in [301, 302, 303, 304, 307]:
             for x in out:
                 self.write(x)
-                print 'writing'
         else:
             print 'not sending any data, code', self._status_code
 
@@ -100,27 +114,14 @@ class WSGIHandler(tornado.web.RequestHandler):
 
 
 class DebugApplication(tornado.web.Application):
-    def __init__(self, *args, **kwargs):
-        def FakeWSGIApp(env, start_response):
-            start_response('200 OK', [])
-            return []
-        self._debugger_app = werkzeug.debug.DebuggedApplication(FakeWSGIApp, evalex=True)
-        tornado.web.Application.__init__(self, *args, **kwargs)
-
     def  __call__(self, request):
-        print 'call to debug app'
         if '__debugger__' in request.uri:
-            print 'blubb'
-            handler = WSGIHandler(self, request, self._debugger_app)
+            handler = WSGIHandler(self, request, DEBUG_APP)
             handler.delegate()
             handler.finish()
         return tornado.web.Application.__call__(self, request)
 
     def get_error_html(self, status_code, **kwargs):
-            traceback = get_current_traceback(skip=1, show_hidden_frames=False,
-                                              ignore_system_exceptions=True)
-            for frame in traceback.frames:
-                self._debugger_app.frames[frame.id] = frame
-            self._debugger_app.tracebacks[traceback.id] = traceback
+            traceback = save_current_traceback()
             return traceback.render_full(evalex=True).encode('utf-8', 'replace')
 
