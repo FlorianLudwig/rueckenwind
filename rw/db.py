@@ -1,3 +1,29 @@
+"""Simple database ORM for mongodb
+
+Example::
+    from rw.www import RequestHandler, get, post
+    import motor
+    import rw.db
+    from tornado import gen
+
+    connection = motor.MotorConnection(max_pool_size=10, max_concurrent=20).open_sync()
+    rw.db.db = connection.test
+
+
+    class User(rw.db.Entity):
+        name = rw.db.Field(unicode)
+        email = rw.db.Field(unicode)
+
+
+    class Main(RequestHandler):
+        @gen.engine
+        @get('/')
+        def index(self):
+            self['users'] = yield gen.Task(User.query.filter_by(name='2').all)
+            self.finish(template='index.html')
+
+"""
+
 from copy import copy
 
 db = None
