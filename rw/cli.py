@@ -13,7 +13,8 @@
 # under the License.
 
 """rueckenwind command line tool"""
-import sys, os
+import sys
+import os
 import argparse
 
 import pkg_resources
@@ -44,6 +45,7 @@ def generate(src, dst, data):
             content = jinja2.Template(tpl).render(**data)
             open(dst + '/' + fname, 'w').write(content.encode('utf-8'))
 
+
 @command
 def skel(args):
     """Generate a skeleton project"""
@@ -61,6 +63,7 @@ def skel(args):
 skel.parser.add_argument('--name', type=str,
                          help='Name of the module to be created')
 
+
 @command
 def serv(args):
     """Serve a rueckenwind application"""
@@ -68,7 +71,6 @@ def serv(args):
     rw.DEBUG = not args.no_debug
     module = args.MODULE.replace('/', '.').strip('.')
     rw.start(module, address=args.address, port=args.port)
-
 
 serv.parser.add_argument('-p', '--port', type=int, default=8000,
                          help='Specifiy port to run http server on')
@@ -81,5 +83,10 @@ serv.parser.add_argument('MODULE',
 
 
 def main():
+    current_path = os.path.abspath('.')
+    if not current_path in sys.path:
+        sys.path.insert(0, current_path)
     args = ARG_PARSER.parse_args()
     args.func(args)
+    
+    
