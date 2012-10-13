@@ -171,12 +171,13 @@ class Entity(dict):
         Warning: Never use "callback" as key."""
         callback = create_kwargs.get('callback')
         if 'callback' in create_kwargs:
-             del create_kwargs['callback']
+            del create_kwargs['callback']
         obj = cls(**create_kwargs)
+
         def inner_callback(*args, **kwargs):
             if not callback is None:
                 callback(obj)
-        obj.col.save(obj, callback=inner_callback) # TODO callback
+        obj.col.save(obj, callback=inner_callback)  # TODO callback
 
     def delete(self):
         self.col.delete(self)
@@ -191,6 +192,3 @@ def using_options(name=None, tablename=None):
         # elxir compatibility
         name = tablename
     print name
-
-
-

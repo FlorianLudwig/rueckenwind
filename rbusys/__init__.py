@@ -35,7 +35,7 @@ class PlugInterfaceDict(dict):
                 if '.' in module:
                     return self.load(module[:module.rfind('.')], org)
                 raise AttributeError('No interface definitions for module "%s"'
-                                      % org)
+                                     % org)
 
             # load all interface definitions from module
             module_path = os.path.dirname(imported_module.__file__)
@@ -119,6 +119,7 @@ class MultiPlugModule(object):
 
     def __getattr__(self, attr):
         interface_func = getattr(self.interface, attr)
+
         def caller(*args, **kwargs):
             results = [getattr(plug, attr)(*args, **kwargs)
                        for plug in self._plugs]
@@ -204,10 +205,10 @@ class StubImplementation(object):
                 return stub_function
             else:
                 raise AttributeError('No implementation active for ' +
-                                      self._interface.rbus_path)
+                                     self._interface.rbus_path)
         else:
             raise AttributeError('Interface for %s has no attribute %s' %
-                                  (self._interface.rbus_path, attr))
+                                 (self._interface.rbus_path, attr))
 
 
 class BusModule(object):

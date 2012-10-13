@@ -22,7 +22,7 @@ import jinja2
 
 
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawTextHelpFormatter)
+                                     formatter_class=argparse.RawTextHelpFormatter)
 SUB_PARSER = ARG_PARSER.add_subparsers(help='Command help')
 
 
@@ -88,5 +88,3 @@ def main():
         sys.path.insert(0, current_path)
     args = ARG_PARSER.parse_args()
     args.func(args)
-    
-    

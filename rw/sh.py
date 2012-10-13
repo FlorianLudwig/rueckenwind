@@ -12,7 +12,6 @@ def source(path):
         raise AttributeError(stderrdata)
     ret = {}
     for line in stdoutdata.split('\n'):
-      key, _, value = line.partition('=')
-      ret[key] = value
+        key, _, value = line.partition('=')
+        ret[key] = value
     return ret
-

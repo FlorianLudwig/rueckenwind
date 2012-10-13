@@ -92,7 +92,7 @@ class WSGIHandler(tornado.web.RequestHandler):
         special = ['CONTENT_LENGTH', 'CONTENT_TYPE']
 
         for k, v in request.headers.items():
-            k =  k.upper().replace('-', '_')
+            k = k.upper().replace('-', '_')
             if k not in special:
                 k = 'HTTP_' + k
             env[k] = v
@@ -124,4 +124,3 @@ class DebugApplication(tornado.web.Application):
     def get_error_html(self, status_code, **kwargs):
             traceback = save_current_traceback()
             return traceback.render_full(evalex=True).encode('utf-8', 'replace')
-

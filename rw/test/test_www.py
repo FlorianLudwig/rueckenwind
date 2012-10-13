@@ -13,7 +13,7 @@ def test_basics():
     assert len(Main.routes) == 1
     assert Main.routes[0].path == '/login'
     assert Main.routes[0].type == 'GET'
-    assert Main.routes[0].handler == 'login' # name of the function
+    assert Main.routes[0].handler == 'login'  # name of the function
 
 
 def test_inheritance():
@@ -25,7 +25,6 @@ def test_inheritance():
         @get('/logout')
         def logout(self):
             self.finish()
-
 
     class Main2(Main):
         @get('/anmeldung')
