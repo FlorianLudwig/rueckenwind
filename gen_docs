@@ -1,0 +1,3 @@
+clear
+
+sphinx-build -b html sphinx/ docs.html/  && cd docs.html/ && git status && git commit -a && git push origin gh-pages
