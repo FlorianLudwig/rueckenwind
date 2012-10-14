@@ -1,6 +1,7 @@
-"""Simple database ORM for mongodb
+"""rw.db provides a simple database ORM for mongodb
 
 Example::
+
     from rw.www import RequestHandler, get, post
     import motor
     import rw.db
