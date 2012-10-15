@@ -458,6 +458,7 @@ def setup(app_name, address=None, port=None):
                         if plug.handler(self, request)._handle_request():
                             return
             else:  # "normal" request
+                request.path = request.path.rstrip('/')
                 handler = self.base(self, request)
                 rbus.rw.request_handling.pre_process(handler)
                 if handler._handle_request():
