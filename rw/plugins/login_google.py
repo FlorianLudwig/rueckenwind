@@ -22,7 +22,6 @@ class GoogleLogin(rplug.rw.login):
         class GoogleLoginHandler(RequestHandler, GoogleMixin):
             @get('/')
             def index(self):
-                1/0
                 if self.get_argument('openid.mode', None):
                     self.get_authenticated_user(self._on_auth)
                     return
