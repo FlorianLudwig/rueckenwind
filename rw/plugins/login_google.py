@@ -25,7 +25,9 @@ class GoogleLogin(rplug.rw.login):
                 if self.get_argument('openid.mode', None):
                     self.get_authenticated_user(self._on_auth)
                     return
-                url = self.request.protocol + '//' + self.request.host
+                req = self.request
+                url = req.protocol + '://' + req.host + url_for(self.index)
+                print 'callback ur', url
                 self.authenticate_redirect(callback_uri=url)
 
             def _on_auth(self, user):
