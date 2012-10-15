@@ -135,16 +135,16 @@ class StaticURL(object):
                               ', referenced in {0}:{1}'.format(self.module, fname))
         return raw
 
-        path = self.get_path(fname, module)
-        template_path = self.get_path(fname, module, template=True)
-        # TODO warning if both exist, template and static file
-        if os.path.exists(path):
-            return open(path).read()
-        elif os.path.exists(template_path):
-            main = rw.get_module(module).www.Main
-            template = main.template_env.get_template('static/' + fname)
-            return template.render()
-        return None
+        #path = self.get_path(fname, module)
+        #template_path = self.get_path(fname, module, template=True)
+        ## TODO warning if both exist, template and static file
+        #if os.path.exists(path):
+        #    return open(path).read()
+        #elif os.path.exists(template_path):
+        #    main = rw.get_module(module).www.Main
+        #    template = main.template_env.get_template('static/' + fname)
+        #    return template.render()
+        #return None
 
 
 def url_for(func, **args):
@@ -185,8 +185,12 @@ class RequestHandlerMeta(type):
                 module, name = name.split(':', 1)
             else:
                 module = module_name
-            raw = pkg_resources.resource_string(module, 'templates/' + name)
-            return raw.decode('utf-8')
+            path = pkg_resources.resource_filename(module, 'templates/' + name)
+            # we always update the template so we return an uptodatefunc
+            # that always returns False
+            return (open(path).read().decode('utf-8'),
+                    path,
+                    lambda: False)
         ret.template_env = Environment(loader=FunctionLoader(load_template),
                                        extensions=['jinja2.ext.loopcontrols',
                                                    'jinja2.ext.i18n',
