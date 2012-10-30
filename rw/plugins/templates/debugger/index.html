@@ -19,7 +19,7 @@ div:hover {
 <div onclick="window.location='/_p/rw.debugger/{{ i }}'"> 
 {{ exception.datetime }}
 <pre>
-{{ str(exception.werkzeug_tb.plaintext) }}
+{{ unicode(exception.werkzeug_tb.plaintext) }}
 </pre>
 </div>
 {% endfor %}
