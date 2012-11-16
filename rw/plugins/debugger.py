@@ -42,4 +42,3 @@ def activate():
     ExceptionFetcher.activate()
     ErrorTab.activate()
     HandlerPlug.activate()
-

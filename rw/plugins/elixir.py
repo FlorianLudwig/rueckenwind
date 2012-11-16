@@ -10,4 +10,3 @@ class ExceptionFetcher(rplug.rw.ioloop_exception):
 
 def activate():
     ExceptionFetcher.activate()
-

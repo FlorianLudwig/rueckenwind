@@ -32,9 +32,6 @@ def test_parse_rule_errors():
         list(rw.routing.parse_rule('/<name/asd'))
 
 
-
-
-
 def test_rule_sorting():
     rules = [generate_rule('/'),
              generate_rule('/<something>'),
@@ -101,6 +98,7 @@ def test_inheritance():
 
 class TestHandler(rw.www.RequestHandler):
     last_invoced = None
+
     @rw.www.get('/')
     def index(self):
         TestHandler.last_invoced = 'index'
@@ -108,6 +106,7 @@ class TestHandler(rw.www.RequestHandler):
     @rw.www.get('/<name>')
     def page(self, name):
         TestHandler.last_invoced = 'page:' + name
+
 
 def test_minimum_consume():
     gen_handler(TestHandler, 'GET', '/')._handle_request()
@@ -124,4 +123,3 @@ def test_minimum_consume():
 #            self.path = path
 #            self.type = type
 #    assert a.match(None, Req('/a/1/2'))
-

@@ -46,4 +46,3 @@ class SmtpMail(rplug.rw.email):
 
 def activate():
     SmtpMail.activate()
-

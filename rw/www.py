@@ -135,17 +135,16 @@ class StaticURL(object):
                               ', referenced in {0}:{1}'.format(self.module, fname))
         return raw
 
-
-        path = self.get_path(fname, module)
-        template_path = self.get_path(fname, module, template=True)
-        # TODO warning if both exist, template and static file
-        if os.path.exists(path):
-            return open(path).read()
-        elif os.path.exists(template_path):
-            main = rw.get_module(module).www.Main
-            template = main.template_env.get_template('static/' + fname)
-            return template.render()
-        return None
+        #path = self.get_path(fname, module)
+        #template_path = self.get_path(fname, module, template=True)
+        ## TODO warning if both exist, template and static file
+        #if os.path.exists(path):
+        #    return open(path).read()
+        #elif os.path.exists(template_path):
+        #    main = rw.get_module(module).www.Main
+        #    template = main.template_env.get_template('static/' + fname)
+        #    return template.render()
+        #return None
 
 
 def url_for(func, **args):
@@ -186,8 +185,12 @@ class RequestHandlerMeta(type):
                 module, name = name.split(':', 1)
             else:
                 module = module_name
-            raw = pkg_resources.resource_string(module, 'templates/' + name)
-            return raw.decode('utf-8')
+            path = pkg_resources.resource_filename(module, 'templates/' + name)
+            # we always update the template so we return an uptodatefunc
+            # that always returns False
+            return (open(path).read().decode('utf-8'),
+                    path,
+                    lambda: False)
         ret.template_env = Environment(loader=FunctionLoader(load_template),
                                        extensions=['jinja2.ext.loopcontrols',
                                                    'jinja2.ext.i18n',
@@ -232,7 +235,7 @@ class RequestHandlerMeta(type):
 
         for lang in languages:
             ret.translations[lang] = Translations.load(module_path + '/locale',
-                                                           [Locale.parse(lang)])
+                                                       [Locale.parse(lang)])
             ret.translations[lang.split('_')[0]] = ret.translations[lang]
 
         # widgets
@@ -252,7 +255,7 @@ class RequestHandlerMeta(type):
                 if hasattr(obj, 'route'):
                     routes.append(routing.Rule(obj, key))
             ret._parents = [base for base in bases if issubclass(base, RequestHandler)
-                                                      and base != RequestHandler]
+                            and base != RequestHandler]
         else:
             ret._parents = []
         for base in bases:
@@ -273,6 +276,7 @@ class RequestHandlerMeta(type):
                 new_handler = sub_handler(req_handler.application, request)
                 new_handler.base_path = base_path
                 new_handler._handle_request()
+
             class Obj(object):
                 route = path
                 route_type = '*'
@@ -352,7 +356,7 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 code = code.lower()
             if code in self.translations:
                 return code
-            if parts[0] in self.translations: # XXX
+            if parts[0] in self.translations:  # XXX
                 return parts[0]
         # no match found, return default locale
         return self.language
@@ -423,6 +427,7 @@ def setup(app_name, address=None, port=None):
         debugger.activate()
 
     base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
+
     class Application(base_cls):
         def __init__(self, base):
             super(Application, self).__init__(cookie_secret=COOKIE_SECRET)
@@ -439,7 +444,7 @@ def setup(app_name, address=None, port=None):
                 return
             # static file?
             if request.path.startswith('/static/'):
-                path = request.path[8:].strip('/') # len('/static/') = 8
+                path = request.path[8:].strip('/')  # len('/static/') = 8
                 if '/' in path:
                     module, path = path.split('/', 1)
                     request.path = path
@@ -457,8 +462,12 @@ def setup(app_name, address=None, port=None):
                         request.path = '/' + path
                         if plug.handler(self, request)._handle_request():
                             return
-            else: # "normal" request
+            else:  # "normal" request
+                request.path = request.path.rstrip('/')
+                if request.path == '':
+                    request.path = '/'
                 handler = self.base(self, request)
+                rbus.rw.request_handling.pre_process(handler)
                 if handler._handle_request():
                     return
             # TODO handle this proberly
@@ -577,4 +586,3 @@ def load(mod):
 
 class Widget(object):
     pass
-

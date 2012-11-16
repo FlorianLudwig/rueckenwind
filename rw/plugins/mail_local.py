@@ -31,6 +31,7 @@ class LocalMail(rplug.rw.email):
 class MailTab(rplug.rw.infotab):
     def get_name(self):
         return 'Mail'
+
     def get_content(self):
         return '<iframe src="/_p/rw.mail_local/" width="100%" height="100%"></iframe>'
 
@@ -66,4 +67,3 @@ def activate():
     LocalMail.activate()
     MailTab.activate()
     HandlerPlug.activate()
-

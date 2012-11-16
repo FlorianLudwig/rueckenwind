@@ -121,5 +121,3 @@ def start(app=None, type='www', **kwargs):
         tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
         print 'ctrl+c received. Exiting'
-
-

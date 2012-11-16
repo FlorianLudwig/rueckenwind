@@ -82,7 +82,6 @@ def test_multi():
     assert Log1.last_msg == 'b'
 
 
-
 class LoggingInterface2(rbusys.MultiPlug):
     rbus_path = 'rw.logging2'
 
@@ -93,6 +92,7 @@ class LoggingInterface2(rbusys.MultiPlug):
 
 class Log0_2(rplug.rw.logging2):
     num = 0
+
     def log(self, msg):
         Log0_2.last_msg = msg
         return self.num
@@ -100,6 +100,7 @@ class Log0_2(rplug.rw.logging2):
 
 class Log1_2(rplug.rw.logging2):
     num = 1
+
     def log(self, msg):
         Log1_2.last_msg = msg
         return self.num
@@ -107,6 +108,7 @@ class Log1_2(rplug.rw.logging2):
 
 Log0_2.activate()
 Log1_2.activate()
+
 
 def test_post_processing_with_interface():
     assert rbus.rw.logging2.log('a') == 1
@@ -133,4 +135,3 @@ def test_unused_interface():
     assert rbus.rw.unused_m.send.__doc__ != ""
     with pytest.raises(AttributeError):
         rbus.rw.unused_m.something_that_does_not_exist_in_interface()
-

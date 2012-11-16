@@ -31,7 +31,7 @@ Use pip::
 
   virtualenv --distribute my_playground
   . ./my_playground/bin/activate  
-  pip install -e git@github.com:FlorianLudwig/rueckenwind.git#egg=rueckenwind
+  pip install -e git+git://github.com/FlorianLudwig/rueckenwind.git#egg=rueckenwind
 
 
 Quick start

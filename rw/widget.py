@@ -33,7 +33,7 @@ class Widget(Extension):
             # parse args
             while 1:
                 current = parser.stream.current
-                if current.type in ( 'name', 'integer', 'string', 'float'):
+                if current.type in ('name', 'integer', 'string', 'float'):
                     args.append(parser.parse_primary())
 
                 next = parser.stream.next()
@@ -106,7 +106,7 @@ class WidgetDef(Extension):
             # parse args
             while 1:
                 current = parser.stream.current
-                if current.type in ( 'name', 'integer', 'string', 'float'):
+                if current.type in ('name', 'integer', 'string', 'float'):
                     args.append(parser.parse_primary())
 
                 next = parser.stream.next()

@@ -83,6 +83,8 @@ def converter_default(data):
 
 
 NON_INT = re.compile('[^0-9-]')
+
+
 def converter_int(data):
     length = NON_INT.search(data)
     length = length.start() if length else len(data)
@@ -92,6 +94,8 @@ def converter_int(data):
 
 
 NON_UINT = re.compile('[^0-9]')
+
+
 def converter_uint(data):
     length = NON_UINT.search(data)
     length = length.start() if length else len(data)
@@ -109,7 +113,7 @@ class Rule(object):
         else:
             obj.route_rule = self
         self.handler = handler
-        self.route =  list(parse_rule(obj.route))
+        self.route = list(parse_rule(obj.route))
 
     def weight(self):
         c = 0
@@ -159,4 +163,3 @@ class Rule(object):
 
     def __repr__(self):
         return '<Rule %s "%s">' % (self.type, self.path)
-

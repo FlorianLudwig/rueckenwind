@@ -11,6 +11,7 @@ Contents:
    getting_started.rst
    www.rst
    static_data.rst
+   db.rst
 
 * TODO: Write docs about
  * plugin / bus system
