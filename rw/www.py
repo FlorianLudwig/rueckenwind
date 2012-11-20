@@ -26,7 +26,7 @@ from collections import deque
 import inspect
 
 import pkg_resources
-import tornado
+import tornado.websocket
 from tornado.web import HTTPError
 from jinja2 import Environment, FunctionLoader
 
@@ -396,6 +396,11 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 self.finish(self.application.get_error_html(status_code, **kwargs))
         else:
             super(RequestHandler, self).send_error(status_code, **kwargs)
+
+
+class WebSocketHandler(tornado.websocket.WebSocketHandler):
+    def _handle_request(self):
+        self._execute([])
 
 
 class Main(RequestHandler):
