@@ -3,29 +3,26 @@ import time
 import cPickle
 
 from rw.www import RequestHandler, get, post
+from mail import Mail
 import rplug
 
 PATH = os.path.expanduser('~/.rw/')
 DB_PATH = PATH + 'plugins.mail_local'
 
 
-class Mail(object):
-    def __init__(self, toaddrs, subject, body):
-        self.toaddrs = toaddrs
-        self.subject = subject
-        self.body = body
-        self.time = time.time()
-
-
 class LocalMail(rplug.rw.email):
     def send(self, toaddrs, subject, body):
         print 'send message to', toaddrs, subject, body
         if os.path.exists(DB_PATH):
-            data = cPickle.load(open(DB_PATH))
+            f = open(DB_PATH)
+            data = cPickle.load(f)
+            f.close()
         else:
             data = []
         data.append(Mail(toaddrs, subject, body))
-        cPickle.dump(data, open(DB_PATH, 'w'))
+        f = open(DB_PATH, 'w')
+        cPickle.dump(data, f)
+        f.close()
 
 
 class MailTab(rplug.rw.infotab):
@@ -40,7 +37,9 @@ class Handler(RequestHandler):
     @get('/')
     def index(self):
         if os.path.exists(DB_PATH):
-            self['mails'] = cPickle.load(open(DB_PATH))
+            f = open(DB_PATH)
+            self['mails'] = cPickle.load(f)
+            f.close()
         else:
             self['mails'] = []
         self['repr'] = repr
@@ -49,10 +48,14 @@ class Handler(RequestHandler):
     @post('/delete')
     def delete(self):
         mid = int(self.get_argument('mid'))
-        data = cPickle.load(open(DB_PATH))
+        f = open(DB_PATH)
+        data = cPickle.load(f)
+        f.close()
         if mid < len(data):
             del data[mid]
-            cPickle.dump(data, open(DB_PATH, 'w'))
+            f = open(DB_PATH, 'w')
+            cPickle.dump(data, f)
+            f.close()
         self.redirect('/_p/rw.mail_local/')
 
 
