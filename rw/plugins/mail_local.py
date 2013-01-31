@@ -2,19 +2,12 @@ import os
 import time
 import cPickle
 
+from mail import Mail
 from rw.www import RequestHandler, get, post
 import rplug
 
 PATH = os.path.expanduser('~/.rw/')
 DB_PATH = PATH + 'plugins.mail_local'
-
-
-class Mail(object):
-    def __init__(self, toaddrs, subject, body):
-        self.toaddrs = toaddrs
-        self.subject = subject
-        self.body = body
-        self.time = time.time()
 
 
 class LocalMail(rplug.rw.email):
