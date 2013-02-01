@@ -99,7 +99,7 @@ def drop_privileges(uid_name='nobody', gid_name=None):
 class RWIOLoop(tornado.ioloop.IOLoop):
     def handle_callback_exception(self, callback):
         exctype, value, exception = sys.exc_info()
-        if exctype == testing.StopIOLoop:
+        if issubclass(exctype, testing.StopIOLoop):
             raise
         traceback.print_exception(exctype, value, exception)
         try:
