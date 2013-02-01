@@ -17,8 +17,6 @@ import re
 import traceback
 import argparse
 import os
-import pwd
-import grp
 
 import tornado.ioloop
 import tornado.web
@@ -27,6 +25,8 @@ import tornado.autoreload
 import rbusys
 rbusys.setup()
 import rbus
+
+from rw import testing
 
 
 DEBUG = True
@@ -67,6 +67,8 @@ def load(name):
 
 
 def drop_privileges(uid_name='nobody', gid_name=None):
+    import pwd
+    import grp
     # get uid/gid from the name
     uid = pwd.getpwnam(uid_name).pw_uid
     if gid_name is None:
@@ -97,9 +99,14 @@ def drop_privileges(uid_name='nobody', gid_name=None):
 class RWIOLoop(tornado.ioloop.IOLoop):
     def handle_callback_exception(self, callback):
         exctype, value, exception = sys.exc_info()
+        if exctype == testing.StopIOLoop:
+            raise
         traceback.print_exception(exctype, value, exception)
         try:
             rbus.rw.ioloop_exception.on_exception(exctype, value, exception, callback)
+        except testing.StopIOLoop, e:
+            self.stop()
+            raise e
         except:
             print 'ERROR calling exception handler'
             exctype, value, exception = sys.exc_info()
