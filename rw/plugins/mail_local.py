@@ -11,13 +11,14 @@ DB_PATH = PATH + 'plugins.mail_local'
 
 
 class LocalMail(rplug.rw.email):
-    def send(self, toaddrs, subject, body):
+    """rueckenwind email plugin for testing email functions during development"""
+    def send(self, toaddrs, subject, body, attachments={}):
         print 'send message to', toaddrs, subject, body
         if os.path.exists(DB_PATH):
             data = cPickle.load(open(DB_PATH))
         else:
             data = []
-        data.append(Mail(toaddrs, subject, body))
+        data.append(Mail(toaddrs, subject, body, attachments))
         cPickle.dump(data, open(DB_PATH, 'w'))
 
 

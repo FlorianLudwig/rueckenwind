@@ -17,7 +17,7 @@ TLS = True
 
 
 class SmtpMail(rplug.rw.email):
-    def send(self, toaddrs, subject, body):
+    def send(self, toaddrs, subject, body, attachments={}):
         """Send an email via smtp, all arguments must be utf-8 or unicode
 
            toaddrs is a list of receipients
@@ -32,6 +32,16 @@ class SmtpMail(rplug.rw.email):
         msg['From'] = FROM
         msg['To'] = ','.join(toaddrs)
         msg['Subject'] = subject
+
+        for fname, content in attachments.items():
+            if isinstance(content, unicode):
+                content = content.encode('utf-8')
+            elif hasattr(content, 'read'):
+                content = content.read()
+            attachment = MIMEText(content)
+            attachment.add_header('Content-Disposition', 'attachment', filename=fname)
+            msg.attach(attachment)
+
         # The actual mail send
         s = smtplib.SMTP(RELAY, PORT, LOCAL_HOSTNAME)
         if TLS:

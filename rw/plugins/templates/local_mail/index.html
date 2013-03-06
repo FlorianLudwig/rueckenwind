@@ -10,6 +10,12 @@
        Subject: {{ mail.subject }} <br/>
        {{ mail.body.replace('\n', '<br/>') }}
        <br />
+        {% if mail.attachments %}
+            <b>Attachments:</b><br>
+            {% for fname in mail.attachments %}
+                {{ fname }}<br />
+            {% endfor %}
+        {% endif %}
        <form action="/_p/rw.mail_local/delete" method="post">
        	<input type="hidden" name="mid" value="{{ i }}">
         <input type="submit" value="delete">
