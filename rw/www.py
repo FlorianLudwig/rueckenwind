@@ -162,6 +162,23 @@ def urlencode(uri, **query):
     return urlparse.urlunparse(parts)
 
 
+def _generate_sub_handler(path, sub_handler):
+    def delegate_handler(req_handler):
+        base_path = req_handler.base_path + path
+        request = req_handler.request
+        request.path = request.path[len(path):]
+        if not request.path.startswith('/'):
+            request.path = '/' + request.path
+        new_handler = sub_handler(req_handler.application, request)
+        new_handler.base_path = base_path
+        new_handler._handle_request()
+
+    class Obj(object):
+        route = path
+        route_type = '*'
+    return delegate_handler, Obj
+
+
 class RequestHandlerMeta(type):
     def __new__(cls, name, bases, dct):
         is_base_class = bases == (tornado.web.RequestHandler, dict)
@@ -267,19 +284,7 @@ class RequestHandlerMeta(type):
                         routes.append(routing.Rule(obj, handler))
         # add mounts
         for path, sub_handler in mounts:
-            def delegate_handler(req_handler):
-                base_path = req_handler.base_path + path
-                request = req_handler.request
-                request.path = request.path[len(path):]
-                if not request.path.startswith('/'):
-                    request.path = '/' + request.path
-                new_handler = sub_handler(req_handler.application, request)
-                new_handler.base_path = base_path
-                new_handler._handle_request()
-
-            class Obj(object):
-                route = path
-                route_type = '*'
+            delegate_handler, Obj = _generate_sub_handler(path, sub_handler)
             routes.append(routing.Rule(Obj, delegate_handler))
         routes.sort(reverse=True)
         return ret
