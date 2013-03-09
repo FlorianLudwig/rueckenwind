@@ -366,6 +366,16 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         # no match found, return default locale
         return self.language
 
+    def render_template(self, template):
+        """Render template and use i18n."""
+        template = self.template_env.get_template(template)
+        language = self.language
+        if isinstance(language, basestring):
+            language = self.get_closest(language)
+            language = self.translations[language]
+        self.template_env.install_gettext_translations(language)
+        return template.render(**self)
+
     def finish(self, chunk=None, template=None):
         """Finish Controller part and begin rendering and sending template
 
@@ -373,17 +383,7 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         if template:
             self.template = template
         if self.template and not chunk:
-            template = self.template_env.get_template(self.template)
-            # data = list(template.stream(**self))
-            # for chunk in data:
-            #    print repr(chunk)
-            # self.write(''.join(data))
-            language = self.language
-            if isinstance(language, basestring):
-                language = self.get_closest(language)
-                language = self.translations[language]
-            self.template_env.install_gettext_translations(language)
-            self.write(template.render(**self))
+            self.write(self.render_template(self.template))
         super(RequestHandler, self).finish(chunk)
 
     def _handle_request(self):
