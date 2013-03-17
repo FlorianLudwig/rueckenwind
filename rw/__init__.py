@@ -21,6 +21,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.autoreload
 from configobj import ConfigObj
+import pkg_resources
 
 import rbusys
 rbusys.setup()
@@ -133,7 +134,8 @@ class ConfigHandler(object):
     """
     def __getattr__(self, item):
         cfg_name = item + '.cfg'
-        CONFIG_FILES = ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
+        CONFIG_FILES = [pkg_resources.resource_filename(item, 'config.cfg')]
+        CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
         if 'VIRTUAL_ENV' in os.environ:
             CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
 
@@ -144,6 +146,8 @@ class ConfigHandler(object):
                 LOG.info('reading config: ' + config_path)
                 config_obj = ConfigObj(config_path)
                 update_config(config, config_obj)
+            else:
+                LOG.debug('config does not exist: ' + config_path)
 
         setattr(self, item, config)
         return config
