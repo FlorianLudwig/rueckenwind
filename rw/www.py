@@ -24,6 +24,7 @@ from hashlib import md5
 import mimetypes
 from collections import deque
 import inspect
+import logging
 
 import pkg_resources
 import tornado.websocket
@@ -41,6 +42,7 @@ from babel.core import Locale
 
 COOKIE_SECRET = ''.join([chr(random.randint(1, 255)) for i in xrange(32)])
 WIDGET_FILENAMES = re.compile('[a-z][a-z_0-9]*\\.py$')
+LOG = logging.getLogger(__name__)
 
 
 class StaticURL(object):
@@ -418,17 +420,18 @@ def setup(app_name, address=None, port=None):
     # default plugins
     import rbusys
     if isinstance(rbus.rw.email, rbusys.StubImplementation):
-        print 'No E-Mail plugin loaded -',
+        log = 'No E-Mail plugin loaded -'
         if rw.DEBUG:
             from rw.plugins import mail_local as mail
-            print 'fake mail_local plugin loaded'
+            log += 'fake mail_local plugin loaded'
         else:
             from rw.plugins import mail_smtp as mail
-            print 'SMTP mail plugin loaded'
+            log += 'SMTP mail plugin loaded'
+        LOG.info(log)
         mail.activate()
     if rw.DEBUG:
         from rw.plugins import debugger
-        print 'activate debugger'
+        LOG.info('activate debugger')
         debugger.activate()
 
     base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
@@ -442,7 +445,6 @@ def setup(app_name, address=None, port=None):
             request.original_path = request.path
             # werzeug debugger
             if rw.DEBUG and '__debugger__' in request.uri:
-                print 'DEBUG CALL'
                 handler = rw.debug.WSGIHandler(self, request, rw.debug.DEBUG_APP)
                 handler.delegate()
                 handler.finish()
@@ -476,7 +478,6 @@ def setup(app_name, address=None, port=None):
                 if handler._handle_request():
                     return
             # TODO handle this proberly
-            # print '404', request.path
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             handler = tornado.web.ErrorHandler(self, request, status_code=404)
             handler._execute([])
@@ -487,7 +488,7 @@ def setup(app_name, address=None, port=None):
         address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
     if not port:
         port = 9999
-    print 'Listening on http://%s:%i' % (address, port)
+    LOG.info('Listening on http://%s:%i' % (address, port))
     app.listen(port, address=address)
     #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
     if rw.DEBUG:

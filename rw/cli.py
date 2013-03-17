@@ -16,6 +16,7 @@
 import sys
 import os
 import argparse
+import logging
 
 import pkg_resources
 import jinja2
@@ -83,6 +84,12 @@ serv.parser.add_argument('MODULE',
 
 
 def main():
+    # check logging
+    log_level = os.environ.get('LOG_LEVEL', 'INFO')
+    logging.basicConfig(level=getattr(logging, log_level),
+                        format='%(asctime)s %(name)s[%(levelname)s] %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
+
     current_path = os.path.abspath('.')
     if not current_path in sys.path:
         sys.path.insert(0, current_path)
