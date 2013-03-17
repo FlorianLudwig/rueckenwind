@@ -13,14 +13,14 @@
 # under the License.
 
 import sys
-import re
 import traceback
-import argparse
 import os
+import logging
 
 import tornado.ioloop
 import tornado.web
 import tornado.autoreload
+from configobj import ConfigObj
 
 import rbusys
 rbusys.setup()
@@ -29,6 +29,7 @@ import rbus
 from rw import testing
 
 
+LOG = logging.getLogger(__name__)
 DEBUG = True
 
 MODULES = {'www': {},
@@ -113,6 +114,41 @@ class RWIOLoop(tornado.ioloop.IOLoop):
             traceback.print_exception(exctype, value, exception)
 
 io_loop = tornado.ioloop.IOLoop._instance = RWIOLoop()
+
+
+def update_config(cfg, update):
+    for key, value in update.items():
+        if key in cfg and isinstance(value, dict):
+            update_config(cfg[key], value)
+        else:
+            cfg[key] = value
+
+
+class ConfigHandler(object):
+    """Handling Configuration.
+
+    Design Decisions:
+     - JSON does not support comments
+     - YAML got some smaller problems but so does ini. In the end a KISS decision was made.
+    """
+    def __getattr__(self, item):
+        cfg_name = item + '.cfg'
+        CONFIG_FILES = ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
+        if 'VIRTUAL_ENV' in os.environ:
+            CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
+
+        # read config
+        config = {}
+        for config_path in CONFIG_FILES:
+            if os.path.exists(config_path):
+                LOG.info('reading config: ' + config_path)
+                config_obj = ConfigObj(config_path)
+                update_config(config, config_obj)
+
+        setattr(self, item, config)
+        return config
+
+cfg = ConfigHandler()
 
 
 def setup(app_name, type='www', address=None, port=None):
