@@ -16,6 +16,7 @@ import sys
 import traceback
 import os
 import logging
+import select
 
 import tornado.ioloop
 import tornado.web
@@ -114,7 +115,32 @@ class RWIOLoop(tornado.ioloop.IOLoop):
             exctype, value, exception = sys.exc_info()
             traceback.print_exception(exctype, value, exception)
 
-io_loop = tornado.ioloop.IOLoop._instance = RWIOLoop()
+
+def rw_ioloop_instance():
+    if hasattr(select, "epoll"):
+        from tornado.platform.epoll import EPollIOLoop
+
+        class RWEPollIOLoop(RWIOLoop, EPollIOLoop):
+            pass
+
+        return RWEPollIOLoop()
+    if hasattr(select, "kqueue"):
+        # Python 2.6+ on BSD or Mac
+        from tornado.platform.kqueue import KQueueIOLoop
+
+        class RWEPollIOLoop(RWIOLoop, KQueueIOLoop):
+            pass
+
+        return RWEPollIOLoop()
+    from tornado.platform.select import SelectIOLoop
+
+    class RWSelectIOLoop(RWIOLoop, SelectIOLoop):
+        pass
+
+    return SelectIOLoop()
+
+
+io_loop = tornado.ioloop.IOLoop._instance = rw_ioloop_instance()
 
 
 def update_config(cfg, update):
