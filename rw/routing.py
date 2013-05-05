@@ -20,7 +20,7 @@ from tornado import stack_context
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)                           # static rule data
     <
-    (?P<variable>[a-zA-Z][a-zA-Z0-9_]*)         # variable name
+    (?P<variable>[a-zA-Z_][a-zA-Z0-9_]*)         # variable name
     (?:
         \:                                      # variable delimiter
         (?P<converter>[a-zA-Z_][a-zA-Z0-9_]*)   # converter name
