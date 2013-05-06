@@ -387,6 +387,8 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         if self.template and not chunk:
             self.write(self.render_template(self.template))
         super(RequestHandler, self).finish(chunk)
+        dict.clear(self)
+        self.ui = None
 
     def _handle_request(self):
         for rule in self.routes:
