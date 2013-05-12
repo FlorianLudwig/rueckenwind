@@ -25,6 +25,9 @@ import mimetypes
 from collections import deque
 import inspect
 import logging
+import json
+import contextlib
+import functools
 
 import pkg_resources
 from tornado import stack_context
@@ -164,6 +167,34 @@ def urlencode(uri, **query):
     return urlparse.urlunparse(parts)
 
 
+def create_template_env(load_template):
+    template_env = Environment(loader=FunctionLoader(load_template),
+                                   extensions=['jinja2.ext.loopcontrols',
+                                               'jinja2.ext.i18n',
+                                               widget.Widget])
+
+    import rw
+    template_env.globals['rw'] = rw
+    template_env.globals['rbus'] = rbus
+    # some more default functions
+    template_env.globals['enumerate'] = enumerate
+    template_env.globals['isinstance'] = isinstance
+    template_env.globals['len'] = len
+    # default types
+    template_env.globals['int'] = int
+    template_env.globals['str'] = str
+    template_env.globals['unicode'] = unicode
+    template_env.globals['list'] = list
+    template_env.globals['tuple'] = tuple
+    template_env.globals['dict'] = dict
+    template_env.globals['set'] = set
+    template_env.globals['basestring'] = basestring
+    template_env.globals['urlencode'] = urlencode
+    # filter
+    template_env.filters['json'] = json.dumps
+    return template_env
+
+
 class RequestHandlerMeta(type):
     def __new__(cls, name, bases, dct):
         is_base_class = bases == (tornado.web.RequestHandler, dict)
@@ -173,9 +204,7 @@ class RequestHandlerMeta(type):
         module_name = sys.modules[module].__name__
         module_path = sys.modules[module].__file__
         module_path = os.path.dirname(os.path.abspath(module_path))
-        #templates_path = module_path + '/templates'
         ret.module_path = module_path
-        #ret.templates_path = templates_path
 
         def load_template(name):
             if ':' in name:
@@ -188,10 +217,7 @@ class RequestHandlerMeta(type):
             return (open(path).read().decode('utf-8'),
                     path,
                     lambda: False)
-        ret.template_env = Environment(loader=FunctionLoader(load_template),
-                                       extensions=['jinja2.ext.loopcontrols',
-                                                   'jinja2.ext.i18n',
-                                                   widget.Widget])
+        ret.template_env = create_template_env(load_template)
         if module.endswith('.www'):
             module = module[:-4]
         if not '_module_name' in dct:
@@ -204,24 +230,6 @@ class RequestHandlerMeta(type):
 
         ret.template_env.globals['static'] = static
         ret.template_env.globals['url_for'] = url_for
-        ret.template_env.globals['rbus'] = rbus
-        import rw
-        ret.template_env.globals['rw'] = rw
-        # some more default functions
-        ret.template_env.globals['enumerate'] = enumerate
-        #ret.template_env.globals['sorted'] = sorted
-        ret.template_env.globals['isinstance'] = isinstance
-        ret.template_env.globals['len'] = len
-        # default types
-        ret.template_env.globals['int'] = int
-        ret.template_env.globals['str'] = str
-        ret.template_env.globals['unicode'] = unicode
-        ret.template_env.globals['list'] = list
-        ret.template_env.globals['tuple'] = tuple
-        ret.template_env.globals['dict'] = dict
-        ret.template_env.globals['set'] = set
-        ret.template_env.globals['basestring'] = basestring
-        ret.template_env.globals['urlencode'] = urlencode
 
         # i18n - load all available translations
         if not 'language' in dct:
@@ -377,6 +385,18 @@ class Main(RequestHandler):
     pass
 
 
+@contextlib.contextmanager
+def rh_context(handler):
+    global rw_rh_context
+    rw_rh_context = handler
+    yield
+    rw_rh_context = None
+
+
+def current_handler():
+    return rw_rh_context
+
+
 def setup(app_name, address=None, port=None):
     app = rw.get_module(app_name, 'www').www.Main
 
@@ -444,8 +464,9 @@ def setup(app_name, address=None, port=None):
                         handler, func_name, arguments = match
                         handler = handler(self, request)
                         with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
-                            rbus.rw.request_handling.pre_process(handler)
-                            getattr(handler, func_name)(**arguments)
+                            with stack_context.StackContext(functools.partial(rh_context, handler)):
+                                rbus.rw.request_handling.pre_process(handler)
+                                getattr(handler, func_name)(**arguments)
                         return
 
                 # handler = self.base(self, request)
@@ -480,7 +501,6 @@ def generate_routing(root):
 
 
 def _generate_routing(root, req_type, prefix=''):
-    print '_generate_routing', root, req_type, prefix
     ret = []
     for key, value in inspect.getmembers(root):
         if isinstance(value, mount):
