@@ -5,17 +5,6 @@ from rw.www import RequestHandler, get, post, url_for
 from tornado.auth import GoogleMixin
 import rplug
 
-PATH = os.path.expanduser('~/.rw/')
-DB_PATH = PATH + 'plugins.mail_local'
-
-
-class Mail(object):
-    def __init__(self, toaddrs, subject, body):
-        self.toaddrs = toaddrs
-        self.subject = subject
-        self.body = body
-        self.time = time.time()
-
 
 class GoogleLogin(rplug.rw.login):
     def handler(self):
