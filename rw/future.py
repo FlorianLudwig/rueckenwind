@@ -1,3 +1,5 @@
+"""Staging area for classes and functions that might be part of rueckenwindin the future"""
+
 from jinja2 import nodes
 from jinja2.ext import Extension
 
@@ -5,7 +7,7 @@ from jinja2.ext import Extension
 class CachedPartExtension(Extension):
     """Test jinja2 extentions"""
     # a set of names that trigger the extension.
-    tags = set(['part'])
+    tags = {'part'}
 
     def __init__(self, environment):
         super(CachedPartExtension, self).__init__(environment)

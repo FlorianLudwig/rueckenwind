@@ -102,7 +102,7 @@ class Field(property):
 
 
 class EntityMeta(type):
-    def __new__(cls, name, bases, dct):
+    def __new__(mcs, name, bases, dct):
         ret = type.__new__(cls, name, bases, dct)
 
         ret._id_name = '_id'
