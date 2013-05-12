@@ -105,15 +105,11 @@ def converter_uint(data):
 
 
 class Rule(object):
-    def __init__(self, obj, handler):
-        self.path = obj.route
-        self.type = obj.route_type
-        if hasattr(obj, '__func__'):
-            obj.__func__.route_rule = self
-        else:
-            obj.route_rule = self
+    def __init__(self, path, handler, func_name):
+        self.path = path
         self.handler = handler
-        self.route = list(parse_rule(obj.route))
+        self.func_name = func_name
+        self.route = list(parse_rule(path))
 
     def weight(self):
         c = 0
@@ -127,9 +123,7 @@ class Rule(object):
     def __cmp__(self, o):
         return cmp(self.weight(), o.weight())
 
-    def match(self, req_handler, request):
-        if request.method != self.type and self.type != '*':
-            return
+    def match(self, request):
         test_path = request.path
         arguments = {}
         for converter, args, data in self.route:
@@ -144,12 +138,7 @@ class Rule(object):
                 consumed = len(data)
             test_path = test_path[consumed:]
         if not test_path:
-            with stack_context.ExceptionStackContext(req_handler._stack_context_handle_exception):
-                if isinstance(self.handler, basestring):
-                    getattr(req_handler, self.handler)(**arguments)
-                else:
-                    self.handler(req_handler, **arguments)
-            return True
+            return self.handler, self.func_name, arguments
         return False
 
     def get_path(self, values={}):
@@ -162,4 +151,4 @@ class Rule(object):
         return ''.join(re)
 
     def __repr__(self):
-        return '<Rule %s "%s">' % (self.type, self.path)
+        return '<Rule "%s">' % self.path

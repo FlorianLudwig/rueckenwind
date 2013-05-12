@@ -10,10 +10,10 @@ def test_basics():
         def login(self):
             self.finish()
 
-    assert len(Main.routes) == 1
-    assert Main.routes[0].path == '/login'
-    assert Main.routes[0].type == 'GET'
-    assert Main.routes[0].handler == 'login'  # name of the function
+    routes = rw.www.generate_routing(Main)['get']
+    assert len(routes) == 1
+    assert routes[0].path == '/login'
+    assert routes[0].func_name == 'login'  # name of the function
 
 
 def test_inheritance():
@@ -35,22 +35,26 @@ def test_inheritance():
         def foobar(self):
             self.finish()
 
-    assert len(Main.routes) == 2
-    # the /login route should not exist
-    assert len(Main2.routes) == 3
+    routes = rw.www.generate_routing(Main)['get']
+    routes2 = rw.www.generate_routing(Main2)['get']
+    assert len(routes) == 2
+    # the /login route should not exist twice
+    assert len(routes2) == 3
 
-    routes = set([r.path for r in Main2.routes])
+    routes = set([r.path for r in routes2])
     assert routes == set(['/anmeldung', '/foobar', '/logout'])
 
 
 def test_static_content():
-    app = rw.load('rw.test.simple_app')
+    app = rw.get_module('rw.test.simple_app')
+    print app
+    print dir(app)
     content = app.www.Main._static.get_content('static')
     assert content == 'something static\n'
 
 
 def test_dynamic_static_content():
-    app = rw.load('rw.test.simple_app')
+    app = rw.get_module('rw.test.simple_app')
     content = app.www.Main._static.get_content('dynamic')
     assert content == 'something dynamic:\n0\n1\n2\n'
 

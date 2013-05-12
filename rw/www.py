@@ -27,12 +27,15 @@ import inspect
 import logging
 
 import pkg_resources
+from tornado import stack_context
 import tornado.websocket
 from tornado.web import HTTPError
 from jinja2 import Environment, FunctionLoader
 
 import rw
-from . import debug, routing, widget
+import rw.debug
+from . import widget
+from .routing import Rule
 import rbus
 import rbusys
 
@@ -150,10 +153,7 @@ class StaticURL(object):
 
 
 def url_for(func, **args):
-    base = func.im_self.base_path
-    if args:
-        return base + func.route_rule.get_path(args)
-    return base + func.route
+    return func.route_rule.get_path(args)
 
 
 def urlencode(uri, **query):
@@ -164,32 +164,10 @@ def urlencode(uri, **query):
     return urlparse.urlunparse(parts)
 
 
-def _generate_sub_handler(path, sub_handler):
-    def delegate_handler(req_handler):
-        base_path = req_handler.base_path + path
-        request = req_handler.request
-        request.path = request.path[len(path):]
-        if not request.path.startswith('/'):
-            request.path = '/' + request.path
-        new_handler = sub_handler(req_handler.application, request)
-        new_handler.base_path = base_path
-        new_handler._handle_request()
-
-    class Obj(object):
-        route = path
-        route_type = '*'
-    return delegate_handler, Obj
-
-
 class RequestHandlerMeta(type):
     def __new__(cls, name, bases, dct):
         is_base_class = bases == (tornado.web.RequestHandler, dict)
-        routes = []
-        mounts = dct.get('_mounts', [])
-        if '_mounts' in dct:
-            del dct['_mounts']
         ret = type.__new__(cls, name, bases, dct)
-        ret.routes = routes
         # find template dir
         module = dct['__module__']
         module_name = sys.modules[module].__name__
@@ -216,7 +194,8 @@ class RequestHandlerMeta(type):
                                                    widget.Widget])
         if module.endswith('.www'):
             module = module[:-4]
-        ret._module_name = module
+        if not '_module_name' in dct:
+            ret._module_name = module
         static = StaticURL(ret if not is_base_class else '')
         ret._static = static
         for base in bases:
@@ -258,6 +237,8 @@ class RequestHandlerMeta(type):
             ret.translations[lang.split('_')[0]] = ret.translations[lang]
 
         # widgets
+        # XXX experimental feature, disabled for now
+        """
         ret.widgets = {}
         if os.path.exists(module_path + '/widgets'):
             for fname in os.listdir(module_path + '/widgets'):
@@ -267,28 +248,14 @@ class RequestHandlerMeta(type):
                     w_fullname += '.widgets.' + w_name
                     mod = __import__(w_fullname)
                     ret.widgets[w_name] = mod
+        """
 
         # make sure inheritance works
         if not is_base_class:
-            for key, obj in dct.items():
-                if hasattr(obj, 'route'):
-                    routes.append(routing.Rule(obj, key))
             ret._parents = [base for base in bases if issubclass(base, RequestHandler)
                             and base != RequestHandler]
         else:
             ret._parents = []
-        for base in bases:
-            if hasattr(base, 'routes'):
-                for route in base.routes:
-                    handler = route.handler
-                    if handler not in [r.handler for r in routes]:
-                        obj = getattr(base, handler)
-                        routes.append(routing.Rule(obj, handler))
-        # add mounts
-        for path, sub_handler in mounts:
-            delegate_handler, Obj = _generate_sub_handler(path, sub_handler)
-            routes.append(routing.Rule(Obj, delegate_handler))
-        routes.sort(reverse=True)
         return ret
 
 
@@ -390,12 +357,6 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         dict.clear(self)
         self.ui = None
 
-    def _handle_request(self):
-        for rule in self.routes:
-            if rule.match(self, self.request):
-                return True
-        return False
-
     def send_error(self, status_code, **kwargs):
         if 'exc_info' in kwargs:
             # TODO check self._headers_written
@@ -437,6 +398,7 @@ def setup(app_name, address=None, port=None):
         debugger.activate()
 
     base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
+    routes = generate_routing(app)
 
     class Application(base_cls):
         def __init__(self, base):
@@ -469,16 +431,27 @@ def setup(app_name, address=None, port=None):
                 for plug in rbusys.PLUGS['rw.www']._plugs:
                     if plug.name == plugin:
                         request.path = '/' + path
-                        if plug.handler(self, request)._handle_request():
+                        if plug.handler(self, request)._handle_request():  # XXX TODO
                             return
             else:  # "normal" request
                 request.path = request.path.rstrip('/')
                 if request.path == '':
                     request.path = '/'
-                handler = self.base(self, request)
-                rbus.rw.request_handling.pre_process(handler)
-                if handler._handle_request():
-                    return
+
+                for rule in routes[request.method.lower()]:
+                    match = rule.match(request)
+                    if match:
+                        handler, func_name, arguments = match
+                        handler = handler(self, request)
+                        with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
+                            rbus.rw.request_handling.pre_process(handler)
+                            getattr(handler, func_name)(**arguments)
+                        return
+
+                # handler = self.base(self, request)
+                #
+                # if handler._handle_request():
+                #     return
             # TODO handle this proberly
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             handler = tornado.web.ErrorHandler(self, request, status_code=404)
@@ -497,6 +470,38 @@ def setup(app_name, address=None, port=None):
         tornado.autoreload.start()
 
 
+def generate_routing(root):
+    """generate routing "table"
+    """
+    ret = {}
+    for req_type in ('get', 'post', 'put', 'delete'):
+        ret[req_type] = _generate_routing(root, req_type)
+    return ret
+
+
+def _generate_routing(root, req_type, prefix=''):
+    print '_generate_routing', root, req_type, prefix
+    ret = []
+    for key, value in inspect.getmembers(root):
+        if isinstance(value, mount):
+            route = prefix + value._rw_route
+            ret.extend(_generate_routing(value._rw_mod, req_type, route))
+        elif hasattr(value, '_rw_route'):
+            if not hasattr(value, '_rw_route_type') or value._rw_route_type != req_type:
+                continue
+            # generate route and normalize ending slashes
+            route = (prefix + value._rw_route).rstrip('/')
+            if route == '':
+                route = '/'
+            # we may not use direct access to value.route
+            # as this will fail on methods
+            route_rule = Rule(route, root, key)
+            value.__dict__['route_rule'] = route_rule
+            ret.append(route_rule)
+    ret.sort(reverse=True)
+    return ret
+
+
 def get(path):
     """Expose a function for HTTP GET requests
 
@@ -508,8 +513,8 @@ def get(path):
     """
     def wrapper(f):
         assert not hasattr(f, 'route')
-        f.route = path
-        f.route_type = 'GET'
+        f._rw_route = path
+        f._rw_route_type = 'get'
         return f
     return wrapper
 
@@ -525,8 +530,8 @@ def post(path):
     """
     def wrapper(f):
         assert not hasattr(f, 'route')
-        f.route = path
-        f.route_type = 'POST'
+        f._rw_route = path
+        f._rw_route_type = 'post'
         return f
     return wrapper
 
@@ -542,8 +547,8 @@ def put(path):
     """
     def wrapper(f):
         assert not hasattr(f, 'route')
-        f.route = path
-        f.route_type = 'PUT'
+        f._rw_route = path
+        f._rw_route_type = 'put'
         return f
     return wrapper
 
@@ -559,37 +564,19 @@ def delete(path):
     """
     def wrapper(f):
         assert not hasattr(f, 'route')
-        f.route = path
-        f.route_type = 'DELETE'
+        f._rw_route = path
+        f._rw_route_type = 'delete'
         return f
     return wrapper
 
 
-def mount(path, mod):
-    """Mount `RequestHandler` within another handler.
+class mount(object):
+    def __init__(self, route, mod):
+        self._rw_route = route
+        self._rw_mod = mod
 
-    Example usage::
-
-        class A(RequestHandler):
-            @get('/')
-            def index(self):
-                self.finish('index of A')
-
-        class B(RequestHandler):
-            mount('/a', A)
-    """
-    # get the locals from where our request class is constructed
-    # by traveling up the interpreter stack by one frame
-    frame = inspect.stack()[1][0]
-    f_locals = frame.f_locals
-
-    # add arguments, they are processed into routing rules in
-    # RequestHandler.__new__
-    f_locals.setdefault('_mounts', []).append((path, mod))
-
-
-def load(mod):
-    assert hasattr(mod, 'Main')
+    def __getattr__(self, item):
+        return getattr(self._rw_mod, item)
 
 
 class Widget(object):
