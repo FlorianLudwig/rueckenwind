@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="rueckenwind",
     version="0.0.1",
-    install_requires=['tornado>=3.0.1', 'jinja2', 'werkzeug==0.6.2', 'babel', 'mock', 'configobj'],
+    install_requires=['tornado>=3.0.1,<4.0', 'jinja2', 'werkzeug==0.6.2', 'babel', 'mock', 'configobj'],
     packages=find_packages(exclude=["test"]),
     include_package_data=True,
     package_data={
