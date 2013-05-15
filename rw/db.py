@@ -26,6 +26,7 @@ Example::
 """
 
 from copy import copy
+from tornado.concurrent import return_future
 
 db = None
 
@@ -37,6 +38,7 @@ class Cursor(object):
         self.user_callback = user_callback
         self.col_cls = query.col_cls
         col = getattr(db, query.col_cls._name)
+        print 'query', col, query._filters
         self.db_cursor = col.find(query._filters, sort=query._sort, limit=query._limit)
         self.db_cursor.to_list(callback=self.on_response)
 
@@ -54,17 +56,22 @@ class Query(object):
         self._filters = filters if filters else {}
         self._limit = limit
 
-    def filter_by(self, **kwargs):
+    def find(self, *args, **kwargs):
         filters = copy(self._filters)
         filters.update(kwargs)
+        if args:
+            assert len(args) == 1
+            filters.update(args[0])
         return Query(self.col_cls, filters, self._sort, self._limit)
 
     def sort(self, sort):
         return Query(self.col_cls, self._filters, sort, self._limit)
 
-    def all(self, callback):
+    @return_future
+    def to_list(self, callback):
         Cursor(self, callback)
 
+    @return_future
     def first(self, callback):
         self._limit = 1
         Cursor(self, callback)
@@ -79,17 +86,22 @@ class Query(object):
 
 
 class Field(property):
-    def __init__(self, type, _id=False):
+    def __init__(self, type, _id=False, default=None):
         # print 'init property', self, type
         super(Field, self).__init__(self.get_value, self.set_value)
         self.name = None
+        self.type = type
+        self.default = default
         self.is_id = _id
 
     def get_value(self, entity):
         if self.is_id:
             return entity['_id']
         else:
-            return entity[self.name]
+            # try:
+                return self.type(entity[self.name])
+            # except:
+            #     return self.default
 
     def set_value(self, entity, value):
         if self.is_id:
@@ -101,7 +113,11 @@ class Field(property):
         return '<Field %i>' % self.name
 
 
-class EntityMeta(type):
+class List(Field):
+    pass
+
+
+class DocumentMeta(type):
     def __new__(mcs, name, bases, dct):
         ret = type.__new__(mcs, name, bases, dct)
 
@@ -119,12 +135,12 @@ class EntityMeta(type):
 
         if bases != (dict,):
             ret._name = name.lower()
-            ret.query = Query(ret)
+            # ret.query = Query(ret)
 
         return ret
 
 
-class Entity(dict):
+class Document(dict):
     """Base type for mapped classes.
 
     It is a regular dict, with a little different construction behaviour plus
@@ -135,31 +151,31 @@ class Entity(dict):
 
 
     Example::
-         class Fruits(rw.db.Entity):
+         class Fruits(rw.db.Document):
              kind = rw.db.Field(unicode)
 
-         Fuits.query.filter_by(kind='banana').all()
+         Fuits.find(kind='banana').all()
 
     Warning: Never use "callback" as key."""
-    __metaclass__ = EntityMeta
+    __metaclass__ = DocumentMeta
 
     def __init__(self, **kwargs):
         self.col = getattr(db, self._name)
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-            else:
-                self[key] = value
-        super(dict, self).__init__()
+        # for key, value in kwargs.items():
+        #     if hasattr(self, key):
+        #         setattr(self, key, value)
+        #     else:
+        #         self[key] = value
+        self.update(kwargs)
 
-    def __getitem__(self, key):
-        return dict.__getitem__(self, key)
-
-    def __setitem__(self, key, value):
-        if key == self._id_name:
-            dict.__setitem__(self, '_id', value)
-        else:
-            dict.__setitem__(self, key, value)
+    # def __getitem__(self, key):
+    #     return dict.__getitem__(self, key)
+    #
+    # def __setitem__(self, key, value):
+    #     if key == self._id_name:
+    #         dict.__setitem__(self, '_id', value)
+    #     else:
+    #         dict.__setitem__(self, key, value)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__,
@@ -176,6 +192,15 @@ class Entity(dict):
 
     def delete(self):
         self.col.delete(self)
+
+    @classmethod
+    def find(cls, *args, **kwargs):
+        query = Query(cls)
+        return query.find(*args, **kwargs)
+
+
+class SubDocument(Document):
+    pass
 
 
 class Unicode(Field):
