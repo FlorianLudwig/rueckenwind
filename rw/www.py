@@ -135,12 +135,13 @@ class StaticURL(object):
                         return parent._static.get_content(fname)
                     except:
                         pass
-                raise IOError('File not found {0}:{1}'.format(self.module, fname))
+                error = IOError('File not found {0}:{1}'.format(self.module, fname))
+                error.filename = fname
+                raise error
             try:
                 return template.render()
             except IOError, e:
-                raise IOError('Not found: ' + e.filename +
-                              ', referenced in {0}:{1}'.format(self.module, fname))
+                raise IOError('Not found: {2}, referenced in {0}:{1}'.format(self.module, fname, e.filename))
         return raw
 
         #path = self.get_path(fname, module)
