@@ -31,7 +31,9 @@ import functools
 
 import pkg_resources
 from tornado import stack_context
+from tornado import concurrent
 import tornado.websocket
+from tornado import gen
 from tornado.web import HTTPError
 from jinja2 import Environment, FunctionLoader
 
@@ -363,8 +365,12 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         if self.template and not chunk:
             self.write(self.render_template(self.template))
         super(RequestHandler, self).finish(chunk)
-        dict.clear(self)
-        self.ui = None
+        # if we are in debug mode we lets ingore memory leaks
+        # so we can preserv all information that might be needed
+        # to debug a traceback
+        if not rw.DEBUG:
+            dict.clear(self)
+            self.ui = None
 
     def send_error(self, status_code, **kwargs):
         if 'exc_info' in kwargs:
@@ -398,6 +404,18 @@ def current_handler():
     return rw_rh_context
 
 
+class ExecuteHandler(object):
+    def __init__(self, handler, func_name, arguments):
+        self.handler = handler
+        self.func_name = func_name
+        self.arguments = arguments
+
+    @gen.engine
+    def __call__(self, futures):
+        yield [future for future in futures if future]
+        getattr(self.handler, self.func_name)(**self.arguments)
+
+
 def setup(app_name, address=None, port=None):
     app = rw.get_module(app_name, 'www').www.Main
 
@@ -426,16 +444,18 @@ def setup(app_name, address=None, port=None):
             super(Application, self).__init__(cookie_secret=COOKIE_SECRET)
             self.base = base
 
+        @gen.engine
         def __call__(self, request):
+            yield test_async_function()
             request.original_path = request.path
             # werzeug debugger
+            found = False
             if rw.DEBUG and '__debugger__' in request.uri:
                 handler = rw.debug.WSGIHandler(self, request, rw.debug.DEBUG_APP)
                 handler.delegate()
                 handler.finish()
-                return
-            # static file?
-            if request.path.startswith('/static/'):
+                found = True
+            elif request.path.startswith('/static/'):
                 path = request.path[8:].strip('/')  # len('/static/') = 8
                 if '/' in path:
                     module, path = path.split('/', 1)
@@ -444,7 +464,7 @@ def setup(app_name, address=None, port=None):
                         main = rw.get_module(module, 'www', auto_load=False).www.Main
                         handler = main._static.static_handler(self, request)
                         handler._execute([])
-                        return
+                        found = True
             elif request.path.startswith('/_p/'):
                 path = request.path[4:]
                 plugin, path = path.split('/', 1)
@@ -453,7 +473,8 @@ def setup(app_name, address=None, port=None):
                     if plug.name == plugin:
                         request.path = '/' + path
                         if plug.handler(self, request)._handle_request():  # XXX TODO
-                            return
+                            found = True
+                            break
             else:  # "normal" request
                 request.path = request.path.rstrip('/')
                 if request.path == '':
@@ -466,9 +487,11 @@ def setup(app_name, address=None, port=None):
                         handler = handler(self, request)
                         with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
                             with stack_context.StackContext(functools.partial(rh_context, handler)):
-                                rbus.rw.request_handling.pre_process(handler)
-                                getattr(handler, func_name)(**arguments)
-                        return
+                                stuff = rbus.rw.request_handling.pre_process(handler)
+                                e = ExecuteHandler(handler, func_name, arguments)
+                                e(stuff)
+                        found = True
+                        break
 
                 # handler = self.base(self, request)
                 #
@@ -476,9 +499,9 @@ def setup(app_name, address=None, port=None):
                 #     return
             # TODO handle this proberly
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
-            handler = tornado.web.ErrorHandler(self, request, status_code=404)
-            handler._execute([])
-            return handler
+            if not found:
+                handler = tornado.web.ErrorHandler(self, request, status_code=404)
+                handler._execute([])
 
     app = Application(app)
     if not address:
