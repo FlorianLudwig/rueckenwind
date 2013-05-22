@@ -446,7 +446,6 @@ def setup(app_name, address=None, port=None):
 
         @gen.engine
         def __call__(self, request):
-            yield test_async_function()
             request.original_path = request.path
             # werzeug debugger
             found = False

@@ -24,6 +24,8 @@ Example::
             self.finish(template='index.html')
 
 """
+import numbers
+import abc
 
 from copy import copy
 from tornado.concurrent import return_future
@@ -48,13 +50,30 @@ class Cursor(object):
 
 
 class Query(object):
-    def __init__(self, col, filters=None, sort=None, limit=0):
+    def __init__(self, col, filters=None, sort=None, limit=0, start=0):
         self.col_cls = col
         self._sort = sort
         if db:
             self.col = getattr(db, col._name)
         self._filters = filters if filters else {}
         self._limit = limit
+        self._start = start
+
+    def __getitem__(self, slice):
+        if isinstance(slice, numbers.Number):
+            return Query(self.col_cls, self._filters, self.sort,
+                         limit=1, start=slice)
+        elif slice.step is None \
+          and isinstance(slice.start, numbers.Number)\
+          and isinstance(slice.stop, numbers.Number)\
+          and slice.stop > slice.start:
+            return Query(self.col_cls, self._filters, self._sort,
+                         limit=slice.stop - slice.start, start=slice.start)
+        else:
+            raise AttributeError('Slice indecies must be integers, step (= {}) must not be set'
+                                 ' and start (= {}) must be higher than stop (= {})'.format(
+                                 slice.step, repr(slice.start), repr(slice.stop)
+            ))
 
     def find(self, *args, **kwargs):
         filters = copy(self._filters)
