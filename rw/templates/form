@@ -3,7 +3,8 @@
 		{% if legend %}
 			<legend>{{legend}}</legend>
 		{% endif %}
-    {% for field in form._fields.values() %}
+    {% for field_name in form._unbound_fields %}
+        {% set field = form._fields[field_name[0]] %}
         {% if field.type == 'HiddenField' %}
             {{ field() }}
         {% else %}
