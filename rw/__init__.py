@@ -161,7 +161,7 @@ def load_config(name):
      - YAML got some smaller problems but so does ini. In the end a KISS decision was made.
      """
     cfg_name = name + '.cfg'
-    CONFIG_FILES = [pkg_resources.resource_filename(name, 'config.cfg')]
+    CONFIG_FILES = [pkg_resources.resource_filename(name, cfg_name)]
     CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
     if 'VIRTUAL_ENV' in os.environ:
         CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
