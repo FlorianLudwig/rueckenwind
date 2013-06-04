@@ -37,6 +37,8 @@ DEBUG = True
 MODULES = {'www': {},
            'rpc': {}}
 
+cfg = {}
+
 
 def get_module(name, type='www', arg2=None, auto_load=True):
     if not name in MODULES[type]:
@@ -151,37 +153,34 @@ def update_config(cfg, update):
             cfg[key] = value
 
 
-class ConfigHandler(object):
+def load_config(name):
     """Handling Configuration.
 
     Design Decisions:
      - JSON does not support comments
      - YAML got some smaller problems but so does ini. In the end a KISS decision was made.
-    """
-    def __getattr__(self, item):
-        cfg_name = item + '.cfg'
-        CONFIG_FILES = [pkg_resources.resource_filename(item, 'config.cfg')]
-        CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
-        if 'VIRTUAL_ENV' in os.environ:
-            CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
+     """
+    cfg_name = name + '.cfg'
+    CONFIG_FILES = [pkg_resources.resource_filename(name, 'config.cfg')]
+    CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
+    if 'VIRTUAL_ENV' in os.environ:
+        CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
 
-        # read config
-        config = {}
-        for config_path in CONFIG_FILES:
-            if os.path.exists(config_path):
-                LOG.info('reading config: ' + config_path)
-                config_obj = ConfigObj(config_path)
-                update_config(config, config_obj)
-            else:
-                LOG.debug('config does not exist: ' + config_path)
+    # read config
+    config = {}
+    for config_path in CONFIG_FILES:
+        if os.path.exists(config_path):
+            LOG.info('reading config: ' + config_path)
+            config_obj = ConfigObj(config_path)
+            update_config(config, config_obj)
+        else:
+            LOG.debug('config does not exist: ' + config_path)
 
-        setattr(self, item, config)
-        return config
-
-cfg = ConfigHandler()
+    return config
 
 
 def setup(app_name, type='www', address=None, port=None):
+    cfg.update(load_config(app_name))
     mod = getattr(__import__('rw.' + type), type)
     return mod.setup(app_name, address=address, port=port)
 
