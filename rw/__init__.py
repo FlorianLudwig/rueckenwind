@@ -153,15 +153,13 @@ def update_config(cfg, update):
             cfg[key] = value
 
 
-def load_config(name):
-    """Handling Configuration.
+def load_config(module_name):
+    """Load configuration for given module and return config dict
 
-    Design Decisions:
-     - JSON does not support comments
-     - YAML got some smaller problems but so does ini. In the end a KISS decision was made.
+
      """
-    cfg_name = name + '.cfg'
-    CONFIG_FILES = [pkg_resources.resource_filename(name, cfg_name)]
+    cfg_name = module_name + '.cfg'
+    CONFIG_FILES = [pkg_resources.resource_filename(module_name, cfg_name)]
     CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
     if 'VIRTUAL_ENV' in os.environ:
         CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
