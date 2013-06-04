@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.0.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -143,19 +141,8 @@
 
 <dl class="function">
 <dt id="rw.www.mount">
-<tt class="descclassname">rw.www.</tt><tt class="descname">mount</tt><big>(</big><em>path</em>, <em>mod</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#mount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.mount" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mount <cite>RequestHandler</cite> within another handler.</p>
-<p>Example usage:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">A</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
-    <span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="s">&#39;index of A&#39;</span><span class="p">)</span>
-
-<span class="k">class</span> <span class="nc">B</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
-    <span class="n">mount</span><span class="p">(</span><span class="s">&#39;/a&#39;</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
+<tt class="descclassname">rw.www.</tt><tt class="descname">mount</tt><big>(</big><em>route</em>, <em>mod</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#mount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.mount" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 </div>
@@ -223,7 +210,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011, Florian Ludwig.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>

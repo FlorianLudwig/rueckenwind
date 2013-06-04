@@ -11,6 +11,7 @@ Contents:
    getting_started.rst
    www.rst
    static_data.rst
+   cfg.rst
    db.rst
 
 * TODO: Write docs about

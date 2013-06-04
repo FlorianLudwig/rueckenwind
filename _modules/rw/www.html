@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -26,7 +24,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="top" title="Rückenwind 0.0.1 documentation" href="../../index.html" />
-    <link rel="up" title="Module code" href="../index.html" /> 
+    <link rel="up" title="rw" href="../rw.html" /> 
   </head>
   <body>
     <div class="related">
@@ -39,7 +37,8 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li><a href="../../index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li>
-          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../rw.html" accesskey="U">rw</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -75,14 +74,23 @@
 <span class="kn">import</span> <span class="nn">mimetypes</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="kn">import</span> <span class="nn">pkg_resources</span>
-<span class="kn">import</span> <span class="nn">tornado</span>
+<span class="kn">from</span> <span class="nn">tornado</span> <span class="kn">import</span> <span class="n">stack_context</span>
+<span class="kn">from</span> <span class="nn">tornado</span> <span class="kn">import</span> <span class="n">concurrent</span>
+<span class="kn">import</span> <span class="nn">tornado.websocket</span>
+<span class="kn">from</span> <span class="nn">tornado</span> <span class="kn">import</span> <span class="n">gen</span>
 <span class="kn">from</span> <span class="nn">tornado.web</span> <span class="kn">import</span> <span class="n">HTTPError</span>
 <span class="kn">from</span> <span class="nn">jinja2</span> <span class="kn">import</span> <span class="n">Environment</span><span class="p">,</span> <span class="n">FunctionLoader</span>
 
 <span class="kn">import</span> <span class="nn">rw</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">debug</span><span class="p">,</span> <span class="n">routing</span><span class="p">,</span> <span class="n">widget</span>
+<span class="kn">import</span> <span class="nn">rw.debug</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">widget</span>
+<span class="kn">from</span> <span class="nn">.routing</span> <span class="kn">import</span> <span class="n">Rule</span>
 <span class="kn">import</span> <span class="nn">rbus</span>
 <span class="kn">import</span> <span class="nn">rbusys</span>
 
@@ -92,6 +100,7 @@
 
 <span class="n">COOKIE_SECRET</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">32</span><span class="p">)])</span>
 <span class="n">WIDGET_FILENAMES</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">&#39;[a-z][a-z_0-9]*</span><span class="se">\\</span><span class="s">.py$&#39;</span><span class="p">)</span>
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">StaticURL</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -178,31 +187,29 @@
                         <span class="k">return</span> <span class="n">parent</span><span class="o">.</span><span class="n">_static</span><span class="o">.</span><span class="n">get_content</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
                     <span class="k">except</span><span class="p">:</span>
                         <span class="k">pass</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&#39;File not found {0}:{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&#39;File not found {0}:{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+                <span class="n">error</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+                <span class="k">raise</span> <span class="n">error</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">IOError</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&#39;Not found: &#39;</span> <span class="o">+</span> <span class="n">e</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span>
-                              <span class="s">&#39;, referenced in {0}:{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&#39;Not found: {2}, referenced in {0}:{1}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">raw</span>
 
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_path</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
-        <span class="n">template_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_path</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-        <span class="c"># TODO warning if both exist, template and static file</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">template_path</span><span class="p">):</span>
-            <span class="n">main</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">get_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span><span class="o">.</span><span class="n">www</span><span class="o">.</span><span class="n">Main</span>
-            <span class="n">template</span> <span class="o">=</span> <span class="n">main</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s">&#39;static/&#39;</span> <span class="o">+</span> <span class="n">fname</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">None</span>
+        <span class="c">#path = self.get_path(fname, module)</span>
+        <span class="c">#template_path = self.get_path(fname, module, template=True)</span>
+        <span class="c">## TODO warning if both exist, template and static file</span>
+        <span class="c">#if os.path.exists(path):</span>
+        <span class="c">#    return open(path).read()</span>
+        <span class="c">#elif os.path.exists(template_path):</span>
+        <span class="c">#    main = rw.get_module(module).www.Main</span>
+        <span class="c">#    template = main.template_env.get_template(&#39;static/&#39; + fname)</span>
+        <span class="c">#    return template.render()</span>
+        <span class="c">#return None</span>
 
 
 <span class="k">def</span> <span class="nf">url_for</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">):</span>
-    <span class="n">base</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">im_self</span><span class="o">.</span><span class="n">base_path</span>
-    <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">base</span> <span class="o">+</span> <span class="n">func</span><span class="o">.</span><span class="n">route_rule</span><span class="o">.</span><span class="n">get_path</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">base</span> <span class="o">+</span> <span class="n">func</span><span class="o">.</span><span class="n">route</span>
+    <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">route_rule</span><span class="o">.</span><span class="n">get_path</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">urlencode</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="o">**</span><span class="n">query</span><span class="p">):</span>
@@ -213,38 +220,61 @@
     <span class="k">return</span> <span class="n">urlparse</span><span class="o">.</span><span class="n">urlunparse</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">create_template_env</span><span class="p">(</span><span class="n">load_template</span><span class="p">):</span>
+    <span class="n">template_env</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">(</span><span class="n">loader</span><span class="o">=</span><span class="n">FunctionLoader</span><span class="p">(</span><span class="n">load_template</span><span class="p">),</span>
+                                   <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;jinja2.ext.loopcontrols&#39;</span><span class="p">,</span>
+                                               <span class="s">&#39;jinja2.ext.i18n&#39;</span><span class="p">,</span>
+                                               <span class="n">widget</span><span class="o">.</span><span class="n">Widget</span><span class="p">])</span>
+
+    <span class="kn">import</span> <span class="nn">rw</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;rw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rw</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;rbus&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rbus</span>
+    <span class="c"># some more default functions</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;enumerate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">enumerate</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;isinstance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">isinstance</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span>
+    <span class="c"># default types</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;int&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;str&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;unicode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">unicode</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;tuple&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;dict&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;set&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;basestring&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">basestring</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;urlencode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urlencode</span>
+    <span class="c"># filter</span>
+    <span class="n">template_env</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="s">&#39;json&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span>
+    <span class="k">return</span> <span class="n">template_env</span>
+
+
 <span class="k">class</span> <span class="nc">RequestHandlerMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">):</span>
         <span class="n">is_base_class</span> <span class="o">=</span> <span class="n">bases</span> <span class="o">==</span> <span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-        <span class="n">routes</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">mounts</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;_mounts&#39;</span><span class="p">,</span> <span class="p">[])</span>
-        <span class="k">if</span> <span class="s">&#39;_mounts&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">dct</span><span class="p">[</span><span class="s">&#39;_mounts&#39;</span><span class="p">]</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">)</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">routes</span> <span class="o">=</span> <span class="n">routes</span>
         <span class="c"># find template dir</span>
         <span class="n">module</span> <span class="o">=</span> <span class="n">dct</span><span class="p">[</span><span class="s">&#39;__module__&#39;</span><span class="p">]</span>
         <span class="n">module_name</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">]</span><span class="o">.</span><span class="n">__name__</span>
         <span class="n">module_path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">]</span><span class="o">.</span><span class="n">__file__</span>
         <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">module_path</span><span class="p">))</span>
-        <span class="c">#templates_path = module_path + &#39;/templates&#39;</span>
         <span class="n">ret</span><span class="o">.</span><span class="n">module_path</span> <span class="o">=</span> <span class="n">module_path</span>
-        <span class="c">#ret.templates_path = templates_path</span>
 
         <span class="k">def</span> <span class="nf">load_template</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
             <span class="k">if</span> <span class="s">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
                 <span class="n">module</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">module</span> <span class="o">=</span> <span class="n">module_name</span>
-            <span class="n">raw</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_string</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s">&#39;templates/&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">)</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">(</span><span class="n">loader</span><span class="o">=</span><span class="n">FunctionLoader</span><span class="p">(</span><span class="n">load_template</span><span class="p">),</span>
-                                       <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;jinja2.ext.loopcontrols&#39;</span><span class="p">,</span>
-                                                   <span class="s">&#39;jinja2.ext.i18n&#39;</span><span class="p">,</span>
-                                                   <span class="n">widget</span><span class="o">.</span><span class="n">Widget</span><span class="p">])</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s">&#39;templates/&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+            <span class="c"># we always update the template so we return an uptodatefunc</span>
+            <span class="c"># that always returns False</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">),</span>
+                    <span class="n">path</span><span class="p">,</span>
+                    <span class="k">lambda</span><span class="p">:</span> <span class="bp">False</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span> <span class="o">=</span> <span class="n">create_template_env</span><span class="p">(</span><span class="n">load_template</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">module</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.www&#39;</span><span class="p">):</span>
             <span class="n">module</span> <span class="o">=</span> <span class="n">module</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">_module_name</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;_module_name&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_module_name</span> <span class="o">=</span> <span class="n">module</span>
         <span class="n">static</span> <span class="o">=</span> <span class="n">StaticURL</span><span class="p">(</span><span class="n">ret</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_base_class</span> <span class="k">else</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
         <span class="n">ret</span><span class="o">.</span><span class="n">_static</span> <span class="o">=</span> <span class="n">static</span>
         <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
@@ -253,24 +283,6 @@
 
         <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;static&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">static</span>
         <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;url_for&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">url_for</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;rbus&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rbus</span>
-        <span class="kn">import</span> <span class="nn">rw</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;rw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rw</span>
-        <span class="c"># some more default functions</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;enumerate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">enumerate</span>
-        <span class="c">#ret.template_env.globals[&#39;sorted&#39;] = sorted</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;isinstance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">isinstance</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span>
-        <span class="c"># default types</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;int&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;str&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;unicode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">unicode</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;tuple&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;dict&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;set&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;basestring&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">basestring</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">globals</span><span class="p">[</span><span class="s">&#39;urlencode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urlencode</span>
 
         <span class="c"># i18n - load all available translations</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;language&#39;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
@@ -286,49 +298,25 @@
             <span class="n">ret</span><span class="o">.</span><span class="n">translations</span><span class="p">[</span><span class="n">lang</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">translations</span><span class="p">[</span><span class="n">lang</span><span class="p">]</span>
 
         <span class="c"># widgets</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">widgets</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">module_path</span> <span class="o">+</span> <span class="s">&#39;/widgets&#39;</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">module_path</span> <span class="o">+</span> <span class="s">&#39;/widgets&#39;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">WIDGET_FILENAMES</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
-                    <span class="n">w_name</span> <span class="o">=</span> <span class="n">fname</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
-                    <span class="n">w_fullname</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">]</span><span class="o">.</span><span class="n">__name__</span>
-                    <span class="n">w_fullname</span> <span class="o">+=</span> <span class="s">&#39;.widgets.&#39;</span> <span class="o">+</span> <span class="n">w_name</span>
-                    <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">w_fullname</span><span class="p">)</span>
-                    <span class="n">ret</span><span class="o">.</span><span class="n">widgets</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">mod</span>
+        <span class="c"># XXX experimental feature, disabled for now</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ret.widgets = {}</span>
+<span class="sd">        if os.path.exists(module_path + &#39;/widgets&#39;):</span>
+<span class="sd">            for fname in os.listdir(module_path + &#39;/widgets&#39;):</span>
+<span class="sd">                if WIDGET_FILENAMES.match(fname):</span>
+<span class="sd">                    w_name = fname[:-3]</span>
+<span class="sd">                    w_fullname = sys.modules[module].__name__</span>
+<span class="sd">                    w_fullname += &#39;.widgets.&#39; + w_name</span>
+<span class="sd">                    mod = __import__(w_fullname)</span>
+<span class="sd">                    ret.widgets[w_name] = mod</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c"># make sure inheritance works</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_base_class</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">dct</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s">&#39;route&#39;</span><span class="p">):</span>
-                    <span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">routing</span><span class="o">.</span><span class="n">Rule</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
             <span class="n">ret</span><span class="o">.</span><span class="n">_parents</span> <span class="o">=</span> <span class="p">[</span><span class="n">base</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span> <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">RequestHandler</span><span class="p">)</span>
                             <span class="ow">and</span> <span class="n">base</span> <span class="o">!=</span> <span class="n">RequestHandler</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ret</span><span class="o">.</span><span class="n">_parents</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;routes&#39;</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">routes</span><span class="p">:</span>
-                    <span class="n">handler</span> <span class="o">=</span> <span class="n">route</span><span class="o">.</span><span class="n">handler</span>
-                    <span class="k">if</span> <span class="n">handler</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">handler</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">routes</span><span class="p">]:</span>
-                        <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
-                        <span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">routing</span><span class="o">.</span><span class="n">Rule</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">handler</span><span class="p">))</span>
-        <span class="c"># add mounts</span>
-        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">sub_handler</span> <span class="ow">in</span> <span class="n">mounts</span><span class="p">:</span>
-            <span class="k">def</span> <span class="nf">delegate_handler</span><span class="p">(</span><span class="n">req_handler</span><span class="p">):</span>
-                <span class="n">base_path</span> <span class="o">=</span> <span class="n">req_handler</span><span class="o">.</span><span class="n">base_path</span> <span class="o">+</span> <span class="n">path</span>
-                <span class="n">request</span> <span class="o">=</span> <span class="n">req_handler</span><span class="o">.</span><span class="n">request</span>
-                <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">):]</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
-                    <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span>
-                <span class="n">new_handler</span> <span class="o">=</span> <span class="n">sub_handler</span><span class="p">(</span><span class="n">req_handler</span><span class="o">.</span><span class="n">application</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-                <span class="n">new_handler</span><span class="o">.</span><span class="n">base_path</span> <span class="o">=</span> <span class="n">base_path</span>
-                <span class="n">new_handler</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">()</span>
-
-            <span class="k">class</span> <span class="nc">Obj</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-                <span class="n">route</span> <span class="o">=</span> <span class="n">path</span>
-                <span class="n">route_type</span> <span class="o">=</span> <span class="s">&#39;*&#39;</span>
-            <span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">routing</span><span class="o">.</span><span class="n">Rule</span><span class="p">(</span><span class="n">Obj</span><span class="p">,</span> <span class="n">delegate_handler</span><span class="p">))</span>
-        <span class="n">routes</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ret</span>
 
 
@@ -408,6 +396,16 @@
         <span class="c"># no match found, return default locale</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">language</span>
 
+    <span class="k">def</span> <span class="nf">render_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Render template and use i18n.&quot;&quot;&quot;</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">language</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">language</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_closest</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">translations</span><span class="p">[</span><span class="n">language</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">install_gettext_translations</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Finish Controller part and begin rendering and sending template</span>
 
@@ -415,24 +413,14 @@
         <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
-            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">)</span>
-            <span class="c"># data = list(template.stream(**self))</span>
-            <span class="c"># for chunk in data:</span>
-            <span class="c">#    print repr(chunk)</span>
-            <span class="c"># self.write(&#39;&#39;.join(data))</span>
-            <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">language</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">language</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
-                <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_closest</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
-                <span class="n">language</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">translations</span><span class="p">[</span><span class="n">language</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">template_env</span><span class="o">.</span><span class="n">install_gettext_translations</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">render_template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">))</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_handle_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">):</span>
-                <span class="k">return</span> <span class="bp">True</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="c"># if we are in debug mode we lets ingore memory leaks</span>
+        <span class="c"># so we can preserv all information that might be needed</span>
+        <span class="c"># to debug a traceback</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+            <span class="nb">dict</span><span class="o">.</span><span class="n">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ui</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">def</span> <span class="nf">send_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status_code</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="s">&#39;exc_info&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -445,8 +433,37 @@
             <span class="nb">super</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">send_error</span><span class="p">(</span><span class="n">status_code</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 </div>
+<span class="k">class</span> <span class="nc">WebSocketHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">WebSocketHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_handle_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">([])</span>
+
+
 <span class="k">class</span> <span class="nc">Main</span><span class="p">(</span><span class="n">RequestHandler</span><span class="p">):</span>
     <span class="k">pass</span>
+
+
+<span class="nd">@contextlib.contextmanager</span>
+<span class="k">def</span> <span class="nf">rh_context</span><span class="p">(</span><span class="n">handler</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">rw_rh_context</span>
+    <span class="n">rw_rh_context</span> <span class="o">=</span> <span class="n">handler</span>
+    <span class="k">yield</span>
+    <span class="n">rw_rh_context</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="k">def</span> <span class="nf">current_handler</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">rw_rh_context</span>
+
+
+<span class="k">class</span> <span class="nc">ExecuteHandler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span> <span class="n">func_name</span><span class="p">,</span> <span class="n">arguments</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_name</span> <span class="o">=</span> <span class="n">func_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arguments</span> <span class="o">=</span> <span class="n">arguments</span>
+
+    <span class="nd">@gen.engine</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">futures</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="p">[</span><span class="n">future</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span> <span class="k">if</span> <span class="n">future</span><span class="p">]</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func_name</span><span class="p">)(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="n">app_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -455,37 +472,39 @@
     <span class="c"># default plugins</span>
     <span class="kn">import</span> <span class="nn">rbusys</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rbus</span><span class="o">.</span><span class="n">rw</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">rbusys</span><span class="o">.</span><span class="n">StubImplementation</span><span class="p">):</span>
-        <span class="k">print</span> <span class="s">&#39;No E-Mail plugin loaded -&#39;</span><span class="p">,</span>
+        <span class="n">log</span> <span class="o">=</span> <span class="s">&#39;No E-Mail plugin loaded -&#39;</span>
         <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">rw.plugins</span> <span class="kn">import</span> <span class="n">mail_local</span> <span class="k">as</span> <span class="n">mail</span>
-            <span class="k">print</span> <span class="s">&#39;fake mail_local plugin loaded&#39;</span>
+            <span class="n">log</span> <span class="o">+=</span> <span class="s">&#39;fake mail_local plugin loaded&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">rw.plugins</span> <span class="kn">import</span> <span class="n">mail_smtp</span> <span class="k">as</span> <span class="n">mail</span>
-            <span class="k">print</span> <span class="s">&#39;SMTP mail plugin loaded&#39;</span>
+            <span class="n">log</span> <span class="o">+=</span> <span class="s">&#39;SMTP mail plugin loaded&#39;</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">log</span><span class="p">)</span>
         <span class="n">mail</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">rw.plugins</span> <span class="kn">import</span> <span class="n">debugger</span>
-        <span class="k">print</span> <span class="s">&#39;activate debugger&#39;</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;activate debugger&#39;</span><span class="p">)</span>
         <span class="n">debugger</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
 
     <span class="n">base_cls</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">debug</span><span class="o">.</span><span class="n">DebugApplication</span> <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span> <span class="k">else</span> <span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">Application</span>
+    <span class="n">routes</span> <span class="o">=</span> <span class="n">generate_routing</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
 
     <span class="k">class</span> <span class="nc">Application</span><span class="p">(</span><span class="n">base_cls</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">(</span><span class="n">Application</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">cookie_secret</span><span class="o">=</span><span class="n">COOKIE_SECRET</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
 
+        <span class="nd">@gen.engine</span>
         <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
             <span class="n">request</span><span class="o">.</span><span class="n">original_path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span>
             <span class="c"># werzeug debugger</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="bp">False</span>
             <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span> <span class="ow">and</span> <span class="s">&#39;__debugger__&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">uri</span><span class="p">:</span>
-                <span class="k">print</span> <span class="s">&#39;DEBUG CALL&#39;</span>
                 <span class="n">handler</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">debug</span><span class="o">.</span><span class="n">WSGIHandler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">rw</span><span class="o">.</span><span class="n">debug</span><span class="o">.</span><span class="n">DEBUG_APP</span><span class="p">)</span>
                 <span class="n">handler</span><span class="o">.</span><span class="n">delegate</span><span class="p">()</span>
                 <span class="n">handler</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
-                <span class="k">return</span>
-            <span class="c"># static file?</span>
-            <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/static/&#39;</span><span class="p">):</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/static/&#39;</span><span class="p">):</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>  <span class="c"># len(&#39;/static/&#39;) = 8</span>
                 <span class="k">if</span> <span class="s">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
                     <span class="n">module</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -494,7 +513,7 @@
                         <span class="n">main</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">get_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s">&#39;www&#39;</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span><span class="o">.</span><span class="n">www</span><span class="o">.</span><span class="n">Main</span>
                         <span class="n">handler</span> <span class="o">=</span> <span class="n">main</span><span class="o">.</span><span class="n">_static</span><span class="o">.</span><span class="n">static_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
                         <span class="n">handler</span><span class="o">.</span><span class="n">_execute</span><span class="p">([])</span>
-                        <span class="k">return</span>
+                        <span class="n">found</span> <span class="o">=</span> <span class="bp">True</span>
             <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/_p/&#39;</span><span class="p">):</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>
                 <span class="n">plugin</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -502,29 +521,78 @@
                 <span class="k">for</span> <span class="n">plug</span> <span class="ow">in</span> <span class="n">rbusys</span><span class="o">.</span><span class="n">PLUGS</span><span class="p">[</span><span class="s">&#39;rw.www&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_plugs</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">plug</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">plugin</span><span class="p">:</span>
                         <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span>
-                        <span class="k">if</span> <span class="n">plug</span><span class="o">.</span><span class="n">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">():</span>
-                            <span class="k">return</span>
+                        <span class="k">if</span> <span class="n">plug</span><span class="o">.</span><span class="n">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">():</span>  <span class="c"># XXX TODO</span>
+                            <span class="n">found</span> <span class="o">=</span> <span class="bp">True</span>
+                            <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>  <span class="c"># &quot;normal&quot; request</span>
-                <span class="n">handler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">handler</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">():</span>
-                    <span class="k">return</span>
+                <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">request</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span>
+
+                <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">routes</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()]:</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                        <span class="n">handler</span><span class="p">,</span> <span class="n">func_name</span><span class="p">,</span> <span class="n">arguments</span> <span class="o">=</span> <span class="n">match</span>
+                        <span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+                        <span class="k">with</span> <span class="n">stack_context</span><span class="o">.</span><span class="n">ExceptionStackContext</span><span class="p">(</span><span class="n">handler</span><span class="o">.</span><span class="n">_stack_context_handle_exception</span><span class="p">):</span>
+                            <span class="k">with</span> <span class="n">stack_context</span><span class="o">.</span><span class="n">StackContext</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">rh_context</span><span class="p">,</span> <span class="n">handler</span><span class="p">)):</span>
+                                <span class="n">stuff</span> <span class="o">=</span> <span class="n">rbus</span><span class="o">.</span><span class="n">rw</span><span class="o">.</span><span class="n">request_handling</span><span class="o">.</span><span class="n">pre_process</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+                                <span class="n">e</span> <span class="o">=</span> <span class="n">ExecuteHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">func_name</span><span class="p">,</span> <span class="n">arguments</span><span class="p">)</span>
+                                <span class="n">e</span><span class="p">(</span><span class="n">stuff</span><span class="p">)</span>
+                        <span class="n">found</span> <span class="o">=</span> <span class="bp">True</span>
+                        <span class="k">break</span>
+
+                <span class="c"># handler = self.base(self, request)</span>
+                <span class="c">#</span>
+                <span class="c"># if handler._handle_request():</span>
+                <span class="c">#     return</span>
             <span class="c"># TODO handle this proberly</span>
-            <span class="c"># print &#39;404&#39;, request.path</span>
             <span class="c"># raise tornado.web.HTTPError(404, &quot;Path not found &quot; + request.path)</span>
-            <span class="n">handler</span> <span class="o">=</span> <span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">ErrorHandler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">)</span>
-            <span class="n">handler</span><span class="o">.</span><span class="n">_execute</span><span class="p">([])</span>
-            <span class="k">return</span> <span class="n">handler</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">handler</span> <span class="o">=</span> <span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">ErrorHandler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">)</span>
+                <span class="n">handler</span><span class="o">.</span><span class="n">_execute</span><span class="p">([])</span>
 
     <span class="n">app</span> <span class="o">=</span> <span class="n">Application</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">address</span><span class="p">:</span>
         <span class="n">address</span> <span class="o">=</span> <span class="s">&#39;127.0.0.1&#39;</span> <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span> <span class="k">else</span> <span class="s">&#39;0.0.0.0&#39;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">port</span><span class="p">:</span>
         <span class="n">port</span> <span class="o">=</span> <span class="mi">9999</span>
-    <span class="k">print</span> <span class="s">&#39;Listening on http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%i</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Listening on http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%i</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
     <span class="n">app</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="n">port</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">)</span>
     <span class="c">#path.append(os.path.dirname(os.path.abspath(sys.argv[0])))</span>
     <span class="k">if</span> <span class="n">rw</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
         <span class="n">tornado</span><span class="o">.</span><span class="n">autoreload</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">generate_routing</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;generate routing &quot;table&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">req_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;get&#39;</span><span class="p">,</span> <span class="s">&#39;post&#39;</span><span class="p">,</span> <span class="s">&#39;put&#39;</span><span class="p">,</span> <span class="s">&#39;delete&#39;</span><span class="p">):</span>
+        <span class="n">ret</span><span class="p">[</span><span class="n">req_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">_generate_routing</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">req_type</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">_generate_routing</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">req_type</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">mount</span><span class="p">):</span>
+            <span class="n">route</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">_rw_route</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_generate_routing</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">_rw_mod</span><span class="p">,</span> <span class="n">req_type</span><span class="p">,</span> <span class="n">route</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;_rw_route&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s">&#39;_rw_route_type&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">_rw_route_type</span> <span class="o">!=</span> <span class="n">req_type</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c"># generate route and normalize ending slashes</span>
+            <span class="n">route</span> <span class="o">=</span> <span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">_rw_route</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">route</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span>
+            <span class="c"># we may not use direct access to value.route</span>
+            <span class="c"># as this will fail on methods</span>
+            <span class="n">route_rule</span> <span class="o">=</span> <span class="n">Rule</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="s">&#39;route_rule&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route_rule</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">route_rule</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
 
 
 <div class="viewcode-block" id="get"><a class="viewcode-back" href="../../www.html#rw.www.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -538,8 +606,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;route&#39;</span><span class="p">)</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route_type</span> <span class="o">=</span> <span class="s">&#39;GET&#39;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route_type</span> <span class="o">=</span> <span class="s">&#39;get&#39;</span>
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
@@ -555,8 +623,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;route&#39;</span><span class="p">)</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route_type</span> <span class="o">=</span> <span class="s">&#39;POST&#39;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route_type</span> <span class="o">=</span> <span class="s">&#39;post&#39;</span>
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
@@ -572,8 +640,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;route&#39;</span><span class="p">)</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route_type</span> <span class="o">=</span> <span class="s">&#39;PUT&#39;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route_type</span> <span class="o">=</span> <span class="s">&#39;put&#39;</span>
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
@@ -589,39 +657,21 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s">&#39;route&#39;</span><span class="p">)</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">route_type</span> <span class="o">=</span> <span class="s">&#39;DELETE&#39;</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">_rw_route_type</span> <span class="o">=</span> <span class="s">&#39;delete&#39;</span>
         <span class="k">return</span> <span class="n">f</span>
     <span class="k">return</span> <span class="n">wrapper</span>
 
 </div>
-<div class="viewcode-block" id="mount"><a class="viewcode-back" href="../../www.html#rw.www.mount">[docs]</a><span class="k">def</span> <span class="nf">mount</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mod</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Mount `RequestHandler` within another handler.</span>
+<div class="viewcode-block" id="mount"><a class="viewcode-back" href="../../www.html#rw.www.mount">[docs]</a><span class="k">class</span> <span class="nc">mount</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">mod</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rw_route</span> <span class="o">=</span> <span class="n">route</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rw_mod</span> <span class="o">=</span> <span class="n">mod</span>
 
-<span class="sd">    Example usage::</span>
-
-<span class="sd">        class A(RequestHandler):</span>
-<span class="sd">            @get(&#39;/&#39;)</span>
-<span class="sd">            def index(self):</span>
-<span class="sd">                self.finish(&#39;index of A&#39;)</span>
-
-<span class="sd">        class B(RequestHandler):</span>
-<span class="sd">            mount(&#39;/a&#39;, A)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># get the locals from where our request class is constructed</span>
-    <span class="c"># by traveling up the interpreter stack by one frame</span>
-    <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">f_locals</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">f_locals</span>
-
-    <span class="c"># add arguments, they are processed into routing rules in</span>
-    <span class="c"># RequestHandler.__new__</span>
-    <span class="n">f_locals</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">&#39;_mounts&#39;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">mod</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rw_mod</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
 
 </div>
-<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">mod</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s">&#39;Main&#39;</span><span class="p">)</span>
-
-
 <span class="k">class</span> <span class="nc">Widget</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">pass</span>
 </pre></div>
@@ -658,12 +708,13 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li><a href="../../index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li>
-          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../rw.html" >rw</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Florian Ludwig.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>
