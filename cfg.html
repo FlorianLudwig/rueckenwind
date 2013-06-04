@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Configuration Management &mdash; Rückenwind 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Rückenwind 0.0.1 documentation" href="index.html" />
+    <link rel="next" title="Using MongoDB" href="db.html" />
+    <link rel="prev" title="Static Content" href="static_data.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="db.html" title="Using MongoDB"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="static_data.html" title="Static Content"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="configuration-management">
+<h1>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this headline">¶</a></h1>
+<p>For your convenience rueckenwind comes with simple (as in KISS) configuration management. When you start up your project
+rueckenwind will try to load its configuration and you might see logging like:</p>
+<div class="highlight-python"><pre>rw[INFO] reading config: /my_virtualenv/src/my_cool_project_git/myproject/myproject.cfg
+rw[INFO] reading config: /etc/myproject.cfg
+rw[INFO] reading config: /home/joe/.myproject.cfg
+rw[INFO] reading config: /my_virtualenv/etc/myproject.cfg</pre>
+</div>
+<p>The order the files appear is of importance. Values in the later overwrite values in the former. So you can specify
+default values for your configuration values inside your project that gets overwritten by system wide configuration in
+/etc that gets overwritten by user configuration in their homes that gets overwritten by configuratin inside your
+virtual_envs /etc.</p>
+<p>For example if your your project features the following config file:</p>
+<div class="highlight-python"><pre>[mongodb]
+host = 127.0.0.1
+db = some_db</pre>
+</div>
+<p>And your ~/.myproject.cfg is:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span><span class="n">mongodb</span><span class="p">]</span>
+<span class="n">host</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">local</span>
+</pre></div>
+</div>
+<p>You will get the following configuration dict:</p>
+<div class="highlight-python"><pre>{'mongodb': {
+    'host': 'db.local'
+    'db': 'some_db'
+}}</pre>
+</div>
+<p>It can be accessed via <tt class="docutils literal"><span class="pre">rw.cfg</span></tt>. Please note that the dict gets populated when rw setups your project. So if you use:</p>
+<div class="highlight-python"><pre>rw serv mycoolproject</pre>
+</div>
+<p>The dict is populated before your module is loaded - meaning you can access <tt class="docutils literal"><span class="pre">rw.cfg</span></tt> withouy worries. In circumstances
+were you are not running through the rw start command you might want to either use <tt class="docutils literal"><span class="pre">rw.setup('mycoolproject')</span></tt> to load
+your module (which is what <tt class="docutils literal"><span class="pre">rw</span> <span class="pre">serv</span></tt> does). In other circumstances you might just want the config you can use:</p>
+<dl class="function">
+<dt id="rw.load_config">
+<tt class="descclassname">rw.</tt><tt class="descname">load_config</tt><big>(</big><em>module_name</em><big>)</big><a class="reference internal" href="_modules/rw.html#load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load configuration for given module and return config dict</p>
+</dd></dl>
+
+<p>Design Decisions (TODO better document):
+- JSON does not support comments
+- YAML got some smaller problems but so does ini. In the end a KISS decision was made.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="static_data.html"
+                        title="previous chapter">Static Content</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="db.html"
+                        title="next chapter">Using MongoDB</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/cfg.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="db.html" title="Using MongoDB"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="static_data.html" title="Static Content"
+             >previous</a> |</li>
+        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Florian Ludwig.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

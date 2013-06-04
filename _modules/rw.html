@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rw &mdash; Rückenwind 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Rückenwind 0.0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for rw</h1><div class="highlight"><pre>
+<span class="c"># Copyright 2012 Florian Ludwig</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may</span>
+<span class="c"># not use this file except in compliance with the License. You may obtain</span>
+<span class="c"># a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS, WITHOUT</span>
+<span class="c"># WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the</span>
+<span class="c"># License for the specific language governing permissions and limitations</span>
+<span class="c"># under the License.</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">select</span>
+
+<span class="kn">import</span> <span class="nn">tornado.ioloop</span>
+<span class="kn">import</span> <span class="nn">tornado.web</span>
+<span class="kn">import</span> <span class="nn">tornado.autoreload</span>
+<span class="kn">from</span> <span class="nn">configobj</span> <span class="kn">import</span> <span class="n">ConfigObj</span>
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+
+<span class="kn">import</span> <span class="nn">rbusys</span>
+<span class="n">rbusys</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+<span class="kn">import</span> <span class="nn">rbus</span>
+
+<span class="kn">from</span> <span class="nn">rw</span> <span class="kn">import</span> <span class="n">testing</span>
+
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="n">MODULES</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;www&#39;</span><span class="p">:</span> <span class="p">{},</span>
+           <span class="s">&#39;rpc&#39;</span><span class="p">:</span> <span class="p">{}}</span>
+
+<span class="n">cfg</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;www&#39;</span><span class="p">,</span> <span class="n">arg2</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">MODULES</span><span class="p">[</span><span class="nb">type</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">auto_load</span><span class="p">:</span>
+            <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">type</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">sub_name</span> <span class="ow">in</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]:</span>
+                    <span class="n">mod</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">sub_name</span><span class="p">)</span>
+            <span class="n">MODULES</span><span class="p">[</span><span class="nb">type</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">mod</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.</span><span class="si">%s</span><span class="s"> is not loaded and auto_load=False&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">))</span>
+        <span class="c"># app = MODULES[type][name].www.Main</span>
+        <span class="c"># assert issubclass(app, RequestHandler), repr(app) + &#39; is not a subclass of rw.RequestHandler&#39;</span>
+    <span class="k">return</span> <span class="n">MODULES</span><span class="p">[</span><span class="nb">type</span><span class="p">][</span><span class="n">name</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">main_module</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="p">{},</span> <span class="p">[</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="n">name</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)]])</span>
+    <span class="k">assert</span> <span class="n">main_module</span><span class="o">.</span><span class="n">__name__</span> <span class="o">==</span> <span class="n">name</span>
+    <span class="k">for</span> <span class="n">rw_module</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;www&#39;</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">rw_module</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="p">{},</span> <span class="p">[</span><span class="n">rw_module</span><span class="p">])</span>
+            <span class="nb">__import__</span><span class="p">(</span><span class="s">&#39;rw.&#39;</span> <span class="o">+</span> <span class="n">rw_module</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="p">{},</span> <span class="p">[</span><span class="n">rw_module</span><span class="p">])</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="c"># TODO: if the module we try to import exists</span>
+            <span class="c">#       but fails to load because within it</span>
+            <span class="c">#       an ImportError is raised this error</span>
+            <span class="c">#       is silented here. Bad.</span>
+            <span class="k">continue</span>
+    <span class="k">return</span> <span class="n">main_module</span>
+
+
+<span class="k">def</span> <span class="nf">drop_privileges</span><span class="p">(</span><span class="n">uid_name</span><span class="o">=</span><span class="s">&#39;nobody&#39;</span><span class="p">,</span> <span class="n">gid_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">pwd</span>
+    <span class="kn">import</span> <span class="nn">grp</span>
+    <span class="c"># get uid/gid from the name</span>
+    <span class="n">uid</span> <span class="o">=</span> <span class="n">pwd</span><span class="o">.</span><span class="n">getpwnam</span><span class="p">(</span><span class="n">uid_name</span><span class="p">)</span><span class="o">.</span><span class="n">pw_uid</span>
+    <span class="k">if</span> <span class="n">gid_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="c"># on some linux systems the group of nobody is called</span>
+        <span class="c"># nobody (e.g. Fedora) on some it is nogroup (e.g. Debian)</span>
+        <span class="k">for</span> <span class="n">gid_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;nobody&#39;</span><span class="p">,</span> <span class="s">&#39;nogroup&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">gid</span> <span class="o">=</span> <span class="n">grp</span><span class="o">.</span><span class="n">getgrnam</span><span class="p">(</span><span class="n">gid_name</span><span class="p">)</span><span class="o">.</span><span class="n">gr_gid</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&#39;Cannot change group, group of &quot;nobody&quot; is unknown&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gid</span> <span class="o">=</span> <span class="n">grp</span><span class="o">.</span><span class="n">getgrnam</span><span class="p">(</span><span class="n">gid_name</span><span class="p">)</span><span class="o">.</span><span class="n">gr_gid</span>
+
+    <span class="c"># remove group privileges</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">setgroups</span><span class="p">([])</span>
+
+    <span class="c"># set new uid/gid</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">setgid</span><span class="p">(</span><span class="n">gid</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">setuid</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span>
+
+    <span class="c"># Ensure a very conservative umask</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">umask</span><span class="p">(</span><span class="mo">077</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RWIOLoop</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">ioloop</span><span class="o">.</span><span class="n">IOLoop</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">handle_callback_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
+        <span class="n">exctype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">exception</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">exctype</span><span class="p">,</span> <span class="n">testing</span><span class="o">.</span><span class="n">StopIOLoop</span><span class="p">):</span>
+            <span class="k">raise</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exception</span><span class="p">(</span><span class="n">exctype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rbus</span><span class="o">.</span><span class="n">rw</span><span class="o">.</span><span class="n">ioloop_exception</span><span class="o">.</span><span class="n">on_exception</span><span class="p">(</span><span class="n">exctype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">exception</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">testing</span><span class="o">.</span><span class="n">StopIOLoop</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&#39;ERROR calling exception handler&#39;</span>
+            <span class="n">exctype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">exception</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exception</span><span class="p">(</span><span class="n">exctype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">exception</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">rw_ioloop_instance</span><span class="p">():</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">select</span><span class="p">,</span> <span class="s">&quot;epoll&quot;</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">tornado.platform.epoll</span> <span class="kn">import</span> <span class="n">EPollIOLoop</span>
+
+        <span class="k">class</span> <span class="nc">RWEPollIOLoop</span><span class="p">(</span><span class="n">RWIOLoop</span><span class="p">,</span> <span class="n">EPollIOLoop</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">RWEPollIOLoop</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">select</span><span class="p">,</span> <span class="s">&quot;kqueue&quot;</span><span class="p">):</span>
+        <span class="c"># Python 2.6+ on BSD or Mac</span>
+        <span class="kn">from</span> <span class="nn">tornado.platform.kqueue</span> <span class="kn">import</span> <span class="n">KQueueIOLoop</span>
+
+        <span class="k">class</span> <span class="nc">RWEPollIOLoop</span><span class="p">(</span><span class="n">RWIOLoop</span><span class="p">,</span> <span class="n">KQueueIOLoop</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">return</span> <span class="n">RWEPollIOLoop</span><span class="p">()</span>
+    <span class="kn">from</span> <span class="nn">tornado.platform.select</span> <span class="kn">import</span> <span class="n">SelectIOLoop</span>
+
+    <span class="k">class</span> <span class="nc">RWSelectIOLoop</span><span class="p">(</span><span class="n">RWIOLoop</span><span class="p">,</span> <span class="n">SelectIOLoop</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">SelectIOLoop</span><span class="p">()</span>
+
+
+<span class="n">io_loop</span> <span class="o">=</span> <span class="n">tornado</span><span class="o">.</span><span class="n">ioloop</span><span class="o">.</span><span class="n">IOLoop</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="n">rw_ioloop_instance</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">update_config</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">update</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">update</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">cfg</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">update_config</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<div class="viewcode-block" id="load_config"><a class="viewcode-back" href="../cfg.html#rw.load_config">[docs]</a><span class="k">def</span> <span class="nf">load_config</span><span class="p">(</span><span class="n">module_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load configuration for given module and return config dict</span>
+
+
+<span class="sd">     &quot;&quot;&quot;</span>
+    <span class="n">cfg_name</span> <span class="o">=</span> <span class="n">module_name</span> <span class="o">+</span> <span class="s">&#39;.cfg&#39;</span>
+    <span class="n">CONFIG_FILES</span> <span class="o">=</span> <span class="p">[</span><span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">cfg_name</span><span class="p">)]</span>
+    <span class="n">CONFIG_FILES</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;/etc/&#39;</span> <span class="o">+</span> <span class="n">cfg_name</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s">&#39;~/.&#39;</span><span class="p">)</span>  <span class="o">+</span> <span class="n">cfg_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s">&#39;VIRTUAL_ENV&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="n">CONFIG_FILES</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s">&#39;VIRTUAL_ENV&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;/etc/&#39;</span> <span class="o">+</span> <span class="n">cfg_name</span><span class="p">)</span>
+
+    <span class="c"># read config</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">config_path</span> <span class="ow">in</span> <span class="n">CONFIG_FILES</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">config_path</span><span class="p">):</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;reading config: &#39;</span> <span class="o">+</span> <span class="n">config_path</span><span class="p">)</span>
+            <span class="n">config_obj</span> <span class="o">=</span> <span class="n">ConfigObj</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+            <span class="n">update_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">config_obj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;config does not exist: &#39;</span> <span class="o">+</span> <span class="n">config_path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">config</span>
+
+</div>
+<span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="n">app_name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;www&#39;</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">load_config</span><span class="p">(</span><span class="n">app_name</span><span class="p">))</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">__import__</span><span class="p">(</span><span class="s">&#39;rw.&#39;</span> <span class="o">+</span> <span class="nb">type</span><span class="p">),</span> <span class="nb">type</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mod</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">app_name</span><span class="p">,</span> <span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;www&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">app</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">setup</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tornado</span><span class="o">.</span><span class="n">ioloop</span><span class="o">.</span><span class="n">IOLoop</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&#39;ctrl+c received. Exiting&#39;</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Florian Ludwig.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
