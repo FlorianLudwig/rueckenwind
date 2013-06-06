@@ -132,7 +132,13 @@ class Field(property):
         return '<Field %i>' % self.name
 
 
+# TODO
 class List(Field):
+    pass
+
+
+# TODO
+class Reference(Field):
     pass
 
 
@@ -200,17 +206,14 @@ class Document(dict):
         return '<%s %s>' % (self.__class__.__name__,
                             ' '.join('%s=%s' % item for item in self.items()))
 
-    def save(self, callback=None):
+    def save(self):
         """Save entry in collection (updates or creates)
 
         Warning: Never use "callback" as key."""
-        def inner_callback(*args, **kwargs):
-            if not callback is None:
-                callback(*args, **kwargs)
-        self.col.save(self, callback=inner_callback)  # TODO callback
+        return self.col.save(self)
 
     def delete(self):
-        self.col.delete(self)
+        return self.col.delete(self)
 
     @classmethod
     def find(cls, *args, **kwargs):
