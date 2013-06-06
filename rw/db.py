@@ -139,6 +139,7 @@ class Field(property):
         return '<Field %i>' % self.name
 
 
+# TODO
 class List(Field):
     pass
 
@@ -220,7 +221,7 @@ class Document(dict):
         return self.col.save(self, callback=callback)
 
     def delete(self):
-        self.col.delete(self)
+        return self.col.delete(self)
 
     @classmethod
     def find(cls, *args, **kwargs):
