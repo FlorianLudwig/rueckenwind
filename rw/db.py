@@ -104,29 +104,29 @@ class Query(object):
         self.col.find({'_id': value}, callback=callback)
 
 
+class NoDefaultValue(object):
+    pass
+
+
 class Field(property):
-    def __init__(self, type, _id=False, default=None):
+    def __init__(self, type, default=NoDefaultValue):
         # print 'init property', self, type
         super(Field, self).__init__(self.get_value, self.set_value)
         self.name = None
         self.type = type
         self.default = default
-        self.is_id = _id
 
     def get_value(self, entity):
-        if self.is_id:
-            return entity['_id']
+        if self.name in entity:
+            value = entity[self.name]
+        elif self.default is not NoDefaultValue:
+            value = self.default
         else:
-            # try:
-                return self.type(entity[self.name])
-            # except:
-            #     return self.default
+            raise ValueError('Value not found')
+        return self.type(value)
 
     def set_value(self, entity, value):
-        if self.is_id:
-            entity['_id'] = value
-        else:
-            entity[self.name] = value
+        entity[self.name] = value
 
     def __repr__(self):
         return '<Field %i>' % self.name
@@ -151,12 +151,6 @@ class DocumentMeta(type):
             if isinstance(value, Field):
                 field = getattr(ret, key)
                 field.name = key
-                if field.is_id:
-                    if ret._id_name == '_id':
-                        ret._id_name = key
-                    else:
-                        raise AttributeError('Two fields with _id=True %s, %s'
-                                             % (ret._id_name, value))
 
         if bases != (dict,):
             ret._name = name.lower()
