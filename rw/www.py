@@ -31,7 +31,6 @@ import functools
 
 import pkg_resources
 from tornado import stack_context
-from tornado import concurrent
 import tornado.websocket
 from tornado import gen
 from tornado.web import HTTPError
