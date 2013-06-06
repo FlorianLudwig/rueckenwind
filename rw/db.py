@@ -25,9 +25,11 @@ Example::
 
 """
 import numbers
-import abc
-
 from copy import copy
+import bson
+from motor import Op
+
+from tornado import gen
 from tornado.concurrent import return_future
 
 db = None
@@ -95,6 +97,11 @@ class Query(object):
         self._limit = 1
         Cursor(self, callback)
 
+    @gen.coroutine
+    def find_one(self):
+        ret = yield Op(self.col.find_one, self._filters, sort=self._sort, limit=self._limit)
+        raise gen.Return(self.col_cls(**ret))
+
     def get(self, value, user_callback):
         def callback(elements, error):
             if elements:
@@ -133,6 +140,11 @@ class Field(property):
 
 
 class List(Field):
+    pass
+
+
+# TODO
+class Reference(Field):
     pass
 
 
@@ -200,14 +212,12 @@ class Document(dict):
         return '<%s %s>' % (self.__class__.__name__,
                             ' '.join('%s=%s' % item for item in self.items()))
 
+    @gen.coroutine
     def save(self, callback=None):
         """Save entry in collection (updates or creates)
 
-        Warning: Never use "callback" as key."""
-        def inner_callback(*args, **kwargs):
-            if not callback is None:
-                callback(*args, **kwargs)
-        self.col.save(self, callback=inner_callback)  # TODO callback
+        returns Future"""
+        return self.col.save(self, callback=callback)
 
     def delete(self):
         self.col.delete(self)
@@ -216,6 +226,12 @@ class Document(dict):
     def find(cls, *args, **kwargs):
         query = Query(cls)
         return query.find(*args, **kwargs)
+
+    @classmethod
+    def by_id(cls, _id):
+        if isinstance(_id, basestring):
+            _id = bson.ObjectId(_id)
+        return Query(cls).find(_id=_id).find_one()
 
 
 class SubDocument(Document):
