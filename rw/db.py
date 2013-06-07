@@ -215,8 +215,9 @@ class Document(dict):
         returns Future"""
         return self.col.save(self, callback=callback)
 
-    def delete(self):
-        return self.col.delete(self)
+    @gen.coroutine
+    def remove(self, callback=None):
+        return self.col.remove(self, callback=callback)
 
     @classmethod
     def find(cls, *args, **kwargs):
