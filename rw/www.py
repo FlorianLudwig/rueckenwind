@@ -158,7 +158,7 @@ class StaticURL(object):
 
 
 def url_for(func, **args):
-    return func.im_class._rw_get_path(func, args)
+    return func.im_class._rw_get_path(func.im_func, args)
 
 
 def urlencode(uri, **query):
@@ -545,7 +545,7 @@ def _generate_routing(root, req_type, prefix=''):
             # as this will fail on methods
             route_rule = Rule(route, root, key)
             # value.__dict__['route_rule'] = route_rule
-            root._rw_routes[value] = route_rule
+            root._rw_routes[value.im_func] = route_rule
             ret.append(route_rule)
     ret.sort(reverse=True)
     return ret
