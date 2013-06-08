@@ -24,7 +24,6 @@ Example::
             self.finish(template='index.html')
 
 """
-import copy
 import numbers
 from copy import copy
 import bson
@@ -128,10 +127,11 @@ class Field(property):
         if self.name in entity:
             value = entity[self.name]
         elif self.default is not NoDefaultValue:
-            value = copy.copy(self.default)
+            value = self.default
         else:
             raise ValueError('Value not found')
-        return self.type(value)
+        entity[self.name] = self.type(value)
+        return entity[self.name]
 
     def set_value(self, entity, value):
         entity[self.name] = value
