@@ -141,7 +141,9 @@ class Rule(object):
             return self.handler, self.func_name, arguments
         return False
 
-    def get_path(self, values={}):
+    def get_path(self, values=None):
+        if values is None:
+            values = {}
         re = []
         for converter, args, data in self.route:
             if converter:

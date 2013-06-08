@@ -106,6 +106,11 @@ class TestHandler(rw.www.RequestHandler):
         TestHandler.last_invoced = 'page:' + name
 
 
+
+
+
+
+
 # def test_minimum_consume():
 #     gen_handler(TestHandler, 'GET', '/')._handle_request()
 #     assert TestHandler.last_invoced == 'index'

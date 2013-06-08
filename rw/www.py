@@ -158,7 +158,7 @@ class StaticURL(object):
 
 
 def url_for(func, **args):
-    return func.route_rule.get_path(args)
+    return func.im_class._rw_get_path(func, args)
 
 
 def urlencode(uri, **query):
@@ -207,6 +207,7 @@ class RequestHandlerMeta(type):
         module_path = sys.modules[module].__file__
         module_path = os.path.dirname(os.path.abspath(module_path))
         ret.module_path = module_path
+        ret._rw_routes = {}
 
         def load_template(name):
             if ':' in name:
@@ -307,6 +308,11 @@ class RequestHandler(tornado.web.RequestHandler, dict):
     def __cmp__(self, o):
         return id(self) == id(o)
     __eq__ = __cmp__
+
+    @classmethod
+    def _rw_get_path(cls, func, values={}):
+        print func
+        return cls._rw_routes[func].get_path(values)
 
     def create_form(self, name, Form, db=None):
         self[name] = Form()
@@ -538,7 +544,8 @@ def _generate_routing(root, req_type, prefix=''):
             # we may not use direct access to value.route
             # as this will fail on methods
             route_rule = Rule(route, root, key)
-            value.__dict__['route_rule'] = route_rule
+            # value.__dict__['route_rule'] = route_rule
+            root._rw_routes[value] = route_rule
             ret.append(route_rule)
     ret.sort(reverse=True)
     return ret
