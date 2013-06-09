@@ -100,7 +100,10 @@ class Query(object):
     @gen.coroutine
     def find_one(self):
         ret = yield Op(self.col.find_one, self._filters, sort=self._sort, limit=self._limit)
-        raise gen.Return(self.col_cls(**ret))
+        if ret:
+            raise gen.Return(self.col_cls(**ret))
+        else:
+            raise gen.Return(None)
 
     def get(self, value, user_callback):
         def callback(elements, error):
@@ -247,3 +250,45 @@ def using_options(name=None, tablename=None):
         # elxir compatibility
         name = tablename
     print name
+
+
+def extract_model(fileobj, keywords, comment_tags, options):
+    """Extract messages from rw models
+
+    :param fileobj: the file-like object the messages should be extracted
+                    from
+    :param keywords: a list of keywords (i.e. function names) that should
+                     be recognized as translation functions
+    :param comment_tags: a list of translator tags to search for and
+                         include in the results
+    :param options: a dictionary of additional options (optional)
+    :return: an iterator over ``(lineno, funcname, message, comments)``
+             tuples
+    :rtype: ``iterator``
+    """
+    import ast, _ast
+    print 'extract model', fileobj, keywords, comment_tags, options
+    code = ast.parse(fileobj.read()).body
+    for statement in code:
+        if isinstance(statement, _ast.ClassDef):
+            print 'cls', dir(statement)
+            for base in statement.bases:
+                cls_name = statement.name
+                if base.id in ('Document', 'db.Document', 'rw.db.Document'):
+                    for line in statement.body:
+                        if isinstance(line, _ast.Assign):
+                            for name in line.targets:
+                                msg = 'model.{}.{}'.format(cls_name, name.id)
+                                yield (name.lineno,
+                                       'gettext',
+                                       msg.format('1', name.id),
+                                       ''
+                                       )
+                                yield (name.lineno,
+                                       'gettext',
+                                       msg + '-Description',
+                                       ''
+                                )
+                            print line.value
+                            print dir(line)
+                        # yield (base.lineno)
