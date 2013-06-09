@@ -32,7 +32,7 @@ import functools
 import pkg_resources
 from tornado import stack_context
 import tornado.websocket
-from tornado import gen
+from tornado import gen, concurrent
 from tornado.web import HTTPError
 from jinja2 import Environment, FunctionLoader
 
@@ -197,9 +197,31 @@ def create_template_env(load_template):
     return template_env
 
 
+class TornadoMultiDict(object):
+    def __init__(self, handler):
+        self.handler = handler
+
+    def __iter__(self):
+        return iter(self.handler.request.arguments)
+
+    def __len__(self):
+        return len(self.handler.request.arguments)
+
+    def __contains__(self, name):
+        # We use request.arguments because get_arguments always returns a
+        # value regardless of the existence of the key.
+        return (name in self.handler.request.arguments)
+
+    def getlist(self, name):
+        # get_arguments by default strips whitespace from the input data,
+        # so we pass strip=False to stop that in case we need to validate
+        # on whitespace.
+        return self.handler.get_arguments(name, strip=False)
+
+
 class RequestHandlerMeta(type):
     def __new__(cls, name, bases, dct):
-        is_base_class = bases == (tornado.web.RequestHandler, dict)
+        is_base_class = bases == (HandlerBase, )
         ret = type.__new__(cls, name, bases, dct)
         # find template dir
         module = dct['__module__']
@@ -227,6 +249,8 @@ class RequestHandlerMeta(type):
             ret._module_name = module
         static = StaticURL(ret if not is_base_class else '')
         ret._static = static
+
+        # inheritance
         for base in bases:
             if hasattr(base, 'template_env'):
                 ret.template_env.globals.update(base.template_env.globals)
@@ -235,6 +259,7 @@ class RequestHandlerMeta(type):
         ret.template_env.globals['url_for'] = url_for
 
         # i18n - load all available translations
+        # TODO translations should be per module not handler
         if not 'language' in dct:
             ret.language = 'en'  # XXX use system default?
         ret.translations = {}
@@ -270,48 +295,13 @@ class RequestHandlerMeta(type):
         return ret
 
 
-class TornadoMultiDict(object):
-    def __init__(self, handler):
-        self.handler = handler
-
-    def __iter__(self):
-        return iter(self.handler.request.arguments)
-
-    def __len__(self):
-        return len(self.handler.request.arguments)
-
-    def __contains__(self, name):
-        # We use request.arguments because get_arguments always returns a
-        # value regardless of the existence of the key.
-        return (name in self.handler.request.arguments)
-
-    def getlist(self, name):
-        # get_arguments by default strips whitespace from the input data,
-        # so we pass strip=False to stop that in case we need to validate
-        # on whitespace.
-        return self.handler.get_arguments(name, strip=False)
-
-
-class RequestHandler(tornado.web.RequestHandler, dict):
-    __metaclass__ = RequestHandlerMeta
-
-    def __init__(self, application, request, **kwargs):
-        super(RequestHandler, self).__init__(application, request, **kwargs)
-        self._transforms = []
-        self.template = None
-        self.base_path = ''
-        browser_language = self.request.headers.get('Accept-Language', '')
-        if browser_language:
-            self.language = self.get_closest(*browser_language.split(','))
-        self['handler'] = self
-
+class HandlerBase(tornado.web.RequestHandler, dict):
     def __cmp__(self, o):
         return id(self) == id(o)
     __eq__ = __cmp__
 
     @classmethod
     def _rw_get_path(cls, func, values={}):
-        print func
         return cls._rw_routes[func].get_path(values)
 
     def create_form(self, name, Form, db=None):
@@ -348,7 +338,7 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 return code
             if parts[0] in self.translations:  # XXX
                 return parts[0]
-        # no match found, return default locale
+            # no match found, return default locale
         return self.language
 
     def render_template(self, template):
@@ -369,7 +359,7 @@ class RequestHandler(tornado.web.RequestHandler, dict):
             self.template = template
         if self.template and not chunk:
             self.write(self.render_template(self.template))
-        super(RequestHandler, self).finish(chunk)
+        super(HandlerBase, self).finish(chunk)
         # if we are in debug mode we lets ingore memory leaks
         # so we can preserv all information that might be needed
         # to debug a traceback
@@ -385,7 +375,42 @@ class RequestHandler(tornado.web.RequestHandler, dict):
             if not self._finished:
                 self.finish(self.application.get_error_html(status_code, **kwargs))
         else:
-            super(RequestHandler, self).send_error(status_code, **kwargs)
+            super(HandlerBase, self).send_error(status_code, **kwargs)
+
+
+class RequestHandler(HandlerBase):
+    __metaclass__ = RequestHandlerMeta
+
+    def __init__(self, application, request, **kwargs):
+        super(RequestHandler, self).__init__(application, request, **kwargs)
+        self._transforms = []
+        self.template = None
+        self.base_path = ''
+        browser_language = self.request.headers.get('Accept-Language', '')
+        if browser_language:
+            self.language = self.get_closest(*browser_language.split(','))
+        self['handler'] = self
+
+
+class RequestSubHandlerMeta(type):
+    def __new__(cls, name, bases, dct):
+        ret = type.__new__(cls, name, bases, dct)
+        ret._rw_routes = {}
+        return ret
+
+
+class RequestSubHandler(HandlerBase):
+    __metaclass__ = RequestSubHandlerMeta
+
+    def __init__(self, application, request, **kwargs):
+        super(RequestSubHandler, self).__init__(application, request, **kwargs)
+        self._transforms = []
+        self.template = None
+        self.base_path = ''
+        browser_language = self.request.headers.get('Accept-Language', '')
+        if browser_language:
+            self.language = self.get_closest(*browser_language.split(','))
+        self['handler'] = self
 
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -417,7 +442,9 @@ class ExecuteHandler(object):
 
     @gen.engine
     def __call__(self, futures):
-        yield [future for future in futures if future]
+        futures = [future for future in futures if isinstance(future, concurrent.Future)]
+        if futures:
+            yield futures
         getattr(self.handler, self.func_name)(**self.arguments)
 
 
@@ -491,9 +518,9 @@ def setup(app_name, address=None, port=None):
                         handler = handler(self, request)
                         with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
                             with stack_context.StackContext(functools.partial(rh_context, handler)):
-                                stuff = rbus.rw.request_handling.pre_process(handler)
+                                preprocessors = rbus.rw.request_handling.pre_process(handler)
                                 e = ExecuteHandler(handler, func_name, arguments)
-                                e(stuff)
+                                e(preprocessors)
                         found = True
                         break
 
@@ -524,16 +551,25 @@ def generate_routing(root):
     """
     ret = {}
     for req_type in ('get', 'post', 'put', 'delete'):
-        ret[req_type] = _generate_routing(root, req_type)
+        ret[req_type] = _generate_routing(root, root, req_type)
     return ret
 
 
-def _generate_routing(root, req_type, prefix=''):
+def _generate_routing(root, main_handler, req_type, prefix=''):
+    """
+
+    main_handler is the last visited RequestHanlder in the tree
+    """
+    if issubclass(root, RequestHandler):
+        main_handler = root
+    else:
+        root.template_env = main_handler.template_env
+        root.translations = main_handler.translations
     ret = []
     for key, value in inspect.getmembers(root):
         if isinstance(value, mount):
             route = prefix + value._rw_route
-            ret.extend(_generate_routing(value._rw_mod, req_type, route))
+            ret.extend(_generate_routing(value._rw_mod, main_handler, req_type, route))
         elif hasattr(value, '_rw_route'):
             if not hasattr(value, '_rw_route_type') or value._rw_route_type != req_type:
                 continue
