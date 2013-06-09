@@ -187,7 +187,6 @@ class Document(dict):
     __metaclass__ = DocumentMeta
 
     def __init__(self, **kwargs):
-        self.col = getattr(db, self._name)
         # for key, value in kwargs.items():
         #     if hasattr(self, key):
         #         setattr(self, key, value)
@@ -213,11 +212,11 @@ class Document(dict):
         """Save entry in collection (updates or creates)
 
         returns Future"""
-        return self.col.save(self, callback=callback)
+        return getattr(db, self._name).save(self, callback=callback)
 
     @gen.coroutine
     def remove(self, callback=None):
-        return self.col.remove(self, callback=callback)
+        return getattr(db, self._name).remove(self, callback=callback)
 
     @classmethod
     def find(cls, *args, **kwargs):
@@ -229,6 +228,10 @@ class Document(dict):
         if isinstance(_id, basestring):
             _id = bson.ObjectId(_id)
         return Query(cls).find(_id=_id).find_one()
+
+    @property
+    def _motor_collection(self):
+        return getattr(db, self._name)
 
 
 class SubDocument(Document):
