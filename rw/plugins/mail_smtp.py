@@ -3,17 +3,10 @@ from email.mime.text import MIMEText
 
 #from genshi import template
 import rplug
-
+import rw
 
 #TPL_PATH = os.path.join('tpl', 'emails')
 #TPL_LOADER = template.TemplateLoader(TPL_PATH, default_class=template.NewTextTemplate)
-FROM = None
-RELAY = 'localhost'
-PORT = 0
-USERNAME = None
-PASSWORD = None
-LOCAL_HOSTNAME = None
-TLS = True
 
 
 class SmtpMail(rplug.rw.email):
@@ -22,6 +15,7 @@ class SmtpMail(rplug.rw.email):
 
            toaddrs is a list of receipients
         """
+        print 'send mail!'
         if isinstance(body, unicode):
             body = body.encode('utf-8')
         if isinstance(subject, unicode):
@@ -29,9 +23,10 @@ class SmtpMail(rplug.rw.email):
         if isinstance(toaddrs, basestring):
             toaddrs = [toaddrs]
         msg = MIMEText(body, 'plain', 'utf-8')
-        msg['From'] = FROM
+        msg['From'] = rw.cfg['mail']['from']
         msg['To'] = ','.join(toaddrs)
         msg['Subject'] = subject
+        print '--'
 
         for fname, content in attachments.items():
             if isinstance(content, unicode):
@@ -43,14 +38,22 @@ class SmtpMail(rplug.rw.email):
             msg.attach(attachment)
 
         # The actual mail send
-        s = smtplib.SMTP(RELAY, PORT, LOCAL_HOSTNAME)
-        if TLS:
-            s.ehlo()
+        print 'smptlib.SMTP'
+        print ( rw.cfg['mail']['relay'],
+                int(rw.cfg['mail'].get('port', 0)),
+                rw.cfg['mail'].get('local_hostname')
+        )
+        s = smtplib.SMTP(rw.cfg['mail']['relay'],
+                         int(rw.cfg['mail'].get('port', 0)),
+                         rw.cfg['mail'].get('local_hostname', None))
+        print type(rw.cfg['mail']['tls'])
+        if rw.cfg['mail']['tls']:
             s.starttls()
             s.ehlo()
-        if USERNAME:
-            s.login(USERNAME, PASSWORD)
-        s.sendmail(FROM, toaddrs, msg.as_string())
+        if 'username' in rw.cfg['mail']:
+            s.login(rw.cfg['mail']['username'],
+                    rw.cfg['mail'].get('password', ''))
+        s.sendmail(rw.cfg['mail']['from'], toaddrs, msg.as_string())
         s.quit()
 
 
