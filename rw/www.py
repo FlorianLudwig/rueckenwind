@@ -304,8 +304,8 @@ class HandlerBase(tornado.web.RequestHandler, dict):
     def _rw_get_path(cls, func, values={}):
         return cls._rw_routes[func].get_path(values)
 
-    def create_form(self, name, Form, db=None):
-        self[name] = Form()
+    def create_form(self, name, Form, db=None, **kwargs):
+        self[name] = Form(**kwargs)
         if db:
             self[name].process(obj=db)
         else:
