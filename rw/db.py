@@ -132,7 +132,7 @@ class Field(property):
         elif self.default is not NoDefaultValue:
             value = self.default
         else:
-            raise ValueError('Value not found')
+            raise ValueError('Value not found for "{}"'.format(self.name))
         entity[self.name] = self.type(value)
         return entity[self.name]
 
@@ -190,11 +190,11 @@ class Document(dict):
     __metaclass__ = DocumentMeta
 
     def __init__(self, **kwargs):
-        # for key, value in kwargs.items():
-        #     if hasattr(self, key):
-        #         setattr(self, key, value)
-        #     else:
-        #         self[key] = value
+        cls = self.__class__
+        for field in dir(cls):
+            cls_obj = getattr(cls, field)
+            if isinstance(cls_obj, Field) and cls_obj.default is not NoDefaultValue:
+                getattr(self, field)
         self.update(kwargs)
 
     # def __getitem__(self, key):
