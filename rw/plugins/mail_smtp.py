@@ -1,5 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 #from genshi import template
 import rplug
@@ -22,7 +23,10 @@ class SmtpMail(rplug.rw.email):
             subject = subject.encode('utf-8')
         if isinstance(toaddrs, basestring):
             toaddrs = [toaddrs]
-        msg = MIMEText(body, 'plain', 'utf-8')
+        if isinstance(body, (MIMEText, MIMEMultipart)):
+            msg = body
+        else:
+            msg = MIMEText(body, 'plain', 'utf-8')
         msg['From'] = rw.cfg['mail']['from']
         msg['To'] = ','.join(toaddrs)
         msg['Subject'] = subject
