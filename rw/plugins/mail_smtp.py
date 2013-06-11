@@ -27,10 +27,12 @@ class SmtpMail(rplug.rw.email):
             msg = body
         else:
             msg = MIMEText(body, 'plain', 'utf-8')
-        msg['From'] = rw.cfg['mail']['from']
-        msg['To'] = ','.join(toaddrs)
-        msg['Subject'] = subject
-        print '--'
+        if 'From' not in msg:
+            msg['From'] = rw.cfg['mail']['from']
+        if 'To' not in msg:
+            msg['To'] = ','.join(toaddrs)
+        if 'Subject' not in msg:
+            msg['Subject'] = subject
 
         for fname, content in attachments.items():
             if isinstance(content, unicode):
