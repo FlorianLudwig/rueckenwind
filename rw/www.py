@@ -296,6 +296,17 @@ class RequestHandlerMeta(type):
 
 
 class HandlerBase(tornado.web.RequestHandler, dict):
+    def __init__(self, application, request, **kwargs):
+        super(HandlerBase, self).__init__(application, request, **kwargs)
+        self._transforms = []
+        self.template = None
+        self.base_path = ''
+        browser_language = self.request.headers.get('Accept-Language', '')
+        if browser_language:
+            self.language = self.get_closest(*browser_language.split(','))
+        self['handler'] = self
+        self.update(self.template_subglobals)
+
     def __cmp__(self, o):
         return id(self) == id(o)
     __eq__ = __cmp__
@@ -381,16 +392,6 @@ class HandlerBase(tornado.web.RequestHandler, dict):
 class RequestHandler(HandlerBase):
     __metaclass__ = RequestHandlerMeta
 
-    def __init__(self, application, request, **kwargs):
-        super(RequestHandler, self).__init__(application, request, **kwargs)
-        self._transforms = []
-        self.template = None
-        self.base_path = ''
-        browser_language = self.request.headers.get('Accept-Language', '')
-        if browser_language:
-            self.language = self.get_closest(*browser_language.split(','))
-        self['handler'] = self
-
 
 class RequestSubHandlerMeta(type):
     def __new__(cls, name, bases, dct):
@@ -401,16 +402,6 @@ class RequestSubHandlerMeta(type):
 
 class RequestSubHandler(HandlerBase):
     __metaclass__ = RequestSubHandlerMeta
-
-    def __init__(self, application, request, **kwargs):
-        super(RequestSubHandler, self).__init__(application, request, **kwargs)
-        self._transforms = []
-        self.template = None
-        self.base_path = ''
-        browser_language = self.request.headers.get('Accept-Language', '')
-        if browser_language:
-            self.language = self.get_closest(*browser_language.split(','))
-        self['handler'] = self
 
 
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
@@ -551,25 +542,32 @@ def generate_routing(root):
     """
     ret = {}
     for req_type in ('get', 'post', 'put', 'delete'):
-        ret[req_type] = _generate_routing(root, root, req_type)
+        ret[req_type] = _generate_routing(root, root, None, root, req_type)
     return ret
 
 
-def _generate_routing(root, main_handler, req_type, prefix=''):
+def _generate_routing(root, handler, parent, main_handler, req_type, prefix=''):
     """
 
     main_handler is the last visited RequestHanlder in the tree
     """
-    if issubclass(root, RequestHandler):
-        main_handler = root
+    if issubclass(handler, RequestHandler):
+        main_handler = handler
     else:
-        root.template_env = main_handler.template_env
-        root.translations = main_handler.translations
+        handler.template_env = main_handler.template_env
+        handler.translations = main_handler.translations
+    if not hasattr(handler, 'template_subglobals'):
+        handler.template_subglobals = {}
+    handler.template_subglobals.update({
+        'main_handler': main_handler,
+        'parent_handler': parent,
+        'root_handler': root
+    })
     ret = []
-    for key, value in inspect.getmembers(root):
+    for key, value in inspect.getmembers(handler):
         if isinstance(value, mount):
             route = prefix + value._rw_route
-            ret.extend(_generate_routing(value._rw_mod, main_handler, req_type, route))
+            ret.extend(_generate_routing(root, value._rw_mod, handler, main_handler, req_type, route))
         elif hasattr(value, '_rw_route'):
             if not hasattr(value, '_rw_route_type') or value._rw_route_type != req_type:
                 continue
@@ -579,9 +577,9 @@ def _generate_routing(root, main_handler, req_type, prefix=''):
                 route = '/'
             # we may not use direct access to value.route
             # as this will fail on methods
-            route_rule = Rule(route, root, key)
+            route_rule = Rule(route, handler, key)
             # value.__dict__['route_rule'] = route_rule
-            root._rw_routes[value.im_func] = route_rule
+            handler._rw_routes[value.im_func] = route_rule
             ret.append(route_rule)
     ret.sort(reverse=True)
     return ret
