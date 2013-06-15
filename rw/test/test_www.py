@@ -1,5 +1,5 @@
 import rw.www
-from rw.www import get
+from rw.www import get, generate_routing
 
 from mock import Mock
 
@@ -75,6 +75,8 @@ def test_templates():
     app.ui_modules = {}
     request = Mock()
     request.headers = {}
+
+    generate_routing(Main)
     main = Main(app, request)
     #main.index()
     #assert main.template == 'index.html'
