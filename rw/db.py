@@ -97,6 +97,9 @@ class Query(object):
         self._limit = 1
         Cursor(self, callback)
 
+    def limit(self, limit):
+        return Query(self.col_cls, self._filters, self._sort, limit)
+
     @gen.coroutine
     def find_one(self):
         ret = yield Op(self.col.find_one, self._filters, sort=self._sort, limit=self._limit)
@@ -141,7 +144,7 @@ class Field(property):
         entity[self.name] = value
 
     def __repr__(self):
-        return '<Field %i>' % self.name
+        return '<Field %s>' % self.name
 
 
 # TODO
