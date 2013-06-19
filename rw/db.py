@@ -97,6 +97,9 @@ class Query(object):
         self._limit = 1
         Cursor(self, callback)
 
+    def limit(self, limit):
+        return Query(self.col_cls, self._filters, self._sort, limit)
+
     @gen.coroutine
     def find_one(self):
         ret = yield Op(self.col.find_one, self._filters, sort=self._sort, limit=self._limit)
@@ -130,17 +133,18 @@ class Field(property):
         if self.name in entity:
             value = entity[self.name]
         elif self.default is not NoDefaultValue:
-            value = self.default
+            entity[self.name] = value = copy(self.default)
         else:
             raise ValueError('Value not found for "{}"'.format(self.name))
-        entity[self.name] = self.type(value)
+        if not isinstance(value, self.type):
+            entity[self.name] = self.type(value)
         return entity[self.name]
 
     def set_value(self, entity, value):
         entity[self.name] = value
 
     def __repr__(self):
-        return '<Field %i>' % self.name
+        return '<Field %s>' % self.name
 
 
 # TODO
