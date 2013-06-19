@@ -479,6 +479,7 @@ def setup(app_name, address=None, port=None):
                 found = True
             elif request.path.startswith('/static/'):
                 path = request.path[8:].strip('/')  # len('/static/') = 8
+                path = urllib.unquote(path)
                 if '/' in path:
                     module, path = path.split('/', 1)
                     request.path = path
