@@ -35,6 +35,7 @@ import tornado.websocket
 from tornado import gen, concurrent
 from tornado.web import HTTPError
 from jinja2 import Environment, FunctionLoader
+from bson.json_util import dumps
 
 import rw
 import rw.debug
@@ -193,7 +194,7 @@ def create_template_env(load_template):
     template_env.globals['basestring'] = basestring
     template_env.globals['urlencode'] = urlencode
     # filter
-    template_env.filters['json'] = json.dumps
+    template_env.filters['json'] = dumps
     return template_env
 
 
