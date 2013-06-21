@@ -153,7 +153,7 @@ def update_config(cfg, update):
             cfg[key] = value
 
 
-def load_config(module_name):
+def load_config(module_name, extra_files=None):
     """Load configuration for given module and return config dict
 
 
@@ -163,7 +163,8 @@ def load_config(module_name):
     CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]
     if 'VIRTUAL_ENV' in os.environ:
         CONFIG_FILES.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
-
+    if extra_files:
+        CONFIG_FILES.extend(extra_files)
     # read config
     config = {}
     for config_path in CONFIG_FILES:
@@ -177,8 +178,8 @@ def load_config(module_name):
     return config
 
 
-def setup(app_name, type='www', address=None, port=None):
-    cfg.update(load_config(app_name))
+def setup(app_name, type='www', extra_config_files=None, address=None, port=None):
+    cfg.update(load_config(app_name, extra_config_files))
     mod = getattr(__import__('rw.' + type), type)
     return mod.setup(app_name, address=address, port=port)
 

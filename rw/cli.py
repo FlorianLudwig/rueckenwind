@@ -71,7 +71,10 @@ def serv(args):
     import rw
     rw.DEBUG = not args.no_debug
     module = args.MODULE.replace('/', '.').strip('.')
-    rw.start(module, address=args.address, port=args.port)
+    extra = []
+    if args.cfg:
+        extra.append(os.path.abspath(args.cfg))
+    rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
 
 serv.parser.add_argument('-p', '--port', type=int, default=8000,
                          help='Specifiy port to run http server on')
@@ -79,6 +82,8 @@ serv.parser.add_argument('-a', '--address', type=str,
                          help='Specifiy port to run http server on')
 serv.parser.add_argument('--no-debug', action='store_true',
                          help='Run in production mode')
+serv.parser.add_argument('-c', '--cfg', type=str,
+                         help='Additional config to load')
 serv.parser.add_argument('MODULE',
                          help='Module to serv')
 
