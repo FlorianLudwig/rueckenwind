@@ -39,6 +39,7 @@ from bson.json_util import dumps
 
 import rw
 import rw.debug
+from .check import Protector, overwrite_protected, ProtectorMeta
 from . import widget
 from .routing import Rule
 import rbus
@@ -220,10 +221,10 @@ class TornadoMultiDict(object):
         return self.handler.get_arguments(name, strip=False)
 
 
-class RequestHandlerMeta(type):
+class RequestHandlerMeta(ProtectorMeta):
     def __new__(cls, name, bases, dct):
         is_base_class = bases == (HandlerBase, )
-        ret = type.__new__(cls, name, bases, dct)
+        ret = ProtectorMeta.__new__(cls, name, bases, dct)
         # find template dir
         module = dct['__module__']
         module_name = sys.modules[module].__name__
@@ -297,6 +298,11 @@ class RequestHandlerMeta(type):
 
 
 class HandlerBase(tornado.web.RequestHandler, dict):
+    # mark dict functions as overwrite protected
+    for func in dir(dict):
+        if not func.startswith('_'):
+            overwrite_protected(getattr(dict, func))
+
     def __init__(self, application, request, **kwargs):
         super(HandlerBase, self).__init__(application, request, **kwargs)
         self._transforms = []
@@ -316,6 +322,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
     def _rw_get_path(cls, func, values={}):
         return cls._rw_routes[func].get_path(values)
 
+    @overwrite_protected
     def create_form(self, name, Form, db=None, **kwargs):
         self[name] = Form(**kwargs)
         if db:
@@ -324,6 +331,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             self[name].process(TornadoMultiDict(self))
         return self[name]
 
+    @overwrite_protected
     def get_closest(self, *locale_codes):
         """Returns the closest supported match for the given locale code."""
         for code in locale_codes:
@@ -353,6 +361,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             # no match found, return default locale
         return self.language
 
+    @overwrite_protected
     def render_template(self, template):
         """Render template and use i18n."""
         template = self.template_env.get_template(template)
@@ -363,6 +372,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         self.template_env.install_gettext_translations(language)
         return template.render(**self)
 
+    @overwrite_protected
     def finish(self, chunk=None, template=None):
         """Finish Controller part and begin rendering and sending template
 
@@ -379,6 +389,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             dict.clear(self)
             self.ui = None
 
+    @overwrite_protected
     def send_error(self, status_code, **kwargs):
         if 'exc_info' in kwargs:
             # TODO check self._headers_written
@@ -394,9 +405,9 @@ class RequestHandler(HandlerBase):
     __metaclass__ = RequestHandlerMeta
 
 
-class RequestSubHandlerMeta(type):
+class RequestSubHandlerMeta(ProtectorMeta):
     def __new__(cls, name, bases, dct):
-        ret = type.__new__(cls, name, bases, dct)
+        ret = ProtectorMeta.__new__(cls, name, bases, dct)
         ret._rw_routes = {}
         return ret
 
