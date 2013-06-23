@@ -74,7 +74,7 @@ class HandlerB(rw.www.RequestHandler):
 
 class Handler2(HandlerA, HandlerB):
     @rw.www.get('/get')
-    def get(self):
+    def get_(self):
         pass
 
 

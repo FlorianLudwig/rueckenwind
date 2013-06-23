@@ -29,7 +29,9 @@ class OverwriteException(BaseException):
     def __init__(self, cls_name, func_name, func_doc, overwrite_file, overwrite_lino):
         self.cls_name = cls_name
         self.func_name = func_name
-        self.func_doc = '\n'.join('\t' + line for line in func_doc.split('\n'))
+        self.func_doc = ''
+        if func_doc:
+            self.func_doc = '\n'.join('\t' + line for line in func_doc.split('\n'))
         self.overwrite_file = overwrite_file
         self.overwrite_lino = overwrite_lino
 
