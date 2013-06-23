@@ -1,4 +1,5 @@
 import smtplib
+import copy
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -24,7 +25,7 @@ class SmtpMail(rplug.rw.email):
         if isinstance(toaddrs, basestring):
             toaddrs = [toaddrs]
         if isinstance(body, (MIMEText, MIMEMultipart)):
-            msg = body
+            msg = copy.copy(body)
         else:
             msg = MIMEText(body, 'plain', 'utf-8')
         if 'From' not in msg:
