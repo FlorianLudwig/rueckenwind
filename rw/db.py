@@ -121,6 +121,16 @@ class NoDefaultValue(object):
     pass
 
 
+class TypeCastException(BaseException):
+    def __init__(self, name, value, typ, e):
+        self.type = type
+        self.name = name
+        self.value = value
+        self.message = 'Type cast of {} to {} failed'.format(
+            repr(value), type(type)
+        )
+
+
 class Field(property):
     def __init__(self, type, default=NoDefaultValue):
         # print 'init property', self, type
@@ -137,7 +147,10 @@ class Field(property):
         else:
             raise ValueError('Value not found for "{}"'.format(self.name))
         if not isinstance(value, self.type):
-            entity[self.name] = self.type(value)
+		    try:
+		        entity[self.name] = self.type(value)
+		    except BaseException, e:
+		        raise TypeCastException(self.name, self.value, self.type, e)
         return entity[self.name]
 
     def set_value(self, entity, value):
