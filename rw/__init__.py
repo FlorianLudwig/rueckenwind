@@ -158,6 +158,8 @@ def load_config(module_name, extra_files=None):
 
 
      """
+    if isinstance(extra_files, basestring):
+        extra_files = [extra_files]
     cfg_name = module_name + '.cfg'
     CONFIG_FILES = [pkg_resources.resource_filename(module_name, cfg_name)]
     CONFIG_FILES += ['/etc/' + cfg_name, os.path.expanduser('~/.')  + cfg_name]

@@ -391,14 +391,30 @@ class HandlerBase(tornado.web.RequestHandler, dict):
 
     @overwrite_protected
     def send_error(self, status_code, **kwargs):
-        if 'exc_info' in kwargs:
-            # TODO check self._headers_written
+        if self._finished:
             ioloop = tornado.ioloop.IOLoop.instance()
             ioloop.handle_callback_exception(None)
-            if not self._finished:
+            return
+
+        if 'exc_info' in kwargs:
+            if isinstance(kwargs['exc_info'][1], HTTPError):
+                self.on_error(status_code)
+            else:
+                ioloop = tornado.ioloop.IOLoop.instance()
+                ioloop.handle_callback_exception(None)
                 self.finish(self.application.get_error_html(status_code, **kwargs))
         else:
-            super(HandlerBase, self).send_error(status_code, **kwargs)
+            self.on_error(status_code)
+
+    def on_error(self, status_code):
+        if self['parent_handler'] is not self.__class__:
+            parent = self['parent_handler'](self.application, self.request)
+            for key, value in self.items():
+                if key not in parent:
+                    parent[key] = value
+            parent.on_error(status_code)
+        else:
+            super(HandlerBase, self).send_error(status_code)
 
 
 class RequestHandler(HandlerBase):
@@ -535,8 +551,7 @@ def setup(app_name, address=None, port=None):
             # TODO handle this proberly
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             if not found:
-                handler = tornado.web.ErrorHandler(self, request, status_code=404)
-                handler._execute([])
+                self.base(self, request).send_error(404)
 
     app = Application(app)
     if not address:
