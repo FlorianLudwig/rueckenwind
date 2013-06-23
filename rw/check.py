@@ -3,17 +3,12 @@ import inspect
 
 class ProtectorMeta(type):
     def __new__(mcs, cls_name, bases, dct):
-        print 'protector meta', cls_name
         is_base_class = bases == (ProtectorBase, )
         ret = type.__new__(mcs, cls_name, bases, dct)
         check_overwrite = getattr(ret, '_check_overwrite', {})
         for name, overwrite in check_overwrite.items():
             func, overwrite_file, overwrite_lino = overwrite
-            if name == 'update':
-                print 'check update'
-                print func, overwrite_file, overwrite_lino
             if name in dct and func != dct[name]:
-                print 'checking overwrite', name
                 # this function is defined in this class and the
                 # overwrite protection is defined is set in a base class
                 # so we check if @overwrite was used on it
