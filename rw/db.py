@@ -38,18 +38,27 @@ __all__ = ['Entity']
 
 
 class Cursor(object):
-    def __init__(self, query, user_callback=None):
-        self.user_callback = user_callback
+    def __init__(self, query):
         self.col_cls = query.col_cls
         col = getattr(db, query.col_cls._name)
-        print 'query', col, query._filters
         self.db_cursor = col.find(query._filters, sort=query._sort, limit=query._limit)
-        self.db_cursor.to_list(callback=self.on_response)
 
-    def on_response(self, response, error):
-        assert not error
-        self.user_callback([self.col_cls(**e) for e in response])
+    @gen.coroutine
+    def to_list(self):
+        data = yield Op(self.db_cursor.to_list)
+        raise gen.Return([self.col_cls(**e) for e in data])
 
+    @gen.coroutine
+    def next(self):
+        ret = yield self.db_cursor.fetch_next
+        if ret:
+            raise gen.Return(self.col_cls(**self.db_cursor.next_object()))
+        else:
+            raise gen.Return(None)
+
+    def skip(self, skip):
+        self.db_cursor.skip(skip)
+        return self
 
 class Query(object):
     def __init__(self, col, filters=None, sort=None, limit=0, start=0):
@@ -88,14 +97,22 @@ class Query(object):
     def sort(self, sort):
         return Query(self.col_cls, self._filters, sort, self._limit)
 
-    @return_future
-    def to_list(self, callback):
-        Cursor(self, callback)
+    def to_list(self):
+        return Cursor(self).to_list()
 
-    @return_future
+    def cursor(self):
+        return Cursor(self)
+
+    @gen.coroutine
     def first(self, callback):
-        self._limit = 1
-        Cursor(self, callback)
+        result = yield self.limit(1).to_list()
+        raise gen.Return(result[0] if result else None)
+
+    @gen.coroutine
+    def count(self):
+        col = getattr(db, self.col_cls._name)
+        ret = yield Op(col.find(self._filters, sort=self._sort, limit=self._limit).count)
+        raise gen.Return(ret)
 
     def limit(self, limit):
         return Query(self.col_cls, self._filters, self._sort, limit)
