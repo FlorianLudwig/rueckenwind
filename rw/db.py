@@ -268,7 +268,12 @@ class Document(dict):
     @classmethod
     def by_id(cls, _id):
         if isinstance(_id, basestring):
-            _id = bson.ObjectId(_id)
+            try:
+                _id = bson.ObjectId(_id)
+            except BaseException:
+                ret = gen.Future()
+                ret.set_result(None)
+                return ret
         return Query(cls).find(_id=_id).find_one()
 
     @property
