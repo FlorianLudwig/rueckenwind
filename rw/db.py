@@ -104,7 +104,7 @@ class Query(object):
         return Cursor(self)
 
     @gen.coroutine
-    def first(self, callback):
+    def first(self):
         result = yield self.limit(1).to_list()
         raise gen.Return(result[0] if result else None)
 
