@@ -402,7 +402,10 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             else:
                 ioloop = tornado.ioloop.IOLoop.instance()
                 ioloop.handle_callback_exception(None)
-                self.finish(self.application.get_error_html(status_code, **kwargs))
+                if rw.DEBUG:
+                    self.finish(self.application.get_error_html(status_code, **kwargs))
+                else:
+                    self.on_error(500)
         else:
             self.on_error(status_code)
 
