@@ -1,17 +1,15 @@
 {%- macro show(form) -%}
-	<fieldset {% if class %}class="{{class}}"{% endif %}>
-		{% if legend %}
-			<legend>{{legend}}</legend>
-		{% endif %}
-    {% for field_name in form._unbound_fields %}
-        {% set field = form._fields[field_name[0]] %}
-        {% if field.type == 'HiddenField' %}
-            {{ field() }}
-        {% else %}
-            {{ form_field(field) }}
-        {% endif %}
+    {% if legend %}
+        <legend>{{legend}}</legend>
+    {% endif %}
+{% for field_name in form._unbound_fields %}
+    {% set field = form._fields[field_name[0]] %}
+    {% if field.type == 'HiddenField' %}
+        {{ field() }}
+    {% else %}
+        {{ form_field(field) }}
+    {% endif %}
     {% endfor %}
-  </fieldset>
 {%- endmacro -%}
 
 
@@ -46,18 +44,17 @@
 
 
 {%- macro form_field(field) -%}
-	<div class="clearfix">
+	<div class="control-group">
     {% if field.type == 'HiddenField' %}
         {{ field() }}
     {% else %}
         {% if field.type == 'BooleanField' %}
             {{ form_field_boolean(field, **kwargs) }}
         {% else%}
-            <label for="{{ field.id }}">{{ field.label.text }}
+            <label class="control-label" for="{{ field.id }}">{{ field.label.text }}
             {%- if field.flags.required -%}
                 <abbr title=" Feld muss angegeben werden" class="text-error">*</abbr>
-            {%- endif %}</label>
-            <div class="input" id="{{field.id}}-div">
+            {%- endif %}</label><div class="controls" id="{{field.id}}-div">
             {% if field.type == 'RadioField' %}
                 {{ field(class='radio-group', **kwargs) }}
             {% else %}
@@ -69,7 +66,7 @@
             {% endif %}
             {{ form_field_description(field) }}
             {{ form_field_errors(field) }}
-					</div>
+            </div>
         {% endif %}
     {% endif %}
 	</div>
