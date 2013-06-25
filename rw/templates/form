@@ -32,7 +32,7 @@
 
 
 {%- macro form_field_boolean(field) -%}
-	<div class="input">
+	<div class="controls">
 		<label class="checkbox">
 			{{ field(**kwargs) }}
 			<span>{{ field.label.text }}</span>
