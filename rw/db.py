@@ -177,9 +177,29 @@ class Field(property):
         return '<Field %s>' % self.name
 
 
-# TODO
-class List(Field):
-    pass
+def Vector(typ):
+    """Generate a Vector class that casts all elements to specified type"""
+    class VectorClass(list):
+        def __init__(self, values=None):
+            if values:
+                values = [typ(v) for v in values]
+                list.__init__(self, values)
+
+        def _check_type(self, value):
+            if not isinstance(value, typ):
+                raise ValueError('Vector({}) does not accept items of type {}'.format(
+                    repr(typ), repr(type(value))
+                ))
+
+        def __setitem__(self, key, value):
+            self._check_type(value)
+            list.__setitem__(self, key, value)
+
+        def append(self, p_object):
+            self._check_type(value)
+            list.append(self, p_object)
+
+    return VectorClass
 
 
 # TODO
