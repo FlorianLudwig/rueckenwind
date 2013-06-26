@@ -308,6 +308,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         self._transforms = []
         self.template = None
         self.base_path = ''
+        self.language = None
         browser_language = self.request.headers.get('Accept-Language', '')
         if browser_language:
             self.language = self.get_closest(*browser_language.split(','))
@@ -369,7 +370,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         if isinstance(language, basestring):
             language = self.get_closest(language)
             language = self.translations[language]
-        self.template_env.install_gettext_translations(language)
+            self.template_env.install_gettext_translations(language)
         return template.render(**self)
 
     @overwrite_protected
