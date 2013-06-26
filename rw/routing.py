@@ -15,6 +15,8 @@
 import re
 
 from tornado import stack_context
+from bson import ObjectId
+from bson.objectid import InvalidId
 
 
 _rule_re = re.compile(r'''
@@ -52,10 +54,11 @@ def parse_rule(rule):
             re.append((None, None, data['static']))
         variable = data['variable']
         converter = data['converter'] or converter_default
-        if isinstance(converter, (basestring)):
+        if isinstance(converter, basestring):
             converter = {'str': converter_default,
                          'int': converter_int,
-                         'uint': converter_uint}[converter]
+                         'uint': converter_uint,
+                         'ObjectId': converter_object_id}[converter]
         if variable in used_names:
             raise ValueError('variable name %r used twice.' % variable)
         used_names.add(variable)
@@ -102,6 +105,14 @@ def converter_uint(data):
     if length <= 0:
         raise NoMatchError()
     return length, int(data[:length])
+
+
+def converter_object_id(data):
+    try:
+        _id = ObjectId(data)
+    except InvalidId:
+        raise NoMatchError()
+    return len(data), _id
 
 
 class Rule(object):
