@@ -199,6 +199,12 @@ def Vector(typ):
             self._check_type(value)
             list.append(self, p_object)
 
+        def extend(self, iterable):
+            iterable = list(iterable)
+            for value in iterable:
+                self._check_type(value)
+            list.extend(self, iterable)
+
     return VectorClass
 
 
