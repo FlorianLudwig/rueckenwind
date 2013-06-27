@@ -109,10 +109,11 @@ def converter_uint(data):
 
 def converter_object_id(data):
     try:
-        _id = ObjectId(data)
-    except InvalidId:
+        _id = ObjectId(data[:24])
+    except InvalidId, e:
+        print e
         raise NoMatchError()
-    return len(data), _id
+    return 24, _id
 
 
 class Rule(object):
