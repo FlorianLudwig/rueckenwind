@@ -196,7 +196,7 @@ def Vector(typ):
             list.__setitem__(self, key, value)
 
         def append(self, p_object):
-            self._check_type(value)
+            self._check_type(p_object)
             list.append(self, p_object)
 
         def extend(self, iterable):
