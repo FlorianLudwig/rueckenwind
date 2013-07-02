@@ -141,11 +141,20 @@ class NoDefaultValue(object):
 
 class TypeCastException(Exception):
     def __init__(self, name, value, typ, e):
-        self.type = type
+        self.type = typ
         self.name = name
         self.value = value
-        self.message = 'Type cast of {} to {} failed'.format(
-            repr(value), type(type)
+        self.e = str(e)
+
+    def __str__(self):
+        return 'TypeCastException on Attrbute {1}:\n' \
+               'Cannot cast value {2} to type {0}\n' \
+               'Cast Exception was:\n' \
+               '{3}'.format(
+            repr(self.type),
+            self.name,
+            repr(self.value),
+            self.e
         )
 
 
@@ -165,10 +174,13 @@ class Field(property):
         else:
             raise ValueError('Value not found for "{}"'.format(self.name))
         if not isinstance(value, self.type):
-		    try:
-		        entity[self.name] = self.type(value)
-		    except BaseException, e:
-		        raise TypeCastException(self.name, value, self.type, e)
+            entity[self.name] = self.type(value)
+            # try:
+		     #    entity[self.name] = self.type(value)
+            # except TypeCastException as e:
+            #     raise e
+            # except BaseException as e:
+		     #    raise TypeCastException(self.name, value, self.type, e)
         return entity[self.name]
 
     def set_value(self, entity, value):
@@ -183,8 +195,15 @@ def Vector(typ):
     class VectorClass(list):
         def __init__(self, values=None):
             if values:
-                values = [typ(v) for v in values]
-                list.__init__(self, values)
+                casted_values = [typ(v) for v in values]
+                # casted_values = []
+                # try:
+                #     for i, value in enumerate(values):
+                #         casted_values.append(typ(value))
+                # except BaseException as e:
+                #     raise TypeCastException(str(i), value, typ, e)
+
+                list.__init__(self, casted_values)
 
         def _check_type(self, value):
             if not isinstance(value, typ):
@@ -258,7 +277,11 @@ class Document(DocumentBase):
 
     Warning: Never use "callback" as key."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        if len(args) > 2:
+            raise AttributeError()
+        elif len(args) == 1:
+            kwargs.update(args[0])
         cls = self.__class__
         for field in dir(cls):
             cls_obj = getattr(cls, field)
@@ -316,19 +339,8 @@ class Document(DocumentBase):
         return getattr(db, self._name)
 
 
-class SubDocument(Document):
-    pass
-
-
 class Unicode(Field):
     pass
-
-
-def using_options(name=None, tablename=None):
-    if tablename:
-        # elxir compatibility
-        name = tablename
-    print name
 
 
 def extract_model(fileobj, keywords, comment_tags, options):
@@ -346,11 +358,9 @@ def extract_model(fileobj, keywords, comment_tags, options):
     :rtype: ``iterator``
     """
     import ast, _ast
-    print 'extract model', fileobj, keywords, comment_tags, options
     code = ast.parse(fileobj.read()).body
     for statement in code:
         if isinstance(statement, _ast.ClassDef):
-            print 'cls', dir(statement)
             for base in statement.bases:
                 cls_name = statement.name
                 if base.id in ('Document', 'db.Document', 'rw.db.Document'):
@@ -368,6 +378,4 @@ def extract_model(fileobj, keywords, comment_tags, options):
                                        msg + '-Description',
                                        ''
                                 )
-                            print line.value
-                            print dir(line)
                         # yield (base.lineno)
