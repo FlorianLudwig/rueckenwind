@@ -60,6 +60,7 @@ class Cursor(object):
         self.db_cursor.skip(skip)
         return self
 
+
 class Query(object):
     def __init__(self, col, filters=None, sort=None, limit=0, start=0):
         self.col_cls = col
@@ -138,7 +139,7 @@ class NoDefaultValue(object):
     pass
 
 
-class TypeCastException(BaseException):
+class TypeCastException(Exception):
     def __init__(self, name, value, typ, e):
         self.type = type
         self.name = name
@@ -167,7 +168,7 @@ class Field(property):
 		    try:
 		        entity[self.name] = self.type(value)
 		    except BaseException, e:
-		        raise TypeCastException(self.name, self.value, self.type, e)
+		        raise TypeCastException(self.name, value, self.type, e)
         return entity[self.name]
 
     def set_value(self, entity, value):
@@ -230,7 +231,16 @@ class DocumentMeta(type):
         return ret
 
 
-class Document(dict):
+
+class DocumentBase(dict):
+    __metaclass__ = DocumentMeta
+
+
+class SubDocument(DocumentBase):
+    pass
+
+
+class Document(DocumentBase):
     """Base type for mapped classes.
 
     It is a regular dict, with a little different construction behaviour plus
@@ -247,7 +257,6 @@ class Document(dict):
          Fuits.find(kind='banana').all()
 
     Warning: Never use "callback" as key."""
-    __metaclass__ = DocumentMeta
 
     def __init__(self, **kwargs):
         cls = self.__class__
