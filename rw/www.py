@@ -225,71 +225,69 @@ class RequestHandlerMeta(ProtectorMeta):
     def __new__(cls, name, bases, dct):
         is_base_class = bases == (HandlerBase, )
         ret = ProtectorMeta.__new__(cls, name, bases, dct)
-        # find template dir
-        module = dct['__module__']
-        module_name = sys.modules[module].__name__
-        module_path = sys.modules[module].__file__
-        module_path = os.path.dirname(os.path.abspath(module_path))
-        ret.module_path = module_path
-        ret._rw_routes = {}
-
-        def load_template(name):
-            if ':' in name:
-                module, name = name.split(':', 1)
-            else:
-                module = module_name
-            path = pkg_resources.resource_filename(module, 'templates/' + name)
-            # we always update the template so we return an uptodatefunc
-            # that always returns False
-            return (open(path).read().decode('utf-8'),
-                    path,
-                    lambda: False)
-        ret.template_env = create_template_env(load_template)
-        if module.endswith('.www'):
-            module = module[:-4]
-        if not '_module_name' in dct:
-            ret._module_name = module
-        static = StaticURL(ret if not is_base_class else '')
-        ret._static = static
-
-        # inheritance
-        for base in bases:
-            if hasattr(base, 'template_env'):
-                ret.template_env.globals.update(base.template_env.globals)
-
-        ret.template_env.globals['static'] = static
-        ret.template_env.globals['url_for'] = url_for
-
-        # i18n - load all available translations
-        # TODO translations should be per module not handler
-        if not 'language' in dct:
-            ret.language = 'en'  # XXX use system default?
-        ret.translations = {}
-        languages = [ret.language]
-        if os.path.exists(module_path + '/locale'):
-            languages += os.listdir(module_path + '/locale')
-
-        for lang in languages:
-            ret.translations[lang] = Translations.load(module_path + '/locale',
-                                                       [Locale.parse(lang)])
-            ret.translations[lang.split('_')[0]] = ret.translations[lang]
-
-        # widgets
-        # XXX experimental feature, disabled for now
-        """
-        ret.widgets = {}
-        if os.path.exists(module_path + '/widgets'):
-            for fname in os.listdir(module_path + '/widgets'):
-                if WIDGET_FILENAMES.match(fname):
-                    w_name = fname[:-3]
-                    w_fullname = sys.modules[module].__name__
-                    w_fullname += '.widgets.' + w_name
-                    mod = __import__(w_fullname)
-                    ret.widgets[w_name] = mod
-        """
-
-        # make sure inheritance works
         if not is_base_class:
+            # find template dir
+            module = dct['__module__']
+            module_name = sys.modules[module].__name__
+            module_path = sys.modules[module].__file__
+            module_path = os.path.dirname(os.path.abspath(module_path))
+            ret.module_path = module_path
+            ret._rw_routes = {}
+
+            def load_template(name):
+                if ':' in name:
+                    module, name = name.split(':', 1)
+                else:
+                    module = module_name
+                path = pkg_resources.resource_filename(module, 'templates/' + name)
+                # we always update the template so we return an uptodatefunc
+                # that always returns False
+                return (open(path).read().decode('utf-8'),
+                        path,
+                        lambda: False)
+            ret.template_env = create_template_env(load_template)
+            if module.endswith('.www'):
+                module = module[:-4]
+            if not '_module_name' in dct:
+                ret._module_name = module
+            static = StaticURL(ret if not is_base_class else '')
+            ret._static = static
+
+            # inheritance
+            for base in bases:
+                if hasattr(base, 'template_env'):
+                    ret.template_env.globals.update(base.template_env.globals)
+
+            ret.template_env.globals['static'] = static
+            ret.template_env.globals['url_for'] = url_for
+
+            # i18n - load all available translations
+            # TODO translations should be per module not handler
+            ret.translations = {}
+            languages = []
+            if os.path.exists(module_path + '/locale'):
+                languages += os.listdir(module_path + '/locale')
+
+            for lang in languages:
+                ret.translations[lang] = Translations.load(module_path + '/locale',
+                                                           [Locale.parse(lang)])
+                ret.translations[lang.split('_')[0]] = ret.translations[lang]
+
+            # widgets
+            # XXX experimental feature, disabled for now
+            """
+            ret.widgets = {}
+            if os.path.exists(module_path + '/widgets'):
+                for fname in os.listdir(module_path + '/widgets'):
+                    if WIDGET_FILENAMES.match(fname):
+                        w_name = fname[:-3]
+                        w_fullname = sys.modules[module].__name__
+                        w_fullname += '.widgets.' + w_name
+                        mod = __import__(w_fullname)
+                        ret.widgets[w_name] = mod
+            """
+
+            # make sure inheritance works
             ret._parents = [base for base in bases if issubclass(base, RequestHandler)
                             and base != RequestHandler]
         else:
@@ -308,11 +306,20 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         self._transforms = []
         self.template = None
         self.base_path = ''
-        self.language = None
+        self.language = rw.cfg.get('rw', {}).get('default_language', 'en')
         browser_language = self.request.headers.get('Accept-Language', '')
         if browser_language:
             self.language = self.get_closest(*browser_language.split(','))
         self['handler'] = self
+        language = self.language
+        if isinstance(language, basestring):
+            language = self.get_closest(language)
+            if language in self.translations:
+                _translation = self.translations[language]
+            else:
+                _translation = Translations()
+        self['_translation'] = _translation
+        self['_locale'] = Locale(*language.split('_'))
         self.update(self.template_subglobals)
 
     def __cmp__(self, o):
@@ -366,11 +373,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
     def render_template(self, template):
         """Render template and use i18n."""
         template = self.template_env.get_template(template)
-        language = self.language
-        if isinstance(language, basestring):
-            language = self.get_closest(language)
-            language = self.translations[language]
-            self.template_env.install_gettext_translations(language)
+        self.template_env.install_gettext_translations(self['_translation'])
         return template.render(**self)
 
     @overwrite_protected

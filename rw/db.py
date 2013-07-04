@@ -60,6 +60,7 @@ class Cursor(object):
         self.db_cursor.skip(skip)
         return self
 
+
 class Query(object):
     def __init__(self, col, filters=None, sort=None, limit=0, start=0):
         self.col_cls = col
@@ -138,13 +139,22 @@ class NoDefaultValue(object):
     pass
 
 
-class TypeCastException(BaseException):
+class TypeCastException(Exception):
     def __init__(self, name, value, typ, e):
-        self.type = type
+        self.type = typ
         self.name = name
         self.value = value
-        self.message = 'Type cast of {} to {} failed'.format(
-            repr(value), type(type)
+        self.e = str(e)
+
+    def __str__(self):
+        return 'TypeCastException on Attrbute {1}:\n' \
+               'Cannot cast value {2} to type {0}\n' \
+               'Cast Exception was:\n' \
+               '{3}'.format(
+            repr(self.type),
+            self.name,
+            repr(self.value),
+            self.e
         )
 
 
@@ -164,10 +174,13 @@ class Field(property):
         else:
             raise ValueError('Value not found for "{}"'.format(self.name))
         if not isinstance(value, self.type):
-		    try:
-		        entity[self.name] = self.type(value)
-		    except BaseException, e:
-		        raise TypeCastException(self.name, self.value, self.type, e)
+            entity[self.name] = self.type(value)
+            # try:
+		     #    entity[self.name] = self.type(value)
+            # except TypeCastException as e:
+            #     raise e
+            # except BaseException as e:
+		     #    raise TypeCastException(self.name, value, self.type, e)
         return entity[self.name]
 
     def set_value(self, entity, value):
@@ -182,8 +195,15 @@ def Vector(typ):
     class VectorClass(list):
         def __init__(self, values=None):
             if values:
-                values = [typ(v) for v in values]
-                list.__init__(self, values)
+                casted_values = [typ(v) for v in values]
+                # casted_values = []
+                # try:
+                #     for i, value in enumerate(values):
+                #         casted_values.append(typ(value))
+                # except BaseException as e:
+                #     raise TypeCastException(str(i), value, typ, e)
+
+                list.__init__(self, casted_values)
 
         def _check_type(self, value):
             if not isinstance(value, typ):
@@ -196,7 +216,7 @@ def Vector(typ):
             list.__setitem__(self, key, value)
 
         def append(self, p_object):
-            self._check_type(value)
+            self._check_type(p_object)
             list.append(self, p_object)
 
         def extend(self, iterable):
@@ -223,14 +243,23 @@ class DocumentMeta(type):
                 field = getattr(ret, key)
                 field.name = key
 
-        if bases != (dict,):
+        if bases != (dict,) and '_name' not in dct:
             ret._name = name.lower()
             # ret.query = Query(ret)
 
         return ret
 
 
-class Document(dict):
+
+class DocumentBase(dict):
+    __metaclass__ = DocumentMeta
+
+
+class SubDocument(DocumentBase):
+    pass
+
+
+class Document(DocumentBase):
     """Base type for mapped classes.
 
     It is a regular dict, with a little different construction behaviour plus
@@ -247,9 +276,14 @@ class Document(dict):
          Fuits.find(kind='banana').all()
 
     Warning: Never use "callback" as key."""
-    __metaclass__ = DocumentMeta
 
-    def __init__(self, **kwargs):
+    _id = Field(bson.ObjectId)
+
+    def __init__(self, *args, **kwargs):
+        if len(args) > 2:
+            raise AttributeError()
+        elif len(args) == 1:
+            kwargs.update(args[0])
         cls = self.__class__
         for field in dir(cls):
             cls_obj = getattr(cls, field)
@@ -293,13 +327,8 @@ class Document(dict):
 
     @classmethod
     def by_id(cls, _id):
-        if isinstance(_id, basestring):
-            try:
-                _id = bson.ObjectId(_id)
-            except BaseException:
-                ret = gen.Future()
-                ret.set_result(None)
-                return ret
+        if not isinstance(_id, cls._id.type):
+            _id = cls._id.type(_id)
         return Query(cls).find(_id=_id).find_one()
 
     @property
@@ -307,19 +336,8 @@ class Document(dict):
         return getattr(db, self._name)
 
 
-class SubDocument(Document):
-    pass
-
-
 class Unicode(Field):
     pass
-
-
-def using_options(name=None, tablename=None):
-    if tablename:
-        # elxir compatibility
-        name = tablename
-    print name
 
 
 def extract_model(fileobj, keywords, comment_tags, options):
@@ -337,11 +355,9 @@ def extract_model(fileobj, keywords, comment_tags, options):
     :rtype: ``iterator``
     """
     import ast, _ast
-    print 'extract model', fileobj, keywords, comment_tags, options
     code = ast.parse(fileobj.read()).body
     for statement in code:
         if isinstance(statement, _ast.ClassDef):
-            print 'cls', dir(statement)
             for base in statement.bases:
                 cls_name = statement.name
                 if base.id in ('Document', 'db.Document', 'rw.db.Document'):
@@ -359,6 +375,4 @@ def extract_model(fileobj, keywords, comment_tags, options):
                                        msg + '-Description',
                                        ''
                                 )
-                            print line.value
-                            print dir(line)
                         # yield (base.lineno)
