@@ -243,7 +243,7 @@ class DocumentMeta(type):
                 field = getattr(ret, key)
                 field.name = key
 
-        if bases != (dict,):
+        if bases != (dict,) and '_name' not in dct:
             ret._name = name.lower()
             # ret.query = Query(ret)
 
@@ -276,6 +276,8 @@ class Document(DocumentBase):
          Fuits.find(kind='banana').all()
 
     Warning: Never use "callback" as key."""
+
+    _id = Field(bson.ObjectId)
 
     def __init__(self, *args, **kwargs):
         if len(args) > 2:
@@ -325,13 +327,8 @@ class Document(DocumentBase):
 
     @classmethod
     def by_id(cls, _id):
-        if isinstance(_id, basestring):
-            try:
-                _id = bson.ObjectId(_id)
-            except BaseException:
-                ret = gen.Future()
-                ret.set_result(None)
-                return ret
+        if not isinstance(_id, cls._id.type):
+            _id = cls._id.type(_id)
         return Query(cls).find(_id=_id).find_one()
 
     @property
