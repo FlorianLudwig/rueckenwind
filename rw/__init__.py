@@ -177,7 +177,7 @@ def load_config(module_name, extra_files=None):
         else:
             LOG.debug('config does not exist: ' + config_path)
 
-    return config
+    return ConfigObj(config)
 
 
 def setup(app_name, type='www', extra_config_files=None, address=None, port=None):
