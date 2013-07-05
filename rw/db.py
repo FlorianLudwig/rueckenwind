@@ -119,8 +119,13 @@ class Query(object):
         return Query(self.col_cls, self._filters, self._sort, limit)
 
     @gen.coroutine
-    def find_one(self):
-        ret = yield Op(self.col.find_one, self._filters, sort=self._sort, limit=self._limit)
+    def find_one(self, *args, **kwargs):
+        filters = copy(self._filters)
+        filters.update(kwargs)
+        if args:
+            assert len(args) == 1
+            filters.update(args[0])
+        ret = yield Op(self.col.find_one, filters, sort=self._sort, limit=self._limit)
         if ret:
             raise gen.Return(self.col_cls(**ret))
         else:
@@ -324,6 +329,11 @@ class Document(DocumentBase):
     def find(cls, *args, **kwargs):
         query = Query(cls)
         return query.find(*args, **kwargs)
+
+    @classmethod
+    def find_one(cls, *args, **kwargs):
+        query = Query(cls)
+        return query.find_one(*args, **kwargs)
 
     @classmethod
     def by_id(cls, _id):
