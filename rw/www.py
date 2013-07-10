@@ -54,6 +54,40 @@ WIDGET_FILENAMES = re.compile('[a-z][a-z_0-9]*\\.py$')
 LOG = logging.getLogger(__name__)
 
 
+class StaticObject(unicode):
+    """Object returned by static() function, mimics a unicode string
+
+    To make tornado accept StaticObject we inherit from unicode
+    but overwrite all functions of it
+    """
+    def __new__(cls, *args, **kwargs):
+        if not 'module' in kwargs:
+            kwargs['module'] = args[0]
+        if not 'fname' in kwargs:
+            kwargs['fname'] = args[1]
+        if not 'md5sum' in kwargs:
+            kwargs['md5sum'] = args[2]
+        url = '/static/' + kwargs['module'] + '/' + kwargs['fname']
+        if kwargs['md5sum']:
+            url += '?v=' + kwargs['md5sum'][:5]
+        else:
+            url += '?v=ERR'
+        return unicode.__new__(cls, url)  # we are a emtpy string
+
+    def __init__(self, module, fname, md5sum=None):
+        self.module = module
+        self.fname = fname
+        self.md5sum = md5sum  # XXX
+
+    def get_content(self):
+        # XXX we might want to look for generated/templated static files.
+        return pkg_resources.resource_string(self.module, 'static/' + self.fname)
+
+    def get_path(self):
+        # XXX we might want to look for generated/templated static files.
+        return pkg_resources.resource_filename(self.module, 'static/' + self.fname)
+
+
 class StaticURL(object):
     def __init__(self, handler):
         if isinstance(handler, basestring):
@@ -91,15 +125,14 @@ class StaticURL(object):
         else:
             module = self.module
             data = self.get_content(fname)
-        url = '/static/' + module + '/' + fname
         if isinstance(data, unicode):
             data = data.encode('utf-8')
         if not data:
-            tag = 'ERR'
             data = self.bfs(fname)
+        md5sum = None
         if data:
-            tag = md5(data).hexdigest()[:4]
-        return url + '?v=' + tag
+            md5sum = md5(data).hexdigest()
+        return StaticObject(module, fname, md5sum)
 
     def bfs(self, fname):
         """Breadth-first search
@@ -558,6 +591,9 @@ def setup(app_name, address=None, port=None):
             # TODO handle this proberly
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             if not found:
+                LOG.info('No handler found for ' + request.path)
+                # import pprint
+                # pprint.pprint(routes)
                 self.base(self, request).send_error(404)
 
     app = Application(app)

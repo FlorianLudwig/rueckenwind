@@ -13,7 +13,9 @@ DB_PATH = PATH + 'plugins.mail_local'
 class LocalMail(rplug.rw.email):
     """rueckenwind email plugin for testing email functions during development"""
     def send(self, toaddrs, subject, body, attachments={}):
-        print 'send message to', toaddrs, subject, body
+        print 'send message to', toaddrs.encode('utf-8')
+        print 'Subject:', subject.encode('utf-8')
+        print body
         if os.path.exists(DB_PATH):
             data = cPickle.load(open(DB_PATH))
         else:
