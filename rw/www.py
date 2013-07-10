@@ -80,11 +80,12 @@ class StaticObject(unicode):
         self.md5sum = md5sum  # XXX
 
     def get_content(self):
-        pass
+        # XXX we might want to look for generated/templated static files.
+        return pkg_resources.resource_string(self.module, 'static/' + fname)
 
     def get_path(self):
-        return pkg_resources.resource_filename(self.module, 'static/' + self.fname)
         # XXX we might want to look for generated/templated static files.
+        return pkg_resources.resource_filename(self.module, 'static/' + self.fname)
 
 
 class StaticURL(object):
