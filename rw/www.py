@@ -81,7 +81,7 @@ class StaticObject(unicode):
 
     def get_content(self):
         # XXX we might want to look for generated/templated static files.
-        return pkg_resources.resource_string(self.module, 'static/' + fname)
+        return pkg_resources.resource_string(self.module, 'static/' + self.fname)
 
     def get_path(self):
         # XXX we might want to look for generated/templated static files.
