@@ -406,7 +406,8 @@ class HandlerBase(tornado.web.RequestHandler, dict):
     def render_template(self, template):
         """Render template and use i18n."""
         template = self.template_env.get_template(template)
-        self.template_env.install_gettext_translations(self['_translation'])
+        if '_translation' in self:
+            self.template_env.install_gettext_translations(self['_translation'])
         return template.render(**self)
 
     @overwrite_protected
