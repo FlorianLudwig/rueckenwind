@@ -447,7 +447,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             self.on_error(status_code)
 
     def on_error(self, status_code):
-        if self['parent_handler'] is not self.__class__:
+        if self['parent_handler'] and self['parent_handler'] is not self.__class__:
             parent = self['parent_handler'](self.application, self.request)
             for key, value in self.items():
                 if key not in parent:
