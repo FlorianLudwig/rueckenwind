@@ -309,17 +309,21 @@ class Document(DocumentBase):
         return '<%s %s>' % (self.__class__.__name__,
                             ' '.join('%s=%s' % item for item in self.items()))
 
+    @gen.coroutine
     def insert(self):
         """Save entry in collection (updates or creates)
 
         returns Future"""
-        return Op(getattr(db, self._name).insert, self)
+        ret = yield Op(getattr(db, self._name).insert, self)
+        raise gen.Return(ret)
 
+    @gen.coroutine
     def sync_db(self):
         """update entry in collection (updates or creates)
 
         returns Future"""
-        return Op(getattr(db, self._name).update, {'_id': self['_id']}, self)
+        ret = yield Op(getattr(db, self._name).update, {'_id': self['_id']}, self)
+        raise gen.Return(ret)
 
     @gen.coroutine
     def remove(self, callback=None):
