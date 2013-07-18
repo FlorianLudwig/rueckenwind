@@ -206,9 +206,9 @@ def urlencode(uri, **query):
 
 def create_template_env(load_template):
     template_env = Environment(loader=FunctionLoader(load_template),
-                                   extensions=['jinja2.ext.loopcontrols',
-                                               'jinja2.ext.i18n',
-                                               widget.Widget])
+                               extensions=['jinja2.ext.loopcontrols',
+                                           'jinja2.ext.i18n',
+                                           widget.Widget])
 
     import rw
     template_env.globals['rw'] = rw
@@ -605,8 +605,6 @@ def setup(app_name, address=None, port=None):
     LOG.info('Listening on http://%s:%i' % (address, port))
     app.listen(port, address=address)
     #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
-    if rw.DEBUG:
-        tornado.autoreload.start()
 
 
 def generate_routing(root):

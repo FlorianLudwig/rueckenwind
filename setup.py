@@ -25,6 +25,7 @@ class sdist_git(sdist):
         committed_date = repo.head.commit.committed_date
         return datetime.fromtimestamp(committed_date).strftime('%Y%m%d%H%M%S')
 
+
 setup(
     name="rueckenwind",
     version="0.0.1",
