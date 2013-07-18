@@ -13,6 +13,7 @@ Contents:
    static_data.rst
    cfg.rst
    db.rst
+   architecture.rst
 
 * TODO: Write docs about
  * plugin / bus system
