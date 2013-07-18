@@ -103,6 +103,8 @@ class Loader(object):
 
 
 class PlugLoader(Loader):
+    __path__ = None
+
     def __getattr__(self, attr):
         if not attr in self._cache:
             self._cache[attr] = PlugModule(attr)
@@ -131,17 +133,20 @@ class MultiPlugModule(object):
 
 
 class PlugModule(object):
+    __path__ = None
+
     def __init__(self, module):
-        self.module = module
-        self._cache = {}
+        self.__module = module
+        self.__cache = {}
 
     def __getattr__(self, attr):
-        if attr in self._cache:
-            return self._cache[attr]
-        interface = PLUG_INTERACES.load(self.module + '.' + attr)
+        module = self.__module
+        if attr in self.__cache:
+            return self.__cache[attr]
+        interface = PLUG_INTERACES.load(module + '.' + attr)
 
         class BasePlug(interface):
-            rbus_module = self.module
+            rbus_module = module
             rbus_plug = attr
 
             @classmethod
@@ -154,7 +159,7 @@ class PlugModule(object):
                     PLUGS[path].rbus_add_plug(cls())
                 else:
                     raise AttributeError('uhm o,O')
-        self._cache[attr] = BasePlug
+        self.__cache[attr] = BasePlug
         return BasePlug
 
 
@@ -213,19 +218,19 @@ class StubImplementation(object):
 
 class BusModule(object):
     def __init__(self, module):
-        self.rbus_module = module
+        self.__rbus_module = module
 
     def __getattr__(self, attr):
-        re = PLUGS.get(self.rbus_module + '.' + attr)
+        re = PLUGS.get(self.__rbus_module + '.' + attr)
         if re is None:
-            interface = PLUG_INTERACES.load(self.rbus_module + '.' + attr)
+            interface = PLUG_INTERACES.load(self.__rbus_module + '.' + attr)
             return StubImplementation(interface)
         return re
 
 
 class BusModuleSingle(BusModule):
     def __getattr__(self, attr):
-        return getattr(attr, PLUGS[self.rbus_module + '.' + self.rbus_plug])
+        return getattr(attr, PLUGS[self.__rbus_module + '.' + self.rbus_plug])
 
 
 def setup():
