@@ -17,6 +17,7 @@ import traceback
 import os
 import logging
 import select
+from tornado import gen, concurrent
 
 import tornado.ioloop
 import tornado.web
@@ -27,6 +28,7 @@ import pkg_resources
 import rbusys
 rbusys.setup()
 import rbus
+import rplug
 
 from rw import testing
 
@@ -180,17 +182,65 @@ def load_config(module_name, extra_files=None):
     return ConfigObj(config)
 
 
-def setup(app_name, type='www', extra_config_files=None, address=None, port=None):
+class RWModuleSetup(rplug.rw.module):
+    def start(self):
+        for typ, app_name, address, port in TO_SETUP:
+            mod = getattr(__import__('rw.' + typ), typ)
+            mod.setup(app_name, address=address, port=port)
+
+
+class RWPluginLoad(rplug.rw.module):
+    @gen.coroutine
+    def setup(self):
+        futures = []
+        for plugin in cfg.get('rw.plugins', {}):
+            plugin_mod = __import__(plugin)
+            for part in plugin.split('.')[1:]:
+                plugin_mod = getattr(plugin_mod, part)
+            futures.append(plugin_mod.activate())
+        futures = [future for future in futures if isinstance(future, gen.Future)]
+        if futures:
+            yield futures
+
+
+RWModuleSetup.activate()
+RWPluginLoad.activate()
+TO_SETUP = []
+
+
+def setup(app_name, typ='www', extra_config_files=None, address=None, port=None):
     cfg.update(load_config(app_name, extra_config_files))
-    mod = getattr(__import__('rw.' + type), type)
-    return mod.setup(app_name, address=address, port=port)
+    TO_SETUP.append((typ, app_name, address, port))
 
 
 def start(app=None, type='www', **kwargs):
     if not app is None:
         setup(app, type, **kwargs)
 
+    io_loop = tornado.ioloop.IOLoop.instance()
+    io_loop.add_callback(_start)
+
+    if DEBUG:
+        tornado.autoreload.start()
+
     try:
-        tornado.ioloop.IOLoop.instance().start()
+        io_loop.start()
     except KeyboardInterrupt:
         print 'ctrl+c received. Exiting'
+
+
+@gen.coroutine
+def _start():
+    # phase 1, pre setup
+    LOG.info('entering setup phase')
+    starting = rbus.rw.module.setup()
+    futures = [future for future in starting if isinstance(future, concurrent.Future)]
+    if futures:
+        yield futures
+    # setup
+    LOG.info('entering start phase')
+    starting = rbus.rw.module.start()
+    futures = [future for future in starting if isinstance(future, concurrent.Future)]
+    if futures:
+        yield futures
+    # and we are done.

@@ -27,7 +27,9 @@ Example::
 import numbers
 from copy import copy
 import bson
-from motor import Op
+from motor import Op, MotorClient
+import rplug
+import rw
 
 from tornado import gen
 from tornado.concurrent import return_future
@@ -390,3 +392,17 @@ def extract_model(fileobj, keywords, comment_tags, options):
                                        ''
                                 )
                         # yield (base.lineno)
+
+
+class MongoDBSetup(rplug.rw.module):
+    @gen.coroutine
+    def setup(self):
+        # connect to
+        global client, db
+        client = MotorClient(host=rw.cfg['mongodb']['host'])
+        db = yield Op(client.open)
+        db = db[rw.cfg['mongodb']['db']]
+
+
+def activate():
+    MongoDBSetup.activate()
