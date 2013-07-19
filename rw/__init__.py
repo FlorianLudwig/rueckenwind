@@ -232,15 +232,22 @@ def start(app=None, type='www', **kwargs):
 @gen.coroutine
 def _start():
     # phase 1, pre setup
-    LOG.info('entering setup phase')
-    starting = rbus.rw.module.setup()
-    futures = [future for future in starting if isinstance(future, concurrent.Future)]
-    if futures:
-        yield futures
-    # setup
-    LOG.info('entering start phase')
-    starting = rbus.rw.module.start()
-    futures = [future for future in starting if isinstance(future, concurrent.Future)]
-    if futures:
-        yield futures
-    # and we are done.
+    try:
+        LOG.info('entering setup phase')
+        starting = rbus.rw.module.setup()
+        futures = [future for future in starting if isinstance(future, concurrent.Future)]
+        if futures:
+            yield futures
+
+        # setup
+        LOG.info('entering start phase')
+        starting = rbus.rw.module.start()
+        futures = [future for future in starting if isinstance(future, concurrent.Future)]
+        if futures:
+            yield futures
+        # and we are done.
+    except Exception as e:
+        LOG.error('startup failed')
+        import traceback
+        traceback.print_exc()
+        io_loop.stop()
