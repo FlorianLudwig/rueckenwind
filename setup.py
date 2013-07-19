@@ -24,9 +24,9 @@ class sdist_git(sdist):
         f.write(setup_py)
         f.close()
 
-version_prefix = ''
+
 if '--dev' in sys.argv:
-    version_prefix = get_version_suffix()
+    version_suffix = get_version_suffix()
     sys.argv.remove('--dev')
 
 
