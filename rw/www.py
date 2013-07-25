@@ -206,9 +206,9 @@ def urlencode(uri, **query):
 
 def create_template_env(load_template):
     template_env = Environment(loader=FunctionLoader(load_template),
-                                   extensions=['jinja2.ext.loopcontrols',
-                                               'jinja2.ext.i18n',
-                                               widget.Widget])
+                               extensions=['jinja2.ext.loopcontrols',
+                                           'jinja2.ext.i18n',
+                                           widget.Widget])
 
     import rw
     template_env.globals['rw'] = rw
@@ -448,7 +448,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             self.on_error(status_code)
 
     def on_error(self, status_code):
-        if self['parent_handler'] is not self.__class__:
+        if self['parent_handler'] and self['parent_handler'] is not self.__class__:
             parent = self['parent_handler'](self.application, self.request)
             for key, value in self.items():
                 if key not in parent:
@@ -605,8 +605,6 @@ def setup(app_name, address=None, port=None):
     LOG.info('Listening on http://%s:%i' % (address, port))
     app.listen(port, address=address)
     #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
-    if rw.DEBUG:
-        tornado.autoreload.start()
 
 
 def generate_routing(root):

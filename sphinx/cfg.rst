@@ -1,6 +1,7 @@
+.. _cfg:
+
 Configuration Management
 ========================
-
 For your convenience rueckenwind comes with simple (as in KISS) configuration management. When you start up your project
 rueckenwind will try to load its configuration and you might see logging like::
 
