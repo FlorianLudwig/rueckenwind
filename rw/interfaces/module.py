@@ -9,3 +9,6 @@ class Module(rbusys.MultiPlug):
 
     def start(self):
         pass
+
+    def shutdown(self):
+        pass

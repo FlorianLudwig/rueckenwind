@@ -228,6 +228,17 @@ def start(app=None, type='www', **kwargs):
     except KeyboardInterrupt:
         print 'ctrl+c received. Exiting'
 
+    io_loop.run_sync(_shutdown)
+
+
+@gen.coroutine
+def _shutdown():
+    LOG.info('entering shutdown phase')
+    shutdown = rbus.rw.module.shutdown()
+    futures = [future for future in shutdown if isinstance(future, concurrent.Future)]
+    if futures:
+        yield futures
+
 
 @gen.coroutine
 def _start():
