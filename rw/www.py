@@ -535,6 +535,7 @@ def setup(app_name, address=None, port=None):
         def __init__(self, base):
             super(Application, self).__init__(cookie_secret=COOKIE_SECRET)
             self.base = base
+            self.base._rw_app = self
 
         @gen.engine
         def __call__(self, request):
@@ -604,6 +605,7 @@ def setup(app_name, address=None, port=None):
         port = 9999
     LOG.info('Listening on http://%s:%i' % (address, port))
     app.listen(port, address=address)
+    app.base._rw_port = port
     #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
 
 
