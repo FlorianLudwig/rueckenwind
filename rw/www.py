@@ -626,6 +626,7 @@ def _generate_routing(root, handler, parent, main_handler, req_type, prefix=''):
     else:
         handler.template_env = main_handler.template_env
         handler.translations = main_handler.translations
+        handler._static = main_handler._static
     if not hasattr(handler, 'template_subglobals'):
         handler.template_subglobals = {}
     handler.template_subglobals.update({

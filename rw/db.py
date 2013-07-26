@@ -166,10 +166,11 @@ class TypeCastException(Exception):
 
 
 class Field(property):
-    def __init__(self, type, default=NoDefaultValue):
+    def __init__(self, type, default=NoDefaultValue, none_allowed=True):
         # print 'init property', self, type
         super(Field, self).__init__(self.get_value, self.set_value)
         self.name = None
+        self.none_allowed = none_allowed
         self.type = type
         self.default = default
 
@@ -181,7 +182,8 @@ class Field(property):
         else:
             raise ValueError('Value not found for "{}"'.format(self.name))
         if not isinstance(value, self.type):
-            entity[self.name] = self.type(value)
+            if not self.none_allowed or value is not None:
+                entity[self.name] = self.type(value)
             # try:
 		     #    entity[self.name] = self.type(value)
             # except TypeCastException as e:
