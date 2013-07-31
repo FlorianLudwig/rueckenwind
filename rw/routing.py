@@ -111,7 +111,6 @@ def converter_object_id(data):
     try:
         _id = ObjectId(data[:24])
     except InvalidId, e:
-        print e
         raise NoMatchError()
     return 24, _id
 
