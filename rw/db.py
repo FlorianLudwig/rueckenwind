@@ -64,7 +64,7 @@ class Cursor(object):
 
 
 class Query(object):
-    def __init__(self, col, filters=None, sort=None, limit=0, start=0, fields=None):
+    def __init__(self, col, filters=None, fields=None, sort=None, limit=0, start=0):
         self.col_cls = col
         self._sort = sort
         if db:
@@ -91,16 +91,19 @@ class Query(object):
             ))
 
     def find(self, *args, **kwargs):
+        # we are using *args instead of having named arguments like
+        # query=None, fields=None
+        # to avoid possibile conflicts with **kwargs
         filters = copy(self._filters)
         filters.update(kwargs)
         if args:
             filters.update(args[0])
             if len(args) > 1:
                 self._fields = args[1]
-        return Query(self.col_cls, filters, self._sort, self._limit, fields=self._fields)
+        return Query(self.col_cls, filters, fields=self._fields, sort=self._sort, limit=self._limit)
 
     def sort(self, sort):
-        return Query(self.col_cls, self._filters, sort, self._limit, fields=self._fields)
+        return Query(self.col_cls, self._filters, fields=self._fields, sort=sort, limit=self._limit)
 
     def to_list(self):
         return Cursor(self).to_list()
@@ -120,17 +123,12 @@ class Query(object):
         raise gen.Return(ret)
 
     def limit(self, limit):
-        return Query(self.col_cls, self._filters, self._sort, limit, fields=self._fields)
+        return Query(self.col_cls, self._filters, fields=self._fields, sort=self._sort, limit=limit)
 
     @gen.coroutine
     def find_one(self, *args, **kwargs):
-        filters = copy(self._filters)
-        filters.update(kwargs)
-        if args:
-            filters.update(args[0])
-            if len(args) > 1:
-                self._fields = args[1]
-        ret = yield Op(self.col.find_one, filters, fields=self._fields, sort=self._sort, limit=self._limit)
+        query = self.find(*args, **kwargs)
+        ret = yield Op(self.col.find_one, query._filters, fields=query._fields, sort=query._sort)
         if ret:
             raise gen.Return(self.col_cls(**ret))
         else:
