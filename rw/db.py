@@ -64,26 +64,26 @@ class Cursor(object):
 
 
 class Query(object):
-    def __init__(self, col, filters=None, sort=None, limit=0, start=0, fields=None):
+    def __init__(self, col, filters=None, sort=None, limit=0, skip=0, fields=None):
         self.col_cls = col
         self._sort = sort
         if db:
             self.col = getattr(db, col._name)
         self._filters = filters if filters else {}
         self._limit = limit
-        self._start = start
+        self._skip = skip
         self._fields = fields
 
     def __getitem__(self, slice):
         if isinstance(slice, numbers.Number):
             return Query(self.col_cls, self._filters, self.sort,
-                         limit=1, start=slice, fields=self._fields)
+                         limit=1, skip=slice, fields=self._fields)
         elif slice.step is None \
           and isinstance(slice.start, numbers.Number)\
           and isinstance(slice.stop, numbers.Number)\
           and slice.stop > slice.start:
             return Query(self.col_cls, self._filters, self._sort,
-                         limit=slice.stop - slice.start, start=slice.start, fields=self._fields)
+                         limit=slice.stop - slice.start, skip=slice.start, fields=self._fields)
         else:
             raise AttributeError('Slice indecies must be integers, step (= {}) must not be set'
                                  ' and start (= {}) must be higher than stop (= {})'.format(
@@ -97,10 +97,10 @@ class Query(object):
             filters.update(args[0])
             if len(args) > 1:
                 self._fields = args[1]
-        return Query(self.col_cls, filters, self._sort, self._limit, fields=self._fields)
+        return Query(self.col_cls, filters, self._sort, self._limit, self._skip, self._fields)
 
     def sort(self, sort):
-        return Query(self.col_cls, self._filters, sort, self._limit, fields=self._fields)
+        return Query(self.col_cls, self._filters, sort, self._limit, self._skip, self._fields)
 
     def to_list(self):
         return Cursor(self).to_list()
@@ -116,11 +116,11 @@ class Query(object):
     @gen.coroutine
     def count(self):
         col = getattr(db, self.col_cls._name)
-        ret = yield Op(col.find(self._filters, sort=self._sort, limit=self._limit).count)
+        ret = yield Op(col.find(self._filters, sort=self._sort, skip=self._skip, limit=self._limit).count)
         raise gen.Return(ret)
 
     def limit(self, limit):
-        return Query(self.col_cls, self._filters, self._sort, limit, fields=self._fields)
+        return Query(self.col_cls, self._filters, self._sort, limit, self._skip, self._fields)
 
     @gen.coroutine
     def find_one(self, *args, **kwargs):
@@ -130,7 +130,8 @@ class Query(object):
             filters.update(args[0])
             if len(args) > 1:
                 self._fields = args[1]
-        ret = yield Op(self.col.find_one, filters, fields=self._fields, sort=self._sort, limit=self._limit)
+        ret = yield Op(self.col.find_one, filters, sort=self._sort, skip=self._skip, limit=self._limit,
+                       fields=self._fields)
         if ret:
             raise gen.Return(self.col_cls(**ret))
         else:
