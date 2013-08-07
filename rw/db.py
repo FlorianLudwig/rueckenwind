@@ -43,7 +43,8 @@ class Cursor(object):
     def __init__(self, query):
         self.col_cls = query.col_cls
         col = getattr(db, query.col_cls._name)
-        self.db_cursor = col.find(query._filters, fields=query._fields, sort=query._sort, limit=query._limit)
+        self.db_cursor = col.find(query._filters, fields=query._fields, sort=query._sort, limit=query._limit,
+                                  skip=query._skip)
 
     @gen.coroutine
     def to_list(self):
