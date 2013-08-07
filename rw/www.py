@@ -509,7 +509,7 @@ class ExecuteHandler(object):
 
 
 def setup(app_name, address=None, port=None):
-    app = rw.get_module(app_name, 'www').www.Main
+    root_handler = rw.get_module(app_name, 'www').www.Main
 
     # default plugins
     import rbusys
@@ -529,7 +529,7 @@ def setup(app_name, address=None, port=None):
         debugger.activate()
 
     base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
-    routes = generate_routing(app)
+    routes = generate_routing(root_handler)
 
     class Application(base_cls):
         def __init__(self, base):
@@ -598,12 +598,31 @@ def setup(app_name, address=None, port=None):
                 # pprint.pprint(routes)
                 self.base(self, request).send_error(404)
 
-    app = Application(app)
+    app = Application(root_handler)
     if not address:
         address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
     if not port:
         port = 9999
-    LOG.info('Listening on http://%s:%i' % (address, port))
+
+    # save state in rw.cfg
+    rw.cfg.setdefault('rw', {})
+    rw.cfg['rw'].setdefault('www', {})
+    rw.cfg['rw']['www'].setdefault('modules', {})
+    rw.cfg['rw']['www']['modules'][app_name] = {
+        'port': port,
+        'address': address,
+        'root_handler': root_handler
+    }
+
+    listening = 'http://{}:{}'.format(address, port)
+    if not 'rw.www.base_url' in rw.cfg[app_name]:
+        rw.cfg.setdefault(app_name, {}).setdefault('rw.www', {})
+        rw.cfg[app_name]['rw.www']['base_url'] = listening
+        # rw.www.base_url
+    else:
+        rw.cfg[app_name]['rw.www']['base_url'] = rw.cfg[app_name]['rw.www']['base_url'].rstrip('/')
+
+    LOG.info('Listening on ' + listening)
     app.listen(port, address=address)
     app.base._rw_port = port
     #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
