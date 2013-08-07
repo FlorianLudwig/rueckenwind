@@ -40,7 +40,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        'rw': ['*.html', '*.css', 'templates/html5', 'templates/form']
+        'rw': ['*.html', '*.css', 'templates/html5', 'templates/form', 'templates/nginx']
     },
     entry_points={
         'console_scripts': [
