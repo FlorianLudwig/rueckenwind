@@ -250,9 +250,16 @@ def _start():
         if futures:
             yield futures
 
-        # setup
+        # start
         LOG.info('entering start phase')
         starting = rbus.rw.module.start()
+        futures = [future for future in starting if isinstance(future, concurrent.Future)]
+        if futures:
+            yield futures
+
+        # post_setup
+        LOG.info('entering post_start phase')
+        starting = rbus.rw.module.post_start()
         futures = [future for future in starting if isinstance(future, concurrent.Future)]
         if futures:
             yield futures
