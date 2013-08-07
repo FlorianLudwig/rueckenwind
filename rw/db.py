@@ -91,6 +91,9 @@ class Query(object):
             ))
 
     def find(self, *args, **kwargs):
+        # we are using *args instead of having named arguments like
+        # query=None, fields=None
+        # to avoid possibile conflicts with **kwargs
         filters = copy(self._filters)
         filters.update(kwargs)
         if args:
