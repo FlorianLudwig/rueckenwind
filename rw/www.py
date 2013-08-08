@@ -615,6 +615,7 @@ def setup(app_name, address=None, port=None):
     }
 
     listening = 'http://{}:{}'.format(address, port)
+    rw.cfg.setdefault(app_name, {})
     if not 'rw.www.base_url' in rw.cfg[app_name]:
         rw.cfg.setdefault(app_name, {}).setdefault('rw.www', {})
         rw.cfg[app_name]['rw.www']['base_url'] = listening
