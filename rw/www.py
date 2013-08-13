@@ -508,6 +508,21 @@ class ExecuteHandler(object):
         getattr(self.handler, self.func_name)(**self.arguments)
 
 
+def generate_plugin_handler():
+    class PluginHandler(RequestHandler):
+        @get('/')
+        def index(self):
+            self.finish('plugin handler')
+
+        for plug in rbusys.PLUGS['rw.www']._plugs:
+            name = plug.name
+            if not name.startswith('/'):
+                name = '/' + name
+            locals()[name.replace('/', '')] = mount(name, plug.handler)
+
+    return PluginHandler
+
+
 def setup(app_name, address=None, port=None):
     root_handler = rw.get_module(app_name, 'www').www.Main
 
@@ -529,6 +544,10 @@ def setup(app_name, address=None, port=None):
         debugger.activate()
 
     base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
+
+    # add plugin handler
+    plugin_handler = generate_plugin_handler()
+    root_handler._p = mount('/_p', plugin_handler)
     routes = generate_routing(root_handler)
 
     class Application(base_cls):
@@ -558,16 +577,6 @@ def setup(app_name, address=None, port=None):
                         handler = main._static.static_handler(self, request)
                         handler._execute([])
                         found = True
-            elif request.path.startswith('/_p/'):
-                path = request.path[4:]
-                plugin, path = path.split('/', 1)
-                mod = rbusys.PLUGS.get(plugin)
-                for plug in rbusys.PLUGS['rw.www']._plugs:
-                    if plug.name == plugin:
-                        request.path = '/' + path
-                        if plug.handler(self, request)._handle_request():  # XXX TODO
-                            found = True
-                            break
             else:  # "normal" request
                 request.path = request.path.rstrip('/')
                 if request.path == '':
@@ -594,8 +603,6 @@ def setup(app_name, address=None, port=None):
             # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             if not found:
                 LOG.info('No handler found for ' + request.path)
-                # import pprint
-                # pprint.pprint(routes)
                 self.base(self, request).send_error(404)
 
     app = Application(root_handler)

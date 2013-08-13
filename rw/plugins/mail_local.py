@@ -24,14 +24,6 @@ class LocalMail(rplug.rw.email):
         cPickle.dump(data, open(DB_PATH, 'w'))
 
 
-class MailTab(rplug.rw.infotab):
-    def get_name(self):
-        return 'Mail'
-
-    def get_content(self):
-        return '<iframe src="/_p/rw.mail_local/" width="100%" height="100%"></iframe>'
-
-
 class Handler(RequestHandler):
     @get('/')
     def index(self):
@@ -61,5 +53,4 @@ def activate():
     if not os.path.exists(PATH):
         os.makedirs(PATH)
     LocalMail.activate()
-    MailTab.activate()
     HandlerPlug.activate()
