@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 import os
 import time
 import cPickle
-
+import chardet
+from email.mime.multipart import MIMEMultipart
 from mail import Mail
 from rw.www import RequestHandler, get, post
 import rplug
@@ -28,11 +30,49 @@ class Handler(RequestHandler):
     @get('/')
     def index(self):
         if os.path.exists(DB_PATH):
-            self['mails'] = cPickle.load(open(DB_PATH))
+            mails = cPickle.load(open(DB_PATH))
+            self['mails'] = []
+            for i, m in enumerate(mails):
+                if isinstance(m.toaddrs, str):
+                    m.toaddrs = m.toaddrs.decode('utf-8')
+                if isinstance(m.subject, str):
+                    m.subject = m.subject.decode('utf-8')
+                entry = {'toaddrs': m.toaddrs, 'subject': m.subject}
+                if isinstance(m.body, MIMEMultipart):
+                    html = None
+                    for j, part in enumerate(m.body.get_payload()):
+                        if part.get_content_charset() is None:
+                            charset = chardet.detect(str(part))['encoding']
+                        else:
+                            charset = part.get_content_charset()
+                        if part.get_content_type() == 'text/plain':
+                            entry['text'] = unicode(part.get_payload(decode=True), str(charset), "ignore")
+                        elif part.get_content_type() == 'text/html':
+                            entry['html_id'] = i
+                            entry['html_part'] = j
+                elif isinstance(m.body, unicode):
+                    entry['text'] = m.body
+                else:
+                    entry['text'] = unicode(m.body.get_payload(decode=True), m.body.get_content_charset(),
+                                            'ignore')
+                self['mails'].append(entry)
         else:
             self['mails'] = []
         self['repr'] = repr
         self.finish(template='local_mail/index.html')
+
+    @get('/html/<_id:int>/<part:int>')
+    def html_content(self, _id, part):
+        if os.path.exists(DB_PATH):
+            mails = cPickle.load(open(DB_PATH))
+            mail_part = mails[_id].body.get_payload()[part]
+            if mail_part.get_content_charset() is None:
+                charset = chardet.detect(str(part))['encoding']
+            else:
+                charset = mail_part.get_content_charset()
+            html = unicode(mail_part.get_payload(decode=True), str(charset), "ignore")
+            self.finish(html)
+
 
     @post('/delete')
     def delete(self):

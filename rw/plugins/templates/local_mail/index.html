@@ -8,7 +8,12 @@
     {% for i, mail in enumerate(mails) %}
        To: {{ repr(mail.toaddrs) }} <br/>
        Subject: {{ mail.subject }} <br/>
-       {{ mail.body.replace('\n', '<br/>') }}
+        {% if 'html_id' in mail %}
+            <iframe src="{{ url_for(handler.html_content, _id=mail.html_id, part=mail.html_part) }}" width="95%" height="500"></iframe>
+        {% endif %}
+        {% if 'text' in mail %}
+           {{ mail.text.replace('\n', '<br/>') }}
+        {% endif %}
        <br />
         {% if mail.attachments %}
             <b>Attachments:</b><br>
