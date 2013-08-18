@@ -27,7 +27,7 @@ Example::
 import numbers
 from copy import copy
 import bson
-from motor import Op, MotorClient
+from motor import Op, MotorClient, MotorReplicaSetClient
 import rplug
 import rw
 
@@ -35,6 +35,8 @@ from tornado import gen
 from tornado.concurrent import return_future
 
 db = None
+CLIENTS = {}
+DATABASES = {}
 
 __all__ = ['Entity']
 
@@ -42,7 +44,7 @@ __all__ = ['Entity']
 class Cursor(object):
     def __init__(self, query):
         self.col_cls = query.col_cls
-        col = getattr(db, query.col_cls._name)
+        col = query.get_collection()
         self.db_cursor = col.find(query._filters, fields=query._fields, sort=query._sort, limit=query._limit,
                                   skip=query._skip)
 
@@ -65,31 +67,42 @@ class Cursor(object):
 
 
 class Query(object):
-    def __init__(self, col, filters=None, sort=None, limit=0, skip=0, fields=None):
-        self.col_cls = col
+    def __init__(self, col_cls, filters=None, sort=None, limit=0, skip=0, fields=None):
+        self.col_cls = col_cls
         self._sort = sort
-        if db:
-            self.col = getattr(db, col._name)
         self._filters = filters if filters else {}
         self._limit = limit
         self._skip = skip
         self._fields = fields
+        self._connection = 'default'
+
+    def __item__(self):
+        pass
 
     def __getitem__(self, slice):
         if isinstance(slice, numbers.Number):
-            return Query(self.col_cls, self._filters, self.sort,
-                         limit=1, skip=slice, fields=self._fields)
+            return self.clone(limit=1, skip=slice)
         elif slice.step is None \
-          and isinstance(slice.start, numbers.Number)\
-          and isinstance(slice.stop, numbers.Number)\
+          and isinstance(slice.start, numbers.Number) \
+          and isinstance(slice.stop, numbers.Number) \
           and slice.stop > slice.start:
-            return Query(self.col_cls, self._filters, self._sort,
-                         limit=slice.stop - slice.start, skip=slice.start, fields=self._fields)
+            return self.clone(limit=slice.stop - slice.start, skip=slice.start)
         else:
             raise AttributeError('Slice indecies must be integers, step (= {}) must not be set'
                                  ' and start (= {}) must be higher than stop (= {})'.format(
-                                 slice.step, repr(slice.start), repr(slice.stop)
+                slice.step, repr(slice.start), repr(slice.stop)
             ))
+
+    def clone(self, **kwargs):
+        params = {
+            'filters': self._filters,
+            'sort': self._sort,
+            'limit': self._limit,
+            'skip': self._skip,
+            'fields': self._fields
+        }
+        params.update(kwargs)
+        return Query(self.col_cls, **params)
 
     def find(self, *args, **kwargs):
         # we are using *args instead of having named arguments like
@@ -101,10 +114,13 @@ class Query(object):
             filters.update(args[0])
             if len(args) > 1:
                 self._fields = args[1]
-        return Query(self.col_cls, filters, self._sort, self._limit, self._skip, self._fields)
+        return self.clone(filters=filters)
 
     def sort(self, sort):
-        return Query(self.col_cls, self._filters, sort, self._limit, self._skip, self._fields)
+        return self.clone(sort=sort)
+
+    def limit(self, limit):
+        return self.clone(limit=limit)
 
     def to_list(self):
         return Cursor(self).to_list()
@@ -119,35 +135,28 @@ class Query(object):
 
     @gen.coroutine
     def count(self):
-        col = getattr(db, self.col_cls._name)
+        col = self.get_collection()
         ret = yield Op(col.find(self._filters, sort=self._sort, skip=self._skip, limit=self._limit).count)
         raise gen.Return(ret)
 
-    def limit(self, limit):
-        return Query(self.col_cls, self._filters, self._sort, limit, self._skip, self._fields)
-
     @gen.coroutine
     def find_one(self, *args, **kwargs):
+        col = self.get_collection()
         filters = copy(self._filters)
         filters.update(kwargs)
         if args:
             filters.update(args[0])
             if len(args) > 1:
                 self._fields = args[1]
-        ret = yield Op(self.col.find_one, filters, sort=self._sort, skip=self._skip, limit=self._limit,
+        ret = yield Op(col.find_one, filters, sort=self._sort, skip=self._skip, limit=self._limit,
                        fields=self._fields)
         if ret:
             raise gen.Return(self.col_cls(**ret))
         else:
             raise gen.Return(None)
 
-    def get(self, value, user_callback):
-        def callback(elements, error):
-            if elements:
-                user_callback(elements[0])
-            else:
-                user_callback(None)
-        self.col.find({'_id': value}, callback=callback)
+    def get_collection(self):
+        return DATABASES[self._connection][self.col_cls._name]
 
 
 class NoDefaultValue(object):
@@ -175,7 +184,6 @@ class TypeCastException(Exception):
 
 class Field(property):
     def __init__(self, type, default=NoDefaultValue, none_allowed=True):
-        # print 'init property', self, type
         super(Field, self).__init__(self.get_value, self.set_value)
         self.name = None
         self.none_allowed = none_allowed
@@ -192,12 +200,12 @@ class Field(property):
         if not isinstance(value, self.type):
             if not self.none_allowed or value is not None:
                 entity[self.name] = self.type(value)
-            # try:
-		     #    entity[self.name] = self.type(value)
-            # except TypeCastException as e:
-            #     raise e
-            # except BaseException as e:
-		     #    raise TypeCastException(self.name, value, self.type, e)
+                # try:
+                #    entity[self.name] = self.type(value)
+                # except TypeCastException as e:
+                #     raise e
+                # except BaseException as e:
+                #    raise TypeCastException(self.name, value, self.type, e)
         return entity[self.name]
 
     def set_value(self, entity, value):
@@ -209,6 +217,7 @@ class Field(property):
 
 def Vector(typ):
     """Generate a Vector class that casts all elements to specified type"""
+
     class VectorClass(list):
         def __init__(self, values=None):
             if values:
@@ -267,7 +276,6 @@ class DocumentMeta(type):
         return ret
 
 
-
 class DocumentBase(dict):
     __metaclass__ = DocumentMeta
 
@@ -307,15 +315,6 @@ class Document(DocumentBase):
             if isinstance(cls_obj, Field) and cls_obj.default is not NoDefaultValue:
                 getattr(self, field)
         self.update(kwargs)
-
-    # def __getitem__(self, key):
-    #     return dict.__getitem__(self, key)
-    #
-    # def __setitem__(self, key, value):
-    #     if key == self._id_name:
-    #         dict.__setitem__(self, '_id', value)
-    #     else:
-    #         dict.__setitem__(self, key, value)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__,
@@ -381,6 +380,7 @@ def extract_model(fileobj, keywords, comment_tags, options):
     :rtype: ``iterator``
     """
     import ast, _ast
+
     code = ast.parse(fileobj.read()).body
     for statement in code:
         if isinstance(statement, _ast.ClassDef):
@@ -395,13 +395,24 @@ def extract_model(fileobj, keywords, comment_tags, options):
                                        'gettext',
                                        msg.format('1', name.id),
                                        ''
-                                       )
+                                )
                                 yield (name.lineno,
                                        'gettext',
                                        msg + '-Description',
                                        ''
                                 )
-                        # yield (base.lineno)
+                                # yield (base.lineno)
+
+
+@gen.coroutine
+def connect(cfg):
+    if 'replica_set' in cfg:
+        client = yield Op(MotorReplicaSetClient(cfg['host'], replicaSet=cfg['replica_set']).open)
+    else:
+        client = yield Op(MotorClient(cfg['host']).open)
+    if 'user' in cfg:
+        client[cfg['db']].authenticate(cfg['user'], cfg['password'])
+    raise gen.Return(client)
 
 
 class MongoDBSetup(rplug.rw.module):
@@ -409,9 +420,19 @@ class MongoDBSetup(rplug.rw.module):
     def setup(self):
         # connect to
         global client, db
-        client = MotorClient(host=rw.cfg['mongodb']['host'])
-        db = yield Op(client.open)
-        db = db[rw.cfg['mongodb']['db']]
+        cfg = rw.cfg['mongodb']
+        if 'db' in cfg:
+            CLIENTS['default'] = yield connect(cfg)
+            DATABASES['default'] = CLIENTS['default'][cfg['db']]
+
+        for key, value in cfg.items():
+            if isinstance(value, dict):
+                print 'additional connection'
+                CLIENTS[key] = yield connect(value)
+                DATABASES[key] = CLIENTS[key][cfg['db']]
+
+        if 'default' in CLIENTS:
+            db = DATABASES['default']
 
 
 def activate():
