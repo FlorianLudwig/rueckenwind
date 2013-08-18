@@ -514,11 +514,12 @@ def generate_plugin_handler():
         def index(self):
             self.finish('plugin handler')
 
-        for plug in rbusys.PLUGS['rw.www']._plugs:
-            name = plug.name
-            if not name.startswith('/'):
-                name = '/' + name
-            locals()[name.replace('/', '')] = mount(name, plug.handler)
+        if 'rw.www' in rbusys.PLUGS:
+            for plug in rbusys.PLUGS['rw.www']._plugs:
+                name = plug.name
+                if not name.startswith('/'):
+                    name = '/' + name
+                locals()[name.replace('/', '')] = mount(name, plug.handler)
 
     return PluginHandler
 
