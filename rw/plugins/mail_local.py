@@ -73,7 +73,6 @@ class Handler(RequestHandler):
             html = unicode(mail_part.get_payload(decode=True), str(charset), "ignore")
             self.finish(html)
 
-
     @post('/delete')
     def delete(self):
         mid = int(self.get_argument('mid'))
@@ -82,6 +81,14 @@ class Handler(RequestHandler):
             del data[mid]
             cPickle.dump(data, open(DB_PATH, 'w'))
         self.redirect('/_p/rw.mail_local/')
+
+    @get('/json/count')
+    def count_json(self):
+        count = 0
+        if os.path.exists(DB_PATH):
+            mails = cPickle.load(open(DB_PATH))
+            count = len(mails)
+        self.finish({'count': count})
 
 
 class HandlerPlug(rplug.rw.www):
