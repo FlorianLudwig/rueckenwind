@@ -505,6 +505,10 @@ class ExecuteHandler(object):
         futures = [future for future in futures if isinstance(future, concurrent.Future)]
         if futures:
             yield futures
+        if hasattr(self.handler, 'pre_process'):
+            future = self.handler.pre_process()
+            if future:
+                yield future
         getattr(self.handler, self.func_name)(**self.arguments)
 
 
@@ -607,6 +611,7 @@ def setup(app_name, address=None, port=None):
                 self.base(self, request).send_error(404)
 
     app = Application(root_handler)
+    app.rw_routes = routes
     if not address:
         address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
     if not port:
