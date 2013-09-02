@@ -646,7 +646,7 @@ def generate_routing(root):
     """generate routing "table"
     """
     ret = {}
-    for req_type in ('get', 'post', 'put', 'delete'):
+    for req_type in ('get', 'post', 'put', 'delete', 'options'):
         ret[req_type] = _generate_routing(root, root, None, root, req_type)
     return ret
 
@@ -755,6 +755,23 @@ def delete(path):
         assert not hasattr(f, 'route')
         f._rw_route = path
         f._rw_route_type = 'delete'
+        return f
+    return wrapper
+
+
+def options(path):
+    """Expose a function for HTTP OPTIONS requests
+
+    Example usage::
+
+        @options('/')
+        def server_options(self, name):
+            ...
+    """
+    def wrapper(f):
+        assert not hasattr(f, 'route')
+        f._rw_route = path
+        f._rw_route_type = 'options'
         return f
     return wrapper
 
