@@ -209,15 +209,17 @@ TO_SETUP = []
 
 
 def setup(app_name, typ='www', extra_config_files=None, address=None, port=None):
+    """setup rueckenwind app"""
     cfg.update(load_config(app_name, extra_config_files))
     TO_SETUP.append((typ, app_name, address, port))
 
 
 def start(app=None, type='www', **kwargs):
+    """Start rueckenwind app"""
     if not app is None:
         setup(app, type, **kwargs)
 
-    io_loop = tornado.ioloop.IOLoop.instance()
+    io_loop = tornado.ioloop.IOLoop.current()
     io_loop.add_callback(_start)
 
     if DEBUG:
@@ -225,6 +227,25 @@ def start(app=None, type='www', **kwargs):
 
     try:
         io_loop.start()
+    except KeyboardInterrupt:
+        print 'ctrl+c received. Exiting'
+
+    io_loop.run_sync(_shutdown)
+
+
+def run(func):
+    """run coroutine sync within rw context"""
+    io_loop = tornado.ioloop.IOLoop.current()
+
+    @gen.coroutine
+    def runner():
+        yield _start()
+        result = func()
+        if isinstance(result, concurrent.Future):
+            yield result
+
+    try:
+        io_loop.run_sync(runner)
     except KeyboardInterrupt:
         print 'ctrl+c received. Exiting'
 
