@@ -114,7 +114,7 @@ class RWIOLoop(tornado.ioloop.IOLoop):
         except testing.StopIOLoop, e:
             self.stop()
             raise e
-        except:
+        except Exception:
             print 'ERROR calling exception handler'
             exctype, value, exception = sys.exc_info()
             traceback.print_exception(exctype, value, exception)
@@ -141,7 +141,7 @@ def rw_ioloop_instance():
     class RWSelectIOLoop(RWIOLoop, SelectIOLoop):
         pass
 
-    return SelectIOLoop()
+    return RWSelectIOLoop()
 
 
 io_loop = tornado.ioloop.IOLoop._instance = rw_ioloop_instance()
