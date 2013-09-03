@@ -34,12 +34,13 @@ def command(func):
     return func
 
 
-def generate(src, dst, data):
+def create_skel(src, dst, data):
+    """generate skeleton rw project"""
     for fname in pkg_resources.resource_listdir(__name__, src):
         path = src + '/' + fname
         if pkg_resources.resource_isdir(__name__, path):
             os.mkdir(dst + '/' + fname)
-            generate(path, dst + '/' + fname, data)
+            create_skel(path, dst + '/' + fname, data)
         else:
             tpl = pkg_resources.resource_string(__name__, path)
             tpl = tpl.decode('utf-8')
@@ -59,7 +60,7 @@ def skel(args):
         sys.exit(1)
 
     os.mkdir(name)
-    generate('skel', os.path.abspath(name), {'name': name})
+    create_skel('skel', os.path.abspath(name), {'name': name})
 
 skel.parser.add_argument('--name', type=str,
                          help='Name of the module to be created')
