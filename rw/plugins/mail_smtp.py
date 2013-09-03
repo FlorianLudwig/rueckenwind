@@ -45,11 +45,6 @@ class SmtpMail(rplug.rw.email):
             msg.attach(attachment)
 
         # The actual mail send
-        print 'smptlib.SMTP'
-        print ( rw.cfg['mail']['relay'],
-                int(rw.cfg['mail'].get('port', 0)),
-                rw.cfg['mail'].get('local_hostname')
-        )
         s = smtplib.SMTP(rw.cfg['mail']['relay'],
                          int(rw.cfg['mail'].get('port', 0)),
                          rw.cfg['mail'].get('local_hostname', None))
