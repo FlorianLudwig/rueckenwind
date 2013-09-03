@@ -132,10 +132,10 @@ def rw_ioloop_instance():
         # Python 2.6+ on BSD or Mac
         from tornado.platform.kqueue import KQueueIOLoop
 
-        class RWEPollIOLoop(RWIOLoop, KQueueIOLoop):
+        class KQueueIOLoop(RWIOLoop, KQueueIOLoop):
             pass
 
-        return RWEPollIOLoop()
+        return KQueueIOLoop()
     from tornado.platform.select import SelectIOLoop
 
     class RWSelectIOLoop(RWIOLoop, SelectIOLoop):
