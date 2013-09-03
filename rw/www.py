@@ -13,6 +13,7 @@
 # under the License.
 
 from __future__ import absolute_import
+import socket
 
 import os
 import sys
@@ -31,9 +32,11 @@ import functools
 
 import pkg_resources
 from tornado import stack_context
-import tornado.websocket
 from tornado import gen, concurrent
 from tornado.web import HTTPError
+import tornado.websocket
+import tornado.netutil
+import tornado.httpserver
 from jinja2 import Environment, FunctionLoader
 from bson.json_util import dumps
 
@@ -528,7 +531,7 @@ def generate_plugin_handler():
     return PluginHandler
 
 
-def setup(app_name, address=None, port=None):
+def setup(app_name, port, address=None):
     root_handler = rw.get_module(app_name, 'www').www.Main
 
     # default plugins
@@ -600,12 +603,6 @@ def setup(app_name, address=None, port=None):
                         found = True
                         break
 
-                # handler = self.base(self, request)
-                #
-                # if handler._handle_request():
-                #     return
-            # TODO handle this proberly
-            # raise tornado.web.HTTPError(404, "Path not found " + request.path)
             if not found:
                 LOG.info('No handler found for ' + request.path)
                 self.base(self, request).send_error(404)
@@ -614,8 +611,30 @@ def setup(app_name, address=None, port=None):
     app.rw_routes = routes
     if not address:
         address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
-    if not port:
-        port = 9999
+
+    # bind socket
+    server = tornado.httpserver.HTTPServer(app)
+    sockets = None
+    if isinstance(port, basestring):
+        # If our port is a string and ends on a plus sign we
+        # are searching for a free port starting from the given port
+        print 1
+        if port.endswith('+'):
+            port = port.strip('+ ')
+            port = int(port)
+            print port
+            while port < 65536:
+                try:
+                    sockets = tornado.netutil.bind_sockets(port)
+                    print 'ok', sockets
+                    break
+                except socket.error:
+                    port += 1
+
+    if not sockets:
+        port = int(port)
+        sockets = tornado.netutil.bind_sockets(port)
+    server.add_sockets(sockets)
 
     # save state in rw.cfg
     rw.cfg.setdefault('rw', {})
@@ -632,14 +651,11 @@ def setup(app_name, address=None, port=None):
     if not 'rw.www.base_url' in rw.cfg[app_name]:
         rw.cfg.setdefault(app_name, {}).setdefault('rw.www', {})
         rw.cfg[app_name]['rw.www']['base_url'] = listening
-        # rw.www.base_url
     else:
         rw.cfg[app_name]['rw.www']['base_url'] = rw.cfg[app_name]['rw.www']['base_url'].rstrip('/')
 
     LOG.info('Listening on ' + listening)
-    app.listen(port, address=address)
     app.base._rw_port = port
-    #path.append(os.path.dirname(os.path.abspath(sys.argv[0])))
 
 
 def generate_routing(root):

@@ -77,7 +77,7 @@ def serv(args):
         extra.append(os.path.abspath(args.cfg))
     rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
 
-serv.parser.add_argument('-p', '--port', type=int, default=8000,
+serv.parser.add_argument('-p', '--port', type=str, default='8000+',
                          help='Specifiy port to run http server on')
 serv.parser.add_argument('-a', '--address', type=str,
                          help='Specifiy port to run http server on')
@@ -90,6 +90,7 @@ serv.parser.add_argument('MODULE',
 
 
 def main():
+    """Entry point of rw cli"""
     # check logging
     log_level = os.environ.get('LOG_LEVEL', 'INFO')
     logging.basicConfig(level=getattr(logging, log_level),
