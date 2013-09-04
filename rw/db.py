@@ -24,8 +24,12 @@ Example::
             self.finish(template='index.html')
 
 """
+from logging import warn
 import numbers
 from copy import copy
+import os
+import sys
+import warnings
 import bson
 from motor import Op, MotorClient, MotorReplicaSetClient
 import rplug
@@ -67,14 +71,14 @@ class Cursor(object):
 
 
 class Query(object):
-    def __init__(self, col_cls, filters=None, sort=None, limit=0, skip=0, fields=None):
+    def __init__(self, col_cls, connection, filters=None, sort=None, limit=0, skip=0, fields=None):
         self.col_cls = col_cls
         self._sort = sort
         self._filters = filters if filters else {}
         self._limit = limit
         self._skip = skip
         self._fields = fields
-        self._connection = 'default'
+        self._connection = connection
 
     def __item__(self):
         pass
@@ -102,7 +106,7 @@ class Query(object):
             'fields': self._fields
         }
         params.update(kwargs)
-        return Query(self.col_cls, **params)
+        return Query(self.col_cls, self._connection, **params)
 
     def find(self, *args, **kwargs):
         # we are using *args instead of having named arguments like
@@ -303,6 +307,7 @@ class Document(DocumentBase):
     Warning: Never use "callback" as key."""
 
     _id = Field(bson.ObjectId)
+    _connection = 'default'
 
     def __init__(self, *args, **kwargs):
         if len(args) > 2:
@@ -325,7 +330,7 @@ class Document(DocumentBase):
         """Save entry in collection (updates or creates)
 
         returns Future"""
-        ret = yield Op(getattr(db, self._name).insert, self)
+        ret = yield Op(self.get_collection().insert, self)
         raise gen.Return(ret)
 
     @gen.coroutine
@@ -333,32 +338,37 @@ class Document(DocumentBase):
         """update entry in collection (updates or creates)
 
         returns Future"""
-        ret = yield Op(getattr(db, self._name).update, {'_id': self['_id']}, self)
+        ret = yield Op(self.get_collection().update, {'_id': self['_id']}, self)
         raise gen.Return(ret)
 
     @gen.coroutine
     def remove(self, callback=None):
-        return getattr(db, self._name).remove(self, callback=callback)
+        return self.get_collection().remove(self, callback=callback)
 
     @classmethod
     def find(cls, *args, **kwargs):
-        query = Query(cls)
+        query = Query(cls, cls._connection)
         return query.find(*args, **kwargs)
 
     @classmethod
     def find_one(cls, *args, **kwargs):
-        query = Query(cls)
+        query = Query(cls, cls._connection)
         return query.find_one(*args, **kwargs)
 
     @classmethod
     def by_id(cls, _id):
         if not isinstance(_id, cls._id.type):
             _id = cls._id.type(_id)
-        return Query(cls).find(_id=_id).find_one()
+        return Query(cls, cls._connection).find(_id=_id).find_one()
 
     @property
     def _motor_collection(self):
-        return getattr(db, self._name)
+        warnings.warn('use get_collection() instead', DeprecationWarning)
+        return self.get_collection()
+
+    def get_collection(self):
+        print DATABASES, os.getpid(), sys.argv
+        return DATABASES[self._connection][self._name]
 
 
 class Unicode(Field):
