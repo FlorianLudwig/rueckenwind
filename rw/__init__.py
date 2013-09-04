@@ -185,6 +185,8 @@ def load_config(module_name, extra_files=None):
 class RWModuleSetup(rplug.rw.module):
     def start(self):
         for typ, app_name, address, port in TO_SETUP:
+            if not isinstance(typ, basestring):
+                raise AttributeError('typ must be string. type = {}'.format(repr(typ)))
             mod = getattr(__import__('rw.' + typ), typ)
             mod.setup(app_name, address=address, port=port)
 
@@ -208,7 +210,7 @@ RWPluginLoad.activate()
 TO_SETUP = []
 
 
-def setup(app_name, typ='www', extra_config_files=None, address=None, port=None):
+def setup(app_name, typ='www', extra_config_files=None, address=None, port='8000+'):
     """setup rueckenwind app"""
     cfg.update(load_config(app_name, extra_config_files))
     TO_SETUP.append((typ, app_name, address, port))
