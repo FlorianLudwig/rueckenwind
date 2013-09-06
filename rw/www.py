@@ -494,6 +494,8 @@ def rh_context(handler):
 
 
 def current_handler():
+    if not 'rw_rh_context' in globals():
+        return None
     return rw_rh_context
 
 

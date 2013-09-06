@@ -8,6 +8,10 @@ SENTRY_CLIENT = None
 
 
 class SentryMixinRW(SentryMixin):
+    def __init__(self):
+        super(SentryMixinRW, self).__init__()
+        self.request = None
+
     def get_sentry_client(self):
         return SENTRY_CLIENT
 
@@ -16,10 +20,20 @@ class SentryMixinRW(SentryMixin):
             'sentry.interfaces.User': {}
         }
 
+    def _capture(self, call_name, data=None, **kwargs):
+        if self.request:
+            return super(SentryMixinRW, self)._capture(call_name, data, **kwargs)
+        else:
+            client = self.get_sentry_client()
+
+        return getattr(client, call_name)(data=data, **kwargs)
+
 
 class ExceptionFetcher(SentryMixinRW, rplug.rw.ioloop_exception):
     def on_exception(self, exctype, value, exception, callback):
-        self.request = rw.www.current_handler().request
+        current_handler = rw.www.current_handler()
+        if current_handler:
+            self.request = current_handler.request
         self.captureException(exc_info=(exctype, value, exception))
 
 
@@ -27,4 +41,3 @@ def activate():
     global SENTRY_CLIENT
     SENTRY_CLIENT = AsyncSentryClient(rw.cfg['rw.plugins.sentry']['url'])
     ExceptionFetcher.activate()
-
