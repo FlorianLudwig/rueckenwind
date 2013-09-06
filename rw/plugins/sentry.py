@@ -39,5 +39,5 @@ class ExceptionFetcher(SentryMixinRW, rplug.rw.ioloop_exception):
 
 def activate():
     global SENTRY_CLIENT
-    SENTRY_CLIENT = AsyncSentryClient(rw.cfg['rw.plugins.sentry']['url'])
+    SENTRY_CLIENT = AsyncSentryClient(rw.cfg['rw.plugins.sentry']['dsn'])
     ExceptionFetcher.activate()
