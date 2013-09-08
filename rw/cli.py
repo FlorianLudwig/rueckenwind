@@ -13,6 +13,7 @@
 # under the License.
 
 """rueckenwind command line tool"""
+import shutil
 import sys
 import os
 import argparse
@@ -41,11 +42,14 @@ def create_skel(src, dst, data):
         if pkg_resources.resource_isdir(__name__, path):
             os.mkdir(dst + '/' + fname)
             create_skel(path, dst + '/' + fname, data)
-        else:
+        elif fname.endswith('.py') or fname.endswith('.html'):
             tpl = pkg_resources.resource_string(__name__, path)
             tpl = tpl.decode('utf-8')
             content = jinja2.Template(tpl).render(**data)
             open(dst + '/' + fname, 'w').write(content.encode('utf-8'))
+        elif fname.endswith('.css') or fname.endswith('.png'):
+            src = pkg_resources.resource_filename(__name__, path)
+            shutil.copy(src, dst + '/' + fname)
 
 
 @command
