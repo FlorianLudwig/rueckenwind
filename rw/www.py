@@ -476,11 +476,6 @@ class RequestSubHandler(HandlerBase):
     __metaclass__ = RequestSubHandlerMeta
 
 
-class WebSocketHandler(tornado.websocket.WebSocketHandler):
-    def _handle_request(self):
-        self._execute([])
-
-
 class Main(RequestHandler):
     pass
 
@@ -803,3 +798,15 @@ class mount(object):
 
 class Widget(object):
     pass
+
+
+class WebSocketHandler(tornado.websocket.WebSocketHandler):
+    _rw_routes = {}  # really bad idea (only one websocket works now)
+
+    @get('/')
+    def index(self):
+        raise NotImplementedError('This is just a stub to make rw routing work')
+
+    def _handle_request(self):
+        print 'handle request'
+        self._execute([])
