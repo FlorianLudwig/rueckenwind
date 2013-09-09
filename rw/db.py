@@ -367,7 +367,6 @@ class Document(DocumentBase):
         return self.get_collection()
 
     def get_collection(self):
-        print DATABASES, os.getpid(), sys.argv
         return DATABASES[self._connection][self._name]
 
 
@@ -437,7 +436,6 @@ class MongoDBSetup(rplug.rw.module):
 
         for key, value in cfg.items():
             if isinstance(value, dict):
-                print 'additional connection'
                 CLIENTS[key] = yield connect(value)
                 DATABASES[key] = CLIENTS[key][cfg['db']]
 
