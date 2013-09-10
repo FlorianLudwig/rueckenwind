@@ -3,6 +3,7 @@ from raven.contrib.tornado import AsyncSentryClient, SentryMixin
 import rplug
 import rw
 import rw.www
+from tornado.web import HTTPError
 
 SENTRY_CLIENT = None
 
@@ -31,6 +32,9 @@ class SentryMixinRW(SentryMixin):
 
 class ExceptionFetcher(SentryMixinRW, rplug.rw.ioloop_exception):
     def on_exception(self, exctype, value, exception, callback):
+        if isinstance(exception, HTTPError) and exception.status_code == 404:
+            # we don't capture 404 "errors"
+            return
         current_handler = rw.www.current_handler()
         if current_handler:
             self.request = current_handler.request
