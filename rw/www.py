@@ -617,7 +617,9 @@ def setup(app_name, port, address=None):
         address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
 
     # bind socket
-    server = tornado.httpserver.HTTPServer(app)
+    max_buffer_size = rw.cfg.get('httpserver', {}).get('max_buffer_size', 104857600)
+    max_buffer_size = int(max_buffer_size)
+    server = tornado.httpserver.HTTPServer(app, max_buffer_size=max_buffer_size)
     sockets = None
     if isinstance(port, basestring):
         # If our port is a string and ends on a plus sign we
