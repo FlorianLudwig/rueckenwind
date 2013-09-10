@@ -418,12 +418,15 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         """Finish Controller part and begin rendering and sending template
 
         """
-        if template:
-            self.template = template
-        if self.template and not chunk:
-            self.write(self.render_template(self.template))
-        super(HandlerBase, self).finish(chunk)
-        # if we are in debug mode we lets ingore memory leaks
+        if self.request.method.lower() == 'head':
+            super(HandlerBase, self).finish('')
+        else:
+            if template:
+                self.template = template
+            if self.template and not chunk:
+                self.write(self.render_template(self.template))
+            super(HandlerBase, self).finish(chunk)
+        # if we are in debug mode we "want" memory leaks
         # so we can preserv all information that might be needed
         # to debug a traceback
         if not rw.DEBUG:
@@ -587,7 +590,11 @@ def setup(app_name, port, address=None):
                 if request.path == '':
                     request.path = '/'
 
-                for rule in routes[request.method.lower()]:
+                method = request.method.lower()
+                if method == 'head':
+                    method = 'get'
+
+                for rule in routes[method]:
                     match = rule.match(request)
                     if match:
                         handler, func_name, arguments = match
