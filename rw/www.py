@@ -622,15 +622,12 @@ def setup(app_name, port, address=None):
     if isinstance(port, basestring):
         # If our port is a string and ends on a plus sign we
         # are searching for a free port starting from the given port
-        print 1
         if port.endswith('+'):
             port = port.strip('+ ')
             port = int(port)
-            print port
             while port < 65536:
                 try:
                     sockets = tornado.netutil.bind_sockets(port)
-                    print 'ok', sockets
                     break
                 except socket.error:
                     port += 1
@@ -817,5 +814,4 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         raise NotImplementedError('This is just a stub to make rw routing work')
 
     def _handle_request(self):
-        print 'handle request'
         self._execute([])
