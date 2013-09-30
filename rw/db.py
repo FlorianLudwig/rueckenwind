@@ -442,6 +442,11 @@ class MongoDBSetup(rplug.rw.module):
         if 'default' in CLIENTS:
             db = DATABASES['default']
 
+    @gen.coroutine
+    def shutdown(self):
+        for client in CLIENTS.itervalues():
+            client.disconnect()
+
 
 def activate():
     MongoDBSetup.activate()

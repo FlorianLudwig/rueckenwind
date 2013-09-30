@@ -531,134 +531,139 @@ def generate_plugin_handler():
     return PluginHandler
 
 
-def setup(app_name, port, address=None):
-    root_handler = rw.get_module(app_name, 'www').www.Main
+class Module(object):
+    def setup(self, app_name, port, address=None):
+        root_handler = rw.get_module(app_name, 'www').www.Main
 
-    # default plugins
-    import rbusys
-    if isinstance(rbus.rw.email, rbusys.StubImplementation):
-        log = 'No E-Mail plugin loaded -'
+        # default plugins
+        import rbusys
+        if isinstance(rbus.rw.email, rbusys.StubImplementation):
+            log = 'No E-Mail plugin loaded -'
+            if rw.DEBUG:
+                from rw.plugins import mail_local as mail
+                log += 'fake mail_local plugin loaded'
+            else:
+                from rw.plugins import mail_smtp as mail
+                log += 'SMTP mail plugin loaded'
+            LOG.info(log)
+            mail.activate()
         if rw.DEBUG:
-            from rw.plugins import mail_local as mail
-            log += 'fake mail_local plugin loaded'
-        else:
-            from rw.plugins import mail_smtp as mail
-            log += 'SMTP mail plugin loaded'
-        LOG.info(log)
-        mail.activate()
-    if rw.DEBUG:
-        from rw.plugins import debugger
-        LOG.info('activate debugger')
-        debugger.activate()
+            from rw.plugins import debugger
+            LOG.info('activate debugger')
+            debugger.activate()
 
-    base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
+        base_cls = rw.debug.DebugApplication if rw.DEBUG else tornado.web.Application
 
-    # add plugin handler
-    plugin_handler = generate_plugin_handler()
-    root_handler._p = mount('/_p', plugin_handler)
-    routes = generate_routing(root_handler)
+        # add plugin handler
+        plugin_handler = generate_plugin_handler()
+        root_handler._p = mount('/_p', plugin_handler)
+        routes = generate_routing(root_handler)
 
-    class Application(base_cls):
-        def __init__(self, base):
-            super(Application, self).__init__(cookie_secret=COOKIE_SECRET)
-            self.base = base
-            self.base._rw_app = self
+        class Application(base_cls):
+            def __init__(self, base):
+                super(Application, self).__init__(cookie_secret=COOKIE_SECRET)
+                self.base = base
+                self.base._rw_app = self
 
-        @gen.engine
-        def __call__(self, request):
-            request.original_path = request.path
-            # werzeug debugger
-            found = False
-            if rw.DEBUG and '__debugger__' in request.uri:
-                handler = rw.debug.WSGIHandler(self, request, rw.debug.DEBUG_APP)
-                handler.delegate()
-                handler.finish()
-                found = True
-            elif request.path.startswith('/static/'):
-                path = request.path[8:].strip('/')  # len('/static/') = 8
-                path = urllib.unquote(path)
-                if '/' in path:
-                    module, path = path.split('/', 1)
-                    request.path = path
-                    if module in sys.modules:
-                        main = rw.get_module(module, 'www', auto_load=False).www.Main
-                        handler = main._static.static_handler(self, request)
-                        handler._execute([])
-                        found = True
-            else:  # "normal" request
-                request.path = request.path.rstrip('/')
-                if request.path == '':
-                    request.path = '/'
+            @gen.engine
+            def __call__(self, request):
+                request.original_path = request.path
+                # werzeug debugger
+                found = False
+                if rw.DEBUG and '__debugger__' in request.uri:
+                    handler = rw.debug.WSGIHandler(self, request, rw.debug.DEBUG_APP)
+                    handler.delegate()
+                    handler.finish()
+                    found = True
+                elif request.path.startswith('/static/'):
+                    path = request.path[8:].strip('/')  # len('/static/') = 8
+                    path = urllib.unquote(path)
+                    if '/' in path:
+                        module, path = path.split('/', 1)
+                        request.path = path
+                        if module in sys.modules:
+                            main = rw.get_module(module, 'www', auto_load=False).www.Main
+                            handler = main._static.static_handler(self, request)
+                            handler._execute([])
+                            found = True
+                else:  # "normal" request
+                    request.path = request.path.rstrip('/')
+                    if request.path == '':
+                        request.path = '/'
 
-                method = request.method.lower()
-                if method == 'head':
-                    method = 'get'
+                    method = request.method.lower()
+                    if method == 'head':
+                        method = 'get'
 
-                for rule in routes[method]:
-                    match = rule.match(request)
-                    if match:
-                        handler, func_name, arguments = match
-                        handler = handler(self, request)
-                        with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
-                            with stack_context.StackContext(functools.partial(rh_context, handler)):
-                                preprocessors = rbus.rw.request_handling.pre_process(handler)
-                                e = ExecuteHandler(handler, func_name, arguments)
-                                e(preprocessors)
-                        found = True
+                    for rule in routes[method]:
+                        match = rule.match(request)
+                        if match:
+                            handler, func_name, arguments = match
+                            handler = handler(self, request)
+                            with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
+                                with stack_context.StackContext(functools.partial(rh_context, handler)):
+                                    preprocessors = rbus.rw.request_handling.pre_process(handler)
+                                    e = ExecuteHandler(handler, func_name, arguments)
+                                    e(preprocessors)
+                            found = True
+                            break
+
+                if not found:
+                    LOG.info('No handler found for ' + request.path)
+                    self.base(self, request).send_error(404)
+
+        app = Application(root_handler)
+        app.rw_routes = routes
+        if not address:
+            address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
+
+        # bind socket
+        max_buffer_size = rw.cfg.get('httpserver', {}).get('max_buffer_size', 104857600)
+        max_buffer_size = int(max_buffer_size)
+        self.httpserver = tornado.httpserver.HTTPServer(app, max_buffer_size=max_buffer_size)
+        sockets = None
+        if isinstance(port, basestring):
+            # If our port is a string and ends on a plus sign we
+            # are searching for a free port starting from the given port
+            if port.endswith('+'):
+                port = port.strip('+ ')
+                port = int(port)
+                while port < 65536:
+                    try:
+                        sockets = tornado.netutil.bind_sockets(port)
                         break
+                    except socket.error:
+                        port += 1
 
-            if not found:
-                LOG.info('No handler found for ' + request.path)
-                self.base(self, request).send_error(404)
-
-    app = Application(root_handler)
-    app.rw_routes = routes
-    if not address:
-        address = '127.0.0.1' if rw.DEBUG else '0.0.0.0'
-
-    # bind socket
-    max_buffer_size = rw.cfg.get('httpserver', {}).get('max_buffer_size', 104857600)
-    max_buffer_size = int(max_buffer_size)
-    server = tornado.httpserver.HTTPServer(app, max_buffer_size=max_buffer_size)
-    sockets = None
-    if isinstance(port, basestring):
-        # If our port is a string and ends on a plus sign we
-        # are searching for a free port starting from the given port
-        if port.endswith('+'):
-            port = port.strip('+ ')
+        if not sockets:
             port = int(port)
-            while port < 65536:
-                try:
-                    sockets = tornado.netutil.bind_sockets(port)
-                    break
-                except socket.error:
-                    port += 1
+            sockets = tornado.netutil.bind_sockets(port)
+        self.httpserver.add_sockets(sockets)
 
-    if not sockets:
-        port = int(port)
-        sockets = tornado.netutil.bind_sockets(port)
-    server.add_sockets(sockets)
+        # save state in rw.cfg
+        rw.cfg.setdefault('rw', {})
+        rw.cfg['rw'].setdefault('www', {})
+        rw.cfg['rw']['www'].setdefault('modules', {})
+        rw.cfg['rw']['www']['modules'][app_name] = {
+            'port': port,
+            'address': address,
+            'root_handler': root_handler
+        }
 
-    # save state in rw.cfg
-    rw.cfg.setdefault('rw', {})
-    rw.cfg['rw'].setdefault('www', {})
-    rw.cfg['rw']['www'].setdefault('modules', {})
-    rw.cfg['rw']['www']['modules'][app_name] = {
-        'port': port,
-        'address': address,
-        'root_handler': root_handler
-    }
+        listening = 'http://{}:{}'.format(address, port)
+        rw.cfg.setdefault(app_name, {})
+        if not 'rw.www.base_url' in rw.cfg[app_name]:
+            rw.cfg.setdefault(app_name, {}).setdefault('rw.www', {})
+            rw.cfg[app_name]['rw.www']['base_url'] = listening
+        else:
+            rw.cfg[app_name]['rw.www']['base_url'] = rw.cfg[app_name]['rw.www']['base_url'].rstrip('/')
 
-    listening = 'http://{}:{}'.format(address, port)
-    rw.cfg.setdefault(app_name, {})
-    if not 'rw.www.base_url' in rw.cfg[app_name]:
-        rw.cfg.setdefault(app_name, {}).setdefault('rw.www', {})
-        rw.cfg[app_name]['rw.www']['base_url'] = listening
-    else:
-        rw.cfg[app_name]['rw.www']['base_url'] = rw.cfg[app_name]['rw.www']['base_url'].rstrip('/')
+        LOG.info('Listening on ' + listening)
+        app.base._rw_port = port
 
-    LOG.info('Listening on ' + listening)
-    app.base._rw_port = port
+    def shutdown(self):
+        self.httpserver.stop()
+        del self.httpserver
 
 
 def generate_routing(root):
