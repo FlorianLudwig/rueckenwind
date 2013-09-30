@@ -38,7 +38,7 @@ It can be accessed via ``rw.cfg``. Please note that the dict gets populated when
 
     rw serv mycoolproject
 
-The dict is populated before your module is loaded - meaning you can access ``rw.cfg`` withouy worries. In circumstances
+The dict is populated before your module is loaded - meaning you can access ``rw.cfg`` without worries. In circumstances
 were you are not running through the rw start command you might want to either use ``rw.setup('mycoolproject')`` to load
 your module (which is what ``rw serv`` does). In other circumstances you might just want the config you can use:
 
