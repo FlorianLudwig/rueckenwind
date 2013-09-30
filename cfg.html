@@ -53,7 +53,7 @@
           <div class="body">
             
   <div class="section" id="configuration-management">
-<h1>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this headline">¶</a></h1>
+<span id="cfg"></span><h1>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this headline">¶</a></h1>
 <p>For your convenience rueckenwind comes with simple (as in KISS) configuration management. When you start up your project
 rueckenwind will try to load its configuration and you might see logging like:</p>
 <div class="highlight-python"><pre>rw[INFO] reading config: /my_virtualenv/src/my_cool_project_git/myproject/myproject.cfg
@@ -84,12 +84,12 @@ db = some_db</pre>
 <p>It can be accessed via <tt class="docutils literal"><span class="pre">rw.cfg</span></tt>. Please note that the dict gets populated when rw setups your project. So if you use:</p>
 <div class="highlight-python"><pre>rw serv mycoolproject</pre>
 </div>
-<p>The dict is populated before your module is loaded - meaning you can access <tt class="docutils literal"><span class="pre">rw.cfg</span></tt> withouy worries. In circumstances
+<p>The dict is populated before your module is loaded - meaning you can access <tt class="docutils literal"><span class="pre">rw.cfg</span></tt> without worries. In circumstances
 were you are not running through the rw start command you might want to either use <tt class="docutils literal"><span class="pre">rw.setup('mycoolproject')</span></tt> to load
 your module (which is what <tt class="docutils literal"><span class="pre">rw</span> <span class="pre">serv</span></tt> does). In other circumstances you might just want the config you can use:</p>
 <dl class="function">
 <dt id="rw.load_config">
-<tt class="descclassname">rw.</tt><tt class="descname">load_config</tt><big>(</big><em>module_name</em><big>)</big><a class="reference internal" href="_modules/rw.html#load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.load_config" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">rw.</tt><tt class="descname">load_config</tt><big>(</big><em>module_name</em>, <em>extra_files=None</em><big>)</big><a class="reference internal" href="_modules/rw.html#load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.load_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load configuration for given module and return config dict</p>
 </dd></dl>
 
