@@ -2,8 +2,7 @@
 
 Configuration Management
 ========================
-For your convenience rueckenwind comes with simple (as in KISS) configuration management. When you start up your project
-rueckenwind will try to load its configuration and you might see logging like::
+For your convenience Rückenwind comes with simple (as in KISS) configuration management. When you start up your project Rückenwind will try to load its configuration and you might see logging like::
 
     rw[INFO] reading config: /my_virtualenv/src/my_cool_project_git/myproject/myproject.cfg
     rw[INFO] reading config: /etc/myproject.cfg
@@ -34,7 +33,7 @@ You will get the following configuration dict::
         'db': 'some_db'
     }}
 
-It can be accessed via ``rw.cfg``. Please note that the dict gets populated when rw setups your project. So if you use::
+Actually it is not a standard python dict but a `ConfigObj <http://www.voidspace.org.uk/python/configobj.html>`_ and therefor provides some extra methods like as_bool. It can be accessed via ``rw.cfg``. Please note that the dict gets populated when rw setups your project. So if you use::
 
     rw serv mycoolproject
 

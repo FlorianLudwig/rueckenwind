@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Using MongoDB &mdash; Rückenwind 0.0.1 documentation</title>
+    <title>Using MongoDB &mdash; Rückenwind 0.2.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.0.1',
+        VERSION:     '0.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Rückenwind 0.0.1 documentation" href="index.html" />
+    <link rel="top" title="Rückenwind 0.2.0 documentation" href="index.html" />
     <link rel="next" title="Rueckenwind Architecture" href="architecture.html" />
     <link rel="prev" title="Configuration Management" href="cfg.html" /> 
   </head>
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="cfg.html" title="Configuration Management"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Rückenwind 0.2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -62,9 +62,6 @@
 <span class="kn">import</span> <span class="nn">rw.db</span>
 <span class="kn">from</span> <span class="nn">tornado</span> <span class="kn">import</span> <span class="n">gen</span>
 
-<span class="n">connection</span> <span class="o">=</span> <span class="n">motor</span><span class="o">.</span><span class="n">MotorConnection</span><span class="p">(</span><span class="n">max_pool_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_concurrent</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">open_sync</span><span class="p">()</span>
-<span class="n">rw</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">test</span>
-
 
 <span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">rw</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Entity</span><span class="p">):</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="nb">unicode</span><span class="p">)</span>
@@ -78,6 +75,17 @@
         <span class="bp">self</span><span class="p">[</span><span class="s">&#39;users&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">gen</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;2&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">template</span><span class="o">=</span><span class="s">&#39;index.html&#39;</span><span class="p">)</span>
 </pre></div>
+</div>
+<p>To configure a connection rw&#8217;s <a class="reference internal" href="cfg.html#cfg"><em>Configuration Management</em></a> is used:</p>
+<div class="highlight-python"><pre>[mongodb]
+host = 127.0.0.1
+db = my_database
+replica_set = rs1  # optional, only specify if replication is active
+user = me  # optional, specify only if auth is active
+password = pssst  # optional, specify only if auth is active
+
+[rw.plugins]
+rw.db = True</pre>
 </div>
 </div>
 
@@ -130,7 +138,7 @@
         <li class="right" >
           <a href="cfg.html" title="Configuration Management"
              >previous</a> |</li>
-        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Rückenwind 0.2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

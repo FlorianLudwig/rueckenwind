@@ -37,7 +37,7 @@ Use pip::
 Quick start
 ===========
 
-After installing rückenwind you got a new command at your disposal: *rw*.
+It is highly recommended to develop and deploy within a `virtualenv <https://pypi.python.org/pypi/virtualenv>`_. Always. So this documentation just assumes you do without further mentioning it. After installing rückenwind you got a new command at your disposal: *rw*.
 You can use it to generate a new rückendwind project skelton::
 
   rw skel --name my_new_project

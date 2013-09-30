@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Configuration Management &mdash; Rückenwind 0.0.1 documentation</title>
+    <title>Configuration Management &mdash; Rückenwind 0.2.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '0.0.1',
+        VERSION:     '0.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Rückenwind 0.0.1 documentation" href="index.html" />
+    <link rel="top" title="Rückenwind 0.2.0 documentation" href="index.html" />
     <link rel="next" title="Using MongoDB" href="db.html" />
     <link rel="prev" title="Static Content" href="static_data.html" /> 
   </head>
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="static_data.html" title="Static Content"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Rückenwind 0.2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -54,8 +54,7 @@
             
   <div class="section" id="configuration-management">
 <span id="cfg"></span><h1>Configuration Management<a class="headerlink" href="#configuration-management" title="Permalink to this headline">¶</a></h1>
-<p>For your convenience rueckenwind comes with simple (as in KISS) configuration management. When you start up your project
-rueckenwind will try to load its configuration and you might see logging like:</p>
+<p>For your convenience Rückenwind comes with simple (as in KISS) configuration management. When you start up your project Rückenwind will try to load its configuration and you might see logging like:</p>
 <div class="highlight-python"><pre>rw[INFO] reading config: /my_virtualenv/src/my_cool_project_git/myproject/myproject.cfg
 rw[INFO] reading config: /etc/myproject.cfg
 rw[INFO] reading config: /home/joe/.myproject.cfg
@@ -81,7 +80,7 @@ db = some_db</pre>
     'db': 'some_db'
 }}</pre>
 </div>
-<p>It can be accessed via <tt class="docutils literal"><span class="pre">rw.cfg</span></tt>. Please note that the dict gets populated when rw setups your project. So if you use:</p>
+<p>Actually it is not a standard python dict but a <a class="reference external" href="http://www.voidspace.org.uk/python/configobj.html">ConfigObj</a> and therefor provides some extra methods like as_bool. It can be accessed via <tt class="docutils literal"><span class="pre">rw.cfg</span></tt>. Please note that the dict gets populated when rw setups your project. So if you use:</p>
 <div class="highlight-python"><pre>rw serv mycoolproject</pre>
 </div>
 <p>The dict is populated before your module is loaded - meaning you can access <tt class="docutils literal"><span class="pre">rw.cfg</span></tt> without worries. In circumstances
@@ -147,7 +146,7 @@ your module (which is what <tt class="docutils literal"><span class="pre">rw</sp
         <li class="right" >
           <a href="static_data.html" title="Static Content"
              >previous</a> |</li>
-        <li><a href="index.html">Rückenwind 0.0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Rückenwind 0.2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
