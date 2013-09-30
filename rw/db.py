@@ -7,9 +7,6 @@ Example::
     import rw.db
     from tornado import gen
 
-    connection = motor.MotorConnection(max_pool_size=10, max_concurrent=20).open_sync()
-    rw.db.db = connection.test
-
 
     class User(rw.db.Entity):
         name = rw.db.Field(unicode)
@@ -22,6 +19,19 @@ Example::
         def index(self):
             self['users'] = yield gen.Task(User.query.filter_by(name='2').all)
             self.finish(template='index.html')
+
+
+To configure a connection rw's :ref:`cfg` is used::
+
+    [mongodb]
+    host = 127.0.0.1
+    db = my_database
+    replica_set = rs1  # optional, only specify if replication is active
+    user = me  # optional, specify only if auth is active
+    password = pssst  # optional, specify only if auth is active
+
+    [rw.plugins]
+    rw.db = True
 
 """
 from logging import warn
