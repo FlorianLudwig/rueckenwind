@@ -28,8 +28,6 @@ SEPERATORS = re.compile('[ \t\r\n]*')
 
 class NGINXManager(rplug.rw.module):
     def post_start(self):
-        print 'setting up nginx'
-        env = rw.www.create_template_env(None)
         for module_name, config in rw.cfg['rw']['www']['modules'].items():
             nginx_config = rw.cfg[module_name].get('rw.plugins.nginx', {})
             nginx_path = nginx_config.get('path')
@@ -46,18 +44,17 @@ class NGINXManager(rplug.rw.module):
                     aliases_catch_all = SEPERATORS.split(aliases_catch_all)
                     print aliases_catch_all
                     nginx_config['aliases'] += ' ' + ' '.join('{0} *.{0}'.format(a)
-                                                        for a in aliases_catch_all)
+                                                              for a in aliases_catch_all)
                     nginx_config['aliases'] = nginx_config['aliases'].strip()
-
 
                 if os.path.isdir(nginx_path):
                     nginx_path = os.path.join(nginx_path, module_name + '.conf')
 
                 conf = template.render(name=module_name,
-                                      module=rw.cfg[module_name],
-                                      nginx_config=nginx_config,
-                                      cfg=rw.cfg,
-                                      www=config)
+                                       module=rw.cfg[module_name],
+                                       nginx_config=nginx_config,
+                                       cfg=rw.cfg,
+                                       www=config)
                 f = open(nginx_path, 'w')
                 f.write(conf)
                 f.close()
@@ -65,5 +62,5 @@ class NGINXManager(rplug.rw.module):
 
 
 def activate():
-    print 'activated nginx plugin'
+    LOG.info('activated nginx plugin')
     NGINXManager.activate()
