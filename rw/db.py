@@ -37,8 +37,6 @@ To configure a connection rw's :ref:`cfg` is used::
 from logging import warn
 import numbers
 from copy import copy
-import os
-import sys
 import warnings
 import bson
 from motor import Op, MotorClient, MotorReplicaSetClient
@@ -46,13 +44,10 @@ import rplug
 import rw
 
 from tornado import gen
-from tornado.concurrent import return_future
 
 db = None
 CLIENTS = {}
 DATABASES = {}
-
-__all__ = ['Entity']
 
 
 class Cursor(object):

@@ -26,7 +26,6 @@ import mimetypes
 from collections import deque
 import inspect
 import logging
-import json
 import contextlib
 import functools
 
@@ -42,7 +41,7 @@ from bson.json_util import dumps
 
 import rw
 import rw.debug
-from .check import Protector, overwrite_protected, ProtectorMeta
+from .check import overwrite_protected, ProtectorMeta
 from . import widget
 from .routing import Rule
 import rbus
@@ -620,7 +619,7 @@ class Module(object):
         # bind socket
         max_buffer_size = rw.cfg.get('httpserver', {}).get('max_buffer_size', 104857600)
         max_buffer_size = int(max_buffer_size)
-        self.httpserver = tornado.httpserver.HTTPServer(app, max_buffer_size=max_buffer_size)
+        self.httpserver = tornado.httpserver.HTTPServer(app)
         sockets = None
         if isinstance(port, basestring):
             # If our port is a string and ends on a plus sign we
