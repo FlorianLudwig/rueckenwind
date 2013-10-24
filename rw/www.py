@@ -817,7 +817,4 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
     @get('/')
     def index(self):
-        raise NotImplementedError('This is just a stub to make rw routing work')
-
-    def _handle_request(self):
         self._execute([])
