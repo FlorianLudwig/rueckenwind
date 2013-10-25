@@ -337,7 +337,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             overwrite_protected(getattr(dict, func))
 
     def __init__(self, application, request, **kwargs):
-        super(HandlerBase, self).__init__(application, request, **kwargs)
+        tornado.web.RequestHandler.__init__(self, application, request, **kwargs)
         self._transforms = []
         self.template = None
         self.base_path = ''
@@ -356,6 +356,9 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         self['_translation'] = _translation
         self['_locale'] = Locale(*language.split('_'))
         self.update(self.template_subglobals)
+
+    def get(self, key, default=None):
+        return dict.get(self, key, default)
 
     def __cmp__(self, o):
         return id(self) == id(o)
@@ -418,13 +421,13 @@ class HandlerBase(tornado.web.RequestHandler, dict):
 
         """
         if self.request.method.lower() == 'head':
-            super(HandlerBase, self).finish('')
+            tornado.web.RequestHandler.finish(self, '')
         else:
             if template:
                 self.template = template
             if self.template and not chunk:
                 self.write(self.render_template(self.template))
-            super(HandlerBase, self).finish(chunk)
+            tornado.web.RequestHandler.finish(self, chunk)
         # if we are in debug mode we "want" memory leaks
         # so we can preserv all information that might be needed
         # to debug a traceback
@@ -460,7 +463,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
                     parent[key] = value
             parent.on_error(status_code)
         else:
-            super(HandlerBase, self).send_error(status_code)
+            tornado.web.RequestHandler.send_error(self, status_code)
 
 
 class RequestHandler(HandlerBase):
