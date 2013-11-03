@@ -14,7 +14,6 @@
 
 import re
 
-from tornado import stack_context
 from bson import ObjectId
 from bson.objectid import InvalidId
 

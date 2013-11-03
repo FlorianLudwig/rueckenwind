@@ -34,7 +34,6 @@ To configure a connection rw's :ref:`cfg` is used::
     rw.db = True
 
 """
-from logging import warn
 import numbers
 from copy import copy
 import warnings
