@@ -77,6 +77,10 @@ def serv(args):
     rw.DEBUG = not args.no_debug
     module = args.MODULE.replace('/', '.').strip('.')
     extra = []
+
+    if sys.stdout.isatty():
+        sys.stdout.write('\x1b]2;rw: {}\x07'.format(' '.join(sys.argv[2:])))
+
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
     rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
