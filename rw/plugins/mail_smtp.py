@@ -1,5 +1,8 @@
+from email.mime.base import MIMEBase
+import mimetypes
 import smtplib
 import copy
+import email
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -40,7 +43,12 @@ class SmtpMail(rplug.rw.email):
                 content = content.encode('utf-8')
             elif hasattr(content, 'read'):
                 content = content.read()
-            attachment = MIMEText(content)
+            mimetype = mimetypes.guess_type(fname)[0]
+            if mimetype is None:
+                mimetype = 'application/octet-stream'
+            attachment = MIMEBase(*mimetype.split('/'))
+            attachment.set_payload(content)
+            email.Encoders.encode_base64(attachment)
             attachment.add_header('Content-Disposition', 'attachment', filename=fname)
             msg.attach(attachment)
 
