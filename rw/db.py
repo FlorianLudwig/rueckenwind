@@ -346,8 +346,9 @@ class Document(DocumentBase):
         raise gen.Return(ret)
 
     @gen.coroutine
-    def remove(self, callback=None):
-        return self.get_collection().remove(self, callback=callback)
+    def remove(self):
+        ret = yield Op(self.get_collection().remove, {'_id': self['_id']})
+        raise gen.Return(ret)
 
     @classmethod
     def find(cls, *args, **kwargs):
