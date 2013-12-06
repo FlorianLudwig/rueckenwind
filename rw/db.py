@@ -62,6 +62,11 @@ class Cursor(object):
         raise gen.Return([self.col_cls(**e) for e in data])
 
     @gen.coroutine
+    def to_dict(self):
+        data = yield Op(self.db_cursor.to_list)
+        raise gen.Return({e['_id']: self.col_cls(**e) for e in data})
+
+    @gen.coroutine
     def next(self):
         ret = yield self.db_cursor.fetch_next
         if ret:
@@ -132,6 +137,9 @@ class Query(object):
 
     def to_list(self):
         return Cursor(self).to_list()
+
+    def to_dict(self):
+        return Cursor(self).to_dict()
 
     def cursor(self):
         return Cursor(self)
@@ -335,6 +343,10 @@ class Document(DocumentBase):
 
         returns Future"""
         ret = yield Op(self.get_collection().insert, self)
+        # creating a new entry without an _id MongoDB will
+        # generate an id in ObjectId format.
+        if not '_id' in self and isinstance(ret, ObjectId):
+            self['_id'] = ret
         raise gen.Return(ret)
 
     @gen.coroutine
