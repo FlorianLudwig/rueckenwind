@@ -739,7 +739,7 @@ def post(path):
 
     Example usage::
 
-        @get('/save')
+        @post('/save')
         def save(self):
             ...
     """
@@ -756,7 +756,7 @@ def put(path):
 
     Example usage::
 
-        @get('/elements/<name>')
+        @put('/elements/<name>')
         def save(self, name):
             ...
     """
