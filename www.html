@@ -108,7 +108,7 @@
 <tt class="descclassname">rw.www.</tt><tt class="descname">post</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.post" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expose a function for HTTP POST requests</p>
 <p>Example usage:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/save&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@post</span><span class="p">(</span><span class="s">&#39;/save&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="o">...</span>
 </pre></div>
@@ -120,7 +120,7 @@
 <tt class="descclassname">rw.www.</tt><tt class="descname">put</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="_modules/rw/www.html#put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rw.www.put" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expose a function for HTTP PUT requests</p>
 <p>Example usage:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="nd">@get</span><span class="p">(</span><span class="s">&#39;/elements/&lt;name&gt;&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@put</span><span class="p">(</span><span class="s">&#39;/elements/&lt;name&gt;&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="o">...</span>
 </pre></div>
