@@ -5,7 +5,7 @@
 Static Content
 **************
 
-You probably got content that is for every user the same on every request. Typically this is content like images, css or javascript. Downloads (as in content that is not directly dispalyed fron html) or for this matter large files in generall should treated a little different.
+You probably got content that is for every user the same on every request. Typically this is content like images, css or javascript. Downloads (as in content that is not directly displayed from html) or for this matter large files in generall should treated a little different.
 
 You probably remember that there is a function called "static" to refer to your
 static content::
