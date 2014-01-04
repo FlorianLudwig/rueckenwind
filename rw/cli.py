@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+# PYTHON_ARGCOMPLETE_OK
+
 """rueckenwind command line tool"""
 import shutil
 import sys
@@ -19,6 +21,7 @@ import os
 import argparse
 import logging
 
+import argcomplete
 import pkg_resources
 import jinja2
 
@@ -108,5 +111,6 @@ def main():
     current_path = os.path.abspath('.')
     if not current_path in sys.path:
         sys.path.insert(0, current_path)
+    argcomplete.autocomplete(ARG_PARSER)
     args = ARG_PARSER.parse_args()
     args.func(args)
