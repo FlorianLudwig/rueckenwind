@@ -39,6 +39,7 @@ from copy import copy
 import warnings
 import bson
 from motor import Op, MotorClient, MotorReplicaSetClient
+import pymongo.read_preferences
 import rplug
 import rw
 
@@ -432,12 +433,20 @@ def extract_model(fileobj, keywords, comment_tags, options):
 
 @gen.coroutine
 def connect(cfg):
-    if 'replica_set' in cfg:
+    """connect to mongo database
+
+    :param cfg: Dictionary containing configuration for MongoDB connection
+    :type cfg: dict
+    """
+    if cfg.get('replica_set'):
         client = yield Op(MotorReplicaSetClient(cfg['host'], replicaSet=cfg['replica_set']).open)
     else:
         client = yield Op(MotorClient(cfg['host']).open)
-    if 'user' in cfg:
+    if cfg.get('user'):
         client[cfg['db']].authenticate(cfg['user'], cfg['password'])
+    if cfg.get('read_preference'):
+        read_preference = cfg['read_preference'].upper()
+        client.read_preference = getattr(pymongo.read_preferences.ReadPreference, read_preference)
     raise gen.Return(client)
 
 
@@ -453,6 +462,10 @@ class MongoDBSetup(rplug.rw.module):
 
         for key, value in cfg.items():
             if isinstance(value, dict):
+                # populate defaults
+                for default_key in ['host', 'db', 'user', 'password']:
+                    if default_key in cfg and not default_key in value:
+                        value[default_key] = cfg[default_key]
                 CLIENTS[key] = yield connect(value)
                 DATABASES[key] = CLIENTS[key][cfg['db']]
 
