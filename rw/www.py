@@ -275,11 +275,11 @@ class RequestHandlerMeta(ProtectorMeta):
                 else:
                     module = module_name
                 path = pkg_resources.resource_filename(module, 'templates/' + name)
-                # we always update the template so we return an uptodatefunc
-                # that always returns False
+                # if we are in debug mode we always update templates
+                # otherwise we never do
                 return (open(path).read().decode('utf-8'),
                         path,
-                        lambda: False)
+                        lambda: not rw.DEBUG)
             ret.template_env = create_template_env(load_template)
             if module.endswith('.www'):
                 module = module[:-4]
