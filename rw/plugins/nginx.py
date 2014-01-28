@@ -60,6 +60,9 @@ class NGINXManager(rplug.rw.module):
                 f.close()
                 LOG.info('wrote nginx config to %s', nginx_path)
 
+                if os.path.exists('/usr/bin/chcon'):
+                    subprocess.call(['chcon', '--reference', '/etc/nginx/conf.d/', nginx_conf])
+
 
 def activate():
     LOG.info('activated nginx plugin')

@@ -29,7 +29,7 @@ server {
  listen 80;
  server_name {{ nginx_config.aliases }};
 
- rewrite     ^ {{ module['rw.www'].base_url }}$request_uri? permanent;
+ rewrite     ^ {{ module['rw.www'].domain }}$request_uri? permanent;
 }
 {% endif %}
 
