@@ -46,7 +46,7 @@ def test_inheritance():
 
 
 def test_static_content():
-    app = rw.get_module('rw.test.simple_app')
+    app = rw.get_module('test.simple_app')
     print app
     print dir(app)
     content = app.www.Main._static.get_content('static.html')
@@ -54,7 +54,7 @@ def test_static_content():
 
 
 def test_dynamic_static_content():
-    app = rw.get_module('rw.test.simple_app')
+    app = rw.get_module('test.simple_app')
     content = app.www.Main._static.get_content('dynamic.html')
     assert content == 'something dynamic:\n0\n1\n2\n'
 
