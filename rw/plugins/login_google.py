@@ -1,6 +1,3 @@
-import os
-import time
-
 from rw.www import RequestHandler, get, post, url_for
 from tornado.auth import GoogleMixin
 import rplug
