@@ -416,6 +416,7 @@ class HandlerBase(tornado.web.RequestHandler, dict):
         return template.render(**self)
 
     @overwrite_protected
+    @gen.engine
     def finish(self, chunk=None, template=None):
         """Finish Controller part and begin rendering and sending template
 
@@ -426,7 +427,23 @@ class HandlerBase(tornado.web.RequestHandler, dict):
             if template:
                 self.template = template
             if self.template and not chunk:
-                self.write(self.render_template(self.template))
+                template = self.template_env.get_template(self.template)
+                # XXX translations break if we yield - and we do when streaming
+                # parts of the website might end up in a different language
+                if '_translation' in self:
+                    self.template_env.install_gettext_translations(self['_translation'])
+
+                stream = template.stream(**self)
+                parts = []
+                for part in stream:
+                    # if we encounter any futures we stream the request
+                    if isinstance(part, gen.Future):
+                        self.write(''.join(parts))
+                        self.flush()
+                        parts = []
+                        part = yield part
+                    parts.append(part)
+                self.write(''.join(parts))
             tornado.web.RequestHandler.finish(self, chunk)
         # if we are in debug mode we "want" memory leaks
         # so we can preserv all information that might be needed
@@ -569,6 +586,7 @@ class Module(object):
 
             @gen.engine
             def __call__(self, request):
+                transforms = [t(request) for t in self.transforms]
                 request.original_path = request.path
                 # werzeug debugger
                 found = False
@@ -586,7 +604,7 @@ class Module(object):
                         if module in sys.modules:
                             main = rw.get_module(module, 'www', auto_load=False).www.Main
                             handler = main._static.static_handler(self, request)
-                            handler._execute([])
+                            handler._execute(transforms)
                             found = True
                 else:  # "normal" request
                     request.path = request.path.rstrip('/')
@@ -602,6 +620,9 @@ class Module(object):
                         if match:
                             handler, func_name, arguments = match
                             handler = handler(self, request)
+                            # tornado sets transforms in handler._execute but we are not using _execute
+                            # so we need to set it here
+                            handler._transforms = transforms
                             with stack_context.ExceptionStackContext(handler._stack_context_handle_exception):
                                 with stack_context.StackContext(functools.partial(rh_context, handler)):
                                     preprocessors = rbus.rw.request_handling.pre_process(handler)
