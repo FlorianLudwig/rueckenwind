@@ -699,7 +699,7 @@ def generate_routing(root):
 
 
 def _generate_routing(root, handler, parent, main_handler, req_type, prefix=''):
-    """
+    """recursively generate routing
 
     main_handler is the last visited RequestHanlder in the tree
     """
@@ -720,6 +720,8 @@ def _generate_routing(root, handler, parent, main_handler, req_type, prefix=''):
     for key, value in inspect.getmembers(handler):
         if isinstance(value, mount):
             route = prefix + value._rw_route
+            if value._rw_mod is None:
+                raise AttributeError('Faulty mount in {} {}'.format(handler, route))
             ret.extend(_generate_routing(root, value._rw_mod, handler, main_handler, req_type, route))
         elif hasattr(value, '_rw_route'):
             if not hasattr(value, '_rw_route_type') or value._rw_route_type != req_type:
