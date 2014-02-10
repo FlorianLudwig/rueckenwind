@@ -16,6 +16,7 @@ from __future__ import absolute_import
 import os
 import re
 import logging
+import subprocess
 
 import rw
 import rw.www
