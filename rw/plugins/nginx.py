@@ -19,7 +19,6 @@ import logging
 import subprocess
 
 import rw
-import rw.www
 import rplug
 
 
@@ -33,7 +32,6 @@ class NGINXManager(rplug.rw.module):
             nginx_config = rw.cfg[module_name].get('rw.plugins.nginx', {})
             nginx_path = nginx_config.get('path')
 
-            print 'nginx path', nginx_path
             if nginx_path:
                 # XXX use the template env we already got
                 template = config['root_handler'].template_env.get_template('rw:nginx')
@@ -43,7 +41,6 @@ class NGINXManager(rplug.rw.module):
                     nginx_config.setdefault('aliases', '')
 
                     aliases_catch_all = SEPERATORS.split(aliases_catch_all)
-                    print aliases_catch_all
                     nginx_config['aliases'] += ' ' + ' '.join('{0} *.{0}'.format(a)
                                                               for a in aliases_catch_all)
                     nginx_config['aliases'] = nginx_config['aliases'].strip()
@@ -62,7 +59,7 @@ class NGINXManager(rplug.rw.module):
                 LOG.info('wrote nginx config to %s', nginx_path)
 
                 if os.path.exists('/usr/bin/chcon'):
-                    subprocess.call(['chcon', '--reference', '/etc/nginx/conf.d/', nginx_conf])
+                    subprocess.call(['chcon', '--reference', '/etc/nginx/conf.d/', nginx_path])
 
 
 def activate():
