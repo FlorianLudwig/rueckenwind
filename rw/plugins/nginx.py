@@ -17,6 +17,7 @@ import os
 import re
 import logging
 import subprocess
+import time
 
 import rw
 import rplug
@@ -48,7 +49,8 @@ class NGINXManager(rplug.rw.module):
                 if os.path.isdir(nginx_path):
                     nginx_path = os.path.join(nginx_path, module_name + '.conf')
 
-                conf = template.render(name=module_name,
+                uname = module_name + str(time.time()).replace('.', '_')
+                conf = template.render(name=uname,
                                        module=rw.cfg[module_name],
                                        nginx_config=nginx_config,
                                        cfg=rw.cfg,
