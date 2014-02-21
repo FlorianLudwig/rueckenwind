@@ -351,11 +351,11 @@ class Document(DocumentBase):
         raise gen.Return(ret)
 
     @gen.coroutine
-    def sync_db(self):
+    def sync_db(self, upsert=False):
         """update entry in collection (updates or creates)
 
         returns Future"""
-        ret = yield Op(self.get_collection().update, {'_id': self['_id']}, self)
+        ret = yield Op(self.get_collection().update, {'_id': self['_id']}, self, upsert=upsert)
         raise gen.Return(ret)
 
     @gen.coroutine
