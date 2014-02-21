@@ -32,7 +32,7 @@ if '--dev' in sys.argv:
 
 setup(
     name="rueckenwind",
-    version="0.2.1" + version_suffix,
+    version="0.3.0" + version_suffix,
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     author='Florian Ludwig',
