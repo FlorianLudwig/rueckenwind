@@ -11,13 +11,15 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import contextlib
+import functools
 
 import sys
 import traceback
 import os
 import logging
 import select
-from tornado import gen, concurrent
+from tornado import gen, concurrent, stack_context
 
 import tornado.ioloop
 import tornado.web
@@ -42,6 +44,74 @@ MODULES = {'www': {},
 cfg = {}
 
 
+def inject(interface):
+    """
+    :param T interface: The interface we need
+    :rtype: T
+    """
+    return 'Something completely different'
+
+
+def lookup(interface):
+    """
+    :param T interface: The interface we are looking for
+    :rtype: T
+    """
+    return rw_context.get(interface)
+
+
+TO_BE_LOADED = 1
+ACTIVE = 2
+
+
+class Context(object):
+    def __init__(self):
+        self.components = {}
+        self.plugs = {}
+
+    def register(self, component):
+        self.components.setdefault(component, TO_BE_LOADED)
+
+    def load(self):
+        for component, status in self.components.iteritems():
+            if status == TO_BE_LOADED:
+                print('load', component)
+                mod = __import__(component)
+                # get submodule
+                if '.' in component:
+                    for sub_name in component.split('.')[1:]:
+                        mod = getattr(mod, sub_name)
+                print(mod)
+                mod.activate(self)
+
+    def plug(self, *plugs):
+        for plug in plugs:
+            searches = [plug]
+            while searches:
+                this = searches.pop()
+                print('searching', this)
+                if rbusys.SinglePlug in this.__bases__:
+                    print(this, plug)
+                    self.plugs[this] = plug()
+                else:
+                    searches.extend(this.__bases__)
+
+    def get(self, interface):
+        return self.plugs[interface]
+
+    def run(self, func):
+        with stack_context.StackContext(functools.partial(set_context, self)):
+            func()
+
+
+@contextlib.contextmanager
+def set_context(handler):
+    global rw_context
+    rw_context = handler
+    yield
+    rw_context = None
+
+
 def get_module(name, type='www', arg2=None, auto_load=True):
     if not name in MODULES[type]:
         if auto_load:
@@ -57,20 +127,20 @@ def get_module(name, type='www', arg2=None, auto_load=True):
     return MODULES[type][name]
 
 
-def load(name):
-    main_module = __import__(name, globals(), {}, [name[:-name.rfind('.')]])
-    assert main_module.__name__ == name
-    for rw_module in ['www']:
-        try:
-            mod = __import__(name + '.' + rw_module, globals(), {}, [rw_module])
-            __import__('rw.' + rw_module, globals(), {}, [rw_module]).load(mod)
-        except ImportError:
-            # TODO: if the module we try to import exists
-            #       but fails to load because within it
-            #       an ImportError is raised this error
-            #       is silented here. Bad.
-            continue
-    return main_module
+# def load(name):
+#     main_module = __import__(name, globals(), {}, [name[:-name.rfind('.')]])
+#     assert main_module.__name__ == name
+#     for rw_module in ['www']:
+#         try:
+#             mod = __import__(name + '.' + rw_module, globals(), {}, [rw_module])
+#             __import__('rw.' + rw_module, globals(), {}, [rw_module]).load(mod)
+#         except ImportError:
+#             # TODO: if the module we try to import exists
+#             #       but fails to load because within it
+#             #       an ImportError is raised this error
+#             #       is silented here. Bad.
+#             continue
+#     return main_module
 
 
 def drop_privileges(uid_name='nobody', gid_name=None):

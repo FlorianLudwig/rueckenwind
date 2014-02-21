@@ -13,3 +13,5 @@ class EMailInterface(rbusys.SinglePlug):
                             value = content as string or file-like object
         """
         pass
+
+MTA = EMailInterface
