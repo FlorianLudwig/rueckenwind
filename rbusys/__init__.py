@@ -52,8 +52,8 @@ PLUG_INTERACES = PlugInterfaceDict()
 class MetaPlug(type):
     def __new__(cls, name, bases, dct):
         is_interface = True
-        is_interface = is_interface and name not in ('SinglePlug', 'MultiPlug')
-        is_interface = is_interface and any(base in (SinglePlug, MultiPlug)
+        is_interface = is_interface and name not in ('SinglePlug',)
+        is_interface = is_interface and any(base in (SinglePlug, )
                                             for base in bases)
         if is_interface:
             if not 'rbus_path' in dct:
@@ -74,10 +74,6 @@ class MetaPlug(type):
 
 
 class SinglePlug(object):
-    __metaclass__ = MetaPlug
-
-
-class MultiPlug(object):
     __metaclass__ = MetaPlug
 
 
@@ -111,27 +107,6 @@ class PlugLoader(Loader):
         return self._cache[attr]
 
 
-class MultiPlugModule(object):
-    def __init__(self, interface):
-        self._plugs = []
-        self.interface = interface()
-
-    def rbus_add_plug(self, plug):
-        self._plugs.append(plug)
-
-    def __getattr__(self, attr):
-        interface_func = getattr(self.interface, attr)
-
-        def caller(*args, **kwargs):
-            results = [getattr(plug, attr)(*args, **kwargs)
-                       for plug in self._plugs]
-            if getattr(interface_func, 'post_process', False):
-                kwargs['_results'] = results
-                return interface_func(*args, **kwargs)
-            return results
-        return caller
-
-
 class PlugModule(object):
     __path__ = None
 
@@ -154,9 +129,6 @@ class PlugModule(object):
                 path = cls.rbus_module + '.' + cls.rbus_plug
                 if issubclass(cls, SinglePlug):
                     PLUGS[path] = cls()
-                elif issubclass(cls, MultiPlug):
-                    PLUGS.setdefault(path, MultiPlugModule(interface))
-                    PLUGS[path].rbus_add_plug(cls())
                 else:
                     raise AttributeError('uhm o,O')
         self.__cache[attr] = BasePlug
@@ -202,13 +174,6 @@ class StubImplementation(object):
 
     def __getattr__(self, attr):
         if hasattr(self._interface, attr):
-            if issubclass(self._interface, MultiPlug):
-                def stub_function(*args, **kwargs):
-                    """Stub function for interface: %s.%s""" % (
-                        self._interface.rbus_path, attr)
-                    return []
-                return stub_function
-            else:
                 raise AttributeError('No implementation active for ' +
                                      self._interface.rbus_path)
         else:

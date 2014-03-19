@@ -22,14 +22,6 @@ class UnusedInterfaceSingle(rbusys.SinglePlug):
         pass
 
 
-class UnusedInterfaceMulti(rbusys.MultiPlug):
-    rbus_path = 'rw.unused_m'
-
-    def send(self):
-        """Documentation Foo"""
-        pass
-
-
 class EMail(rplug.rw.email):
     def __init__(self):
         self.message_send = False
@@ -39,12 +31,6 @@ class EMail(rplug.rw.email):
 
 EMail.activate()
 
-
-class LoggingInterface(rbusys.MultiPlug):
-    rbus_path = 'rw.logging'
-
-    def log(self, msg):
-        pass
 
 
 class Log0(rplug.rw.logging):
@@ -80,14 +66,6 @@ def test_multi():
     ret = rbus.rw.logging.log('b')
     assert Log0.last_msg == 'b'
     assert Log1.last_msg == 'b'
-
-
-class LoggingInterface2(rbusys.MultiPlug):
-    rbus_path = 'rw.logging2'
-
-    @rbusys.post_process
-    def log(self, msg, _results=None):
-        return sum(_results)
 
 
 class Log0_2(rplug.rw.logging2):

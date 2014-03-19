@@ -252,22 +252,23 @@ def load_config(module_name, extra_files=None):
     return ConfigObj(config)
 
 
-class RWModuleSetup(rplug.rw.module):
-    setup_mods = []
 
-    def start(self):
-        for typ, app_name, address, port in TO_SETUP:
-            if not isinstance(typ, basestring):
-                raise AttributeError('typ must be string. type = {}'.format(repr(typ)))
-            mod = getattr(__import__('rw.' + typ), typ).Module()
-            mod.setup(app_name, address=address, port=port)
-            self.setup_mods.append(mod)
-
-    @gen.coroutine
-    def shutdown(self):
-        while self.setup_mods:
-            mod = self.setup_mods.pop()
-            mod.shutdown()
+# class RWModuleSetup(rplug.rw.module):
+#     setup_mods = []
+#
+#     def start(self):
+#         for typ, app_name, address, port in TO_SETUP:
+#             if not isinstance(typ, basestring):
+#                 raise AttributeError('typ must be string. type = {}'.format(repr(typ)))
+#             mod = getattr(__import__('rw.' + typ), typ).Module()
+#             mod.setup(app_name, address=address, port=port)
+#             self.setup_mods.append(mod)
+#
+#     @gen.coroutine
+#     def shutdown(self):
+#         while self.setup_mods:
+#             mod = self.setup_mods.pop()
+#             mod.shutdown()
 
 
 class RWPluginLoad(rplug.rw.module):
