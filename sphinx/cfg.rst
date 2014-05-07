@@ -45,6 +45,6 @@ your module (which is what ``rw serv`` does). In other circumstances you might j
 
 
 
-Design Decisions (TODO better document):
+Design Decisions:
 - JSON does not support comments
-- YAML got some smaller problems but so does ini. In the end a KISS decision was made.
+- ini is not strictly typed
