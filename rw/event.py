@@ -53,7 +53,6 @@ class Event(set):
 
         # apply accumolator
         if self.accumulator:
-            print self.accumulator
             re = self.accumulator(re)
 
         raise gen.Return(re)

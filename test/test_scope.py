@@ -2,6 +2,7 @@ import pytest
 
 import rw.scope
 
+
 def test_low_level_api():
     scope = rw.scope.Scope()
     current_user = object()

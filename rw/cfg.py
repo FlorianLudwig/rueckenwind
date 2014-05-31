@@ -5,11 +5,11 @@ import yaml
 def read_file(paths):
     """read config from path or list of paths
 
-    :param basestring|list[basestring] paths: path or list of paths
+    :param str|list[str] paths: path or list of paths
     :return dict: loaded and merged config
     """
 
-    if isinstance(paths, basestring):
+    if isinstance(paths, str):
         paths = [paths]
 
     re = {}

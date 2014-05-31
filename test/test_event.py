@@ -7,7 +7,7 @@ import tornado.testing
 
 @tornado.gen.coroutine
 def something_lazy(x):
-    for i in xrange(x):
+    for i in range(x):
         yield something_lazy(0)
     raise tornado.gen.Return(x)
 
