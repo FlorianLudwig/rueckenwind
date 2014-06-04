@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function, with_statement
+
 import pytest
 from tornado import concurrent
 
@@ -61,7 +63,6 @@ def test_basic():
 
         assert foo() is current_user
         assert bar() == 42
-
 
 
 class ConcurrencyTest(tornado.testing.AsyncTestCase):
