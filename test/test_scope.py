@@ -1,4 +1,8 @@
 import pytest
+from tornado import concurrent
+
+import tornado.gen
+import tornado.testing
 
 import rw.scope
 
@@ -57,3 +61,72 @@ def test_basic():
 
         assert foo() is current_user
         assert bar() == 42
+
+
+
+class ConcurrencyTest(tornado.testing.AsyncTestCase):
+    """test concurrent ioloop futures inside different scopes
+
+    Three tests with different resultion order
+    """
+    @tornado.testing.gen_test
+    def test_concurrent_scopes_both(self):
+        """set both results before yield-ing"""
+        future_a, future_b = self.setup()
+
+        self.lock_a.set_result(None)
+        self.lock_b.set_result(None)
+
+        assert (yield future_b) == 'b'
+        assert (yield future_a) == 'a'
+
+    def test_concurrent_scopes_ba(self):
+        """b then a"""
+        future_a, future_b = self.setup()
+
+        self.lock_b.set_result(None)
+        assert (yield future_b) == 'b'
+
+        self.lock_a.set_result(None)
+        assert (yield future_a) == 'a'
+
+    def test_concurrent_scopes_ab(self):
+        """a then b"""
+        future_a, future_b = self.setup()
+
+        self.lock_a.set_result(None)
+        assert (yield future_a) == 'a'
+
+        self.lock_b.set_result(None)
+        assert (yield future_b) == 'b'
+
+    def setup(self):
+        """Setup two scopes and two "locks"."""
+        self.scope_a = rw.scope.Scope()
+        self.scope_a['name'] = 'a'
+        self.lock_a = concurrent.Future()
+        self.scope_b = rw.scope.Scope()
+        self.scope_b['name'] = 'b'
+        self.lock_b = concurrent.Future()
+
+        @rw.scope.inject
+        def get_name(name):
+            return name
+
+        @tornado.gen.coroutine
+        def thread_a():
+            yield self.lock_a
+            raise tornado.gen.Return(get_name())
+
+        @tornado.gen.coroutine
+        def thread_b():
+            yield self.lock_b
+            raise tornado.gen.Return(get_name())
+
+        with self.scope_a():
+            future_a = thread_a()
+
+        with self.scope_b():
+            future_b = thread_b()
+
+        return future_a, future_b
