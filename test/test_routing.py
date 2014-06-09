@@ -26,7 +26,7 @@ def test_parse_rule_errors():
         list(rw.routing.parse_rule('/<name/asd'))
 
 
-def test_variable_part_scoring():
+def test_rule_compare():
     for rule_0, rule_1 in (
         (generate_rule('/name'), generate_rule('/<something>')),
         (generate_rule('/name'), generate_rule('/na<something>')),
@@ -34,6 +34,16 @@ def test_variable_part_scoring():
     ):
         assert rule_0 < rule_1
         assert rule_1 > rule_0
+
+
+def test_rule_eq():
+    assert generate_rule('/') == generate_rule('/')
+    assert generate_rule('/foo') == generate_rule('/foo')
+    assert generate_rule('/name/<name>/photo') == generate_rule('/name/<name>/photo')
+    assert generate_rule('/name/<name>/photo/<num:int>') == generate_rule('/name/<name>/photo/<num:int>')
+
+    assert generate_rule('/') != generate_rule('/foo')
+    assert generate_rule('/name/<name>/photo/<num>') != generate_rule('/name/<name>/photo/<num:int>')
 
 
 def test_rule_sorting():

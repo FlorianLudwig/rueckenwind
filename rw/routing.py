@@ -135,6 +135,10 @@ class Rule(object):
         return variables, strings
 
     def __lt__(self, o):
+        """less than `o`
+
+        :param Rule o: other rule to compare with
+        """
         if self == o:
             return False
 
@@ -152,12 +156,20 @@ class Rule(object):
         return False
 
     def __gt__(self, o):
+        """greater than `o`
+
+        :param Rule o: other rule to compare with
+        """
         if self == o:
             return False
         return o < self
 
     def __eq__(self, o):
-        return self.weight() == o.weight()
+        """equal to `o`
+
+        :param Rule o: other rule to compare with
+        """
+        return self.route == o.route
 
     def match(self, request):
         test_path = request.path
