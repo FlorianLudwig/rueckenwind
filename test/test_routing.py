@@ -62,9 +62,19 @@ def test_converter_default():
 
 
 def test_convert_int():
-    assert (3, 123) == rw.routing.converter_int('123')
-    assert (4, 4321) == rw.routing.converter_int('4321Hello World')
+    assert rw.routing.converter_int('123') == (3, 123)
+    assert rw.routing.converter_int('4321Hello World') == (4, 4321)
+    assert rw.routing.converter_int('-1431') == (5, -1431)
+    with pytest.raises(rw.routing.NoMatchError):
+        rw.routing.converter_int('foo')
 
+
+def test_convert_uint():
+    assert rw.routing.converter_uint('123') == (3, 123)
+    assert rw.routing.converter_uint('4321Hello World') == (4, 4321)
+
+    with pytest.raises(rw.routing.NoMatchError):
+        assert rw.routing.converter_uint('-1431') == (5, -1431)
 
 # class HandlerA(rw.www.RequestHandler):
 #     @rw.www.post('/post')
