@@ -26,4 +26,5 @@ The 0.4 branch introduces a new API and is incompatible with 0.3 in many details
 
 
 
-.. image:: https://travis-ci.org/FlorianLudwig/rueckenwind.svg?branch=kill_rbus (refatoring branch of 0.4)
+.. image:: https://travis-ci.org/FlorianLudwig/rueckenwind.svg?branch=kill_rbus
+
