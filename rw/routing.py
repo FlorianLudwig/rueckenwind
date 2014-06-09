@@ -129,11 +129,32 @@ class Rule(object):
                 weight.append(len(data))
         return weight
 
+    def _sort_struct(self):
+        variables = len([route for route in self.route if route[0] is not None])
+        strings = [route[2] for route in self.route if route[0] is None]
+        return variables, strings
+
     def __lt__(self, o):
-        return self.weight() < o.weight()
+        if self == o:
+            return False
+
+        variables, strings = self._sort_struct()
+        variables_o, strings_o = o._sort_struct()
+        if variables != variables_o:
+            return variables < variables_o
+
+        if len(''.join(strings)) != len(''.join(strings_o)):
+            return len(''.join(strings)) > len(''.join(strings_o))
+
+        for i in xrange(len(strings)):
+            if strings[i] != strings_o[i]:
+                return strings[i] < strings_o[i]
+        return False
 
     def __gt__(self, o):
-        return self.weight() > o.weight()
+        if self == o:
+            return False
+        return o < self
 
     def __eq__(self, o):
         return self.weight() == o.weight()

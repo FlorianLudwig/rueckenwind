@@ -27,19 +27,23 @@ def test_parse_rule_errors():
 
 
 def test_variable_part_scoring():
-    # TODO
-    # assert generate_rule('/name') < generate_rule('/<something>')
-    # assert generate_rule('/name') < generate_rule('/na<something>')
-    # assert generate_rule('/name<something>') < generate_rule('/na<something>')
-    pass
+    for rule_0, rule_1 in (
+        (generate_rule('/name'), generate_rule('/<something>')),
+        (generate_rule('/name'), generate_rule('/na<something>')),
+        (generate_rule('/name<something>'), generate_rule('/na<something>')),
+    ):
+        assert rule_0 < rule_1
+        assert rule_1 > rule_0
 
 
 def test_rule_sorting():
-    rules = [generate_rule('/'),
-             generate_rule('/name'),
-             # generate_rule('/<something>'), # TODO
-             generate_rule('/name/<else>'),
-             generate_rule('/name/<name>/photo')]
+    rules = [
+        generate_rule('/name'),
+        generate_rule('/'),
+        generate_rule('/name/<name>/photo'),
+        generate_rule('/name/<else>'),
+        generate_rule('/<something>'),
+    ]
     rules2 = rules[:]
     rules2.sort()
     assert rules == rules2
