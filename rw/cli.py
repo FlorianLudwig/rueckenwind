@@ -1,4 +1,4 @@
-# Copyright 2012 Florian Ludwig
+# Copyright 2014 Florian Ludwig
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +15,8 @@
 # PYTHON_ARGCOMPLETE_OK
 
 """rueckenwind command line tool"""
+from __future__ import absolute_import, division, print_function, with_statement
+
 import shutil
 import sys
 import os
@@ -63,7 +65,7 @@ def skel(args):
     else:
         name = raw_input('Name: ')
     if os.path.exists(name):
-        print 'Already exists'
+        print('Already exists')
         sys.exit(1)
 
     os.mkdir(name)
@@ -86,6 +88,7 @@ def serv(args):
 
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
+
     rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
 
 serv.parser.add_argument('-p', '--port', type=str, default='8000+',
