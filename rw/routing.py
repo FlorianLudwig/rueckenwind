@@ -15,6 +15,8 @@ from __future__ import absolute_import, division, print_function, with_statement
 
 import re
 
+from tornado import util
+
 
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)                           # static rule data
@@ -51,7 +53,7 @@ def parse_rule(rule):
             re.append((None, None, data['static']))
         variable = data['variable']
         converter = data['converter'] or converter_default
-        if isinstance(converter, basestring):
+        if isinstance(converter, util.basestring_type):
             # TODO create hook for custom converts
             converter = {'str': converter_default,
                          'int': converter_int,
@@ -80,7 +82,7 @@ def converter_default(data):
         raise NoMatchError()
     elif length < 0:
         length = len(data)
-    return length, unicode(data[:length])
+    return length, util.unicode_type(data[:length])
 
 
 NON_INT = re.compile('[^0-9-]')
@@ -127,8 +129,14 @@ class Rule(object):
                 weight.append(len(data))
         return weight
 
-    def __cmp__(self, o):
-        return cmp(self.weight(), o.weight())
+    def __lt__(self, o):
+        return self.weight() < o.weight()
+
+    def __gt__(self, o):
+        return self.weight() > o.weight()
+
+    def __eq__(self, o):
+        return self.weight() == o.weight()
 
     def match(self, request):
         test_path = request.path
@@ -154,7 +162,7 @@ class Rule(object):
         re = []
         for converter, args, data in self.route:
             if converter:
-                re.append(unicode(values[data]))
+                re.append(util.unicode_type(values[data]))
             else:
                 re.append(data)
         return ''.join(re)
