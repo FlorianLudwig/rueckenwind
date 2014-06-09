@@ -52,13 +52,13 @@ def parse_rule(rule):
         if data['static']:
             re.append((None, None, data['static']))
         variable = data['variable']
-        converter = data['converter'] or converter_default
-        if isinstance(converter, util.basestring_type):
-            # TODO create hook for custom converts
-            converter = {'str': converter_default,
-                         'int': converter_int,
-                         'uint': converter_uint,
-            }[converter]
+        converter = data['converter'] or 'str'
+        # if isinstance(converter, util.basestring_type):
+        # TODO create hook for custom converts
+        # converter = {'str': converter_default,
+        #              'int': converter_int,
+        #              'uint': converter_uint,
+        # }[converter]
         if variable in used_names:
             raise ValueError('variable name %r used twice.' % variable)
         used_names.add(variable)
@@ -130,7 +130,7 @@ class Rule(object):
         return weight
 
     def _sort_struct(self):
-        variables = len([route for route in self.route if route[0] is not None])
+        variables = [route[0] for route in self.route if route[0] is not None]
         strings = [route[2] for route in self.route if route[0] is None]
         return variables, strings
 
@@ -144,8 +144,8 @@ class Rule(object):
 
         variables, strings = self._sort_struct()
         variables_o, strings_o = o._sort_struct()
-        if variables != variables_o:
-            return variables < variables_o
+        if len(variables) != len(variables_o):
+            return len(variables) < len(variables_o)
 
         if len(''.join(strings)) != len(''.join(strings_o)):
             return len(''.join(strings)) > len(''.join(strings_o))
@@ -153,6 +153,11 @@ class Rule(object):
         for i in xrange(len(strings)):
             if strings[i] != strings_o[i]:
                 return strings[i] < strings_o[i]
+
+        # strings are the same, so check variables for non-default parser
+        for i in xrange(len(variables)):
+            if variables[i] != 'str' and variables_o[i] == 'str':
+                return True
         return False
 
     def __gt__(self, o):

@@ -12,7 +12,7 @@ def test_parse_rule():
     assert rw.routing.parse_rule('/asdf/') == [(None, None, '/asdf/')]
     rule = rw.routing.parse_rule('/foo/<name>/bar')
     assert rule[0] == (None, None, '/foo/')
-    assert rule[1] == (rw.routing.converter_default, None, 'name')
+    assert rule[1] == ('str', None, 'name')
     assert rule[2] == (None, None, '/bar')
 
 
@@ -31,6 +31,7 @@ def test_rule_compare():
         (generate_rule('/name'), generate_rule('/<something>')),
         (generate_rule('/name'), generate_rule('/na<something>')),
         (generate_rule('/name<something>'), generate_rule('/na<something>')),
+        (generate_rule('/<something:int>'), generate_rule('/<something>')),
     ):
         assert rule_0 < rule_1
         assert rule_1 > rule_0
