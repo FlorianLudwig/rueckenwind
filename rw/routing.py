@@ -18,6 +18,12 @@ import re
 from tornado import util
 
 
+try:
+    xrange  # py2
+except NameError:
+    xrange = range  # py3
+
+    
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)                           # static rule data
     <
@@ -150,12 +156,12 @@ class Rule(object):
         if len(''.join(strings)) != len(''.join(strings_o)):
             return len(''.join(strings)) > len(''.join(strings_o))
 
-        for i in xrange(len(strings)):
+        for i in range(len(strings)):
             if strings[i] != strings_o[i]:
                 return strings[i] < strings_o[i]
 
         # strings are the same, so check variables for non-default parser
-        for i in xrange(len(variables)):
+        for i in range(len(variables)):
             if variables[i] != 'str' and variables_o[i] == 'str':
                 return True
         return False
