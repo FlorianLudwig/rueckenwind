@@ -1,4 +1,4 @@
-# Copyright 2012 Florian Ludwig
+# Copyright 2014 Florian Ludwig
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -11,11 +11,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from __future__ import absolute_import, division, print_function, with_statement
 
 import re
-
-from bson import ObjectId
-from bson.objectid import InvalidId
 
 
 _rule_re = re.compile(r'''
@@ -54,10 +52,11 @@ def parse_rule(rule):
         variable = data['variable']
         converter = data['converter'] or converter_default
         if isinstance(converter, basestring):
+            # TODO create hook for custom converts
             converter = {'str': converter_default,
                          'int': converter_int,
                          'uint': converter_uint,
-                         'ObjectId': converter_object_id}[converter]
+            }[converter]
         if variable in used_names:
             raise ValueError('variable name %r used twice.' % variable)
         used_names.add(variable)
@@ -106,29 +105,27 @@ def converter_uint(data):
     return length, int(data[:length])
 
 
-def converter_object_id(data):
-    try:
-        _id = ObjectId(data[:24])
-    except InvalidId, e:
-        raise NoMatchError()
-    return 24, _id
-
-
 class Rule(object):
-    def __init__(self, path, handler, func_name):
+    def __init__(self, path, callback):
+        """Rule for `callback` matching given `path`"""
         self.path = path
-        self.handler = handler
-        self.func_name = func_name
+        self.callback = callback
         self.route = list(parse_rule(path))
 
     def weight(self):
-        c = 0
+        weight = []
         for converter, args, data in self.route:
             if converter:
-                c += 1
+                # A variable url part in a routing rule is
+                # always to be scored worse than any static
+                # rule part, so we assign a score of 4096
+                # which is hither than the de facto limit
+                # of full urls (~ 2000).
+                # http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
+                weight.append(4096)
             else:
-                c += len(data)
-        return c
+                weight.append(len(data))
+        return weight
 
     def __cmp__(self, o):
         return cmp(self.weight(), o.weight())
@@ -148,7 +145,7 @@ class Rule(object):
                 consumed = len(data)
             test_path = test_path[consumed:]
         if not test_path:
-            return self.handler, self.func_name, arguments
+            return self.callback, arguments
         return False
 
     def get_path(self, values=None):
