@@ -23,14 +23,26 @@ from tornado import httputil
 
 class Application(object):
     def __init__(self, handler=None, root=None):
+        """rueckenwind Application to plug into tornado's httpserver.
+
+        Either `root` or `handler` must be specified.
+
+        :param rw.http.Module root: The root module to serve
+        :param handler: The request handler (should subclass `tornado.web.RequestHandler`)
+        """
         self.settings = {}
         self.root = root
-        self.handler = handler if handler is not None else RequestHandler
+        if self.root:
+            self.root.setup()
+            self.handler = handler if handler is not None else RequestHandler
+        else:
+            self.handler = handler
+            assert handler is not None
 
         self._wsgi = False  # wsgi is not supported
 
     def __call__(self, request):
-        """Called by `tornado.httpserver.HTTPServer` to execute the request."""
+        """Called by `tornado.httpserver.HTTPServer` to handle a request."""
         handler = self.handler(self, request)
         handler._execute([])
 
@@ -184,8 +196,7 @@ class RequestHandler(tornado.web.RequestHandler):
             self._handle_request_exception(e)
 
     def _execute_method(self):
-        # TODO (actual work)
-        self.finish('Hello World')
+        self.application.root._handle_request(self)
 
     # overwrite methodes that are not supported to make sure
     # they get not used by accident.
