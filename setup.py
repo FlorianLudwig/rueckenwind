@@ -45,7 +45,8 @@ setup(
                       'configobj',
                       'chardet',
                       'pytz',
-                      'PyYAML>=3.10'
+                      'PyYAML>=3.10',
+                      'future'
                       ],
     packages=find_packages(exclude=['*.test', '*.test.*']),
     include_package_data=True,

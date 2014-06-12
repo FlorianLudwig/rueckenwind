@@ -15,15 +15,10 @@ from __future__ import absolute_import, division, print_function, with_statement
 
 import re
 
+from future.builtins import range
 from tornado import util
 
 
-try:
-    xrange  # py2
-except NameError:
-    xrange = range  # py3
-
-    
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)                           # static rule data
     <
