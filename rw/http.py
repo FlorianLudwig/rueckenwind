@@ -1,11 +1,11 @@
 import tornado.web
 
-from . import scope, routing
+from . import scope, routing, plugin
 
 
-class Module(object):
+class Module(plugin.Plugin):
     def __init__(self, name):
-        self.name = name
+        super(Module, self).__init__(name)
         self.routes = routing.RoutingTable()
 
     def setup(self):
