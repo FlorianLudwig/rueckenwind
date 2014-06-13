@@ -175,7 +175,7 @@ class RoutingTable(dict):
 
         # sort all rules
         for key in self:
-            self[key].sort()
+            self[key].sort(key=lambda rule: rule[0])
 
     def add_route(self, method, path, fn):
         self.setdefault(method, []).append((Rule(path), fn))
