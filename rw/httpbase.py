@@ -13,12 +13,13 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
-import sys
-
 import tornado.web
+import tornado.httpserver
+from tornado import gen
 from tornado.web import HTTPError
-from tornado.log import access_log, app_log, gen_log
-from tornado import httputil
+
+import rw.scope
+import rw.routing
 
 
 class Application(object):
@@ -39,15 +40,27 @@ class Application(object):
             self.handler = handler
             assert handler is not None
 
+        self.scope = rw.scope.Scope()
         self._wsgi = False  # wsgi is not supported
 
     def __call__(self, request):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""
-        handler = self.handler(self, request)
-        handler._execute([])
+        with self.scope():
+            request_scope = rw.scope.Scope()
+            with request_scope():
+                handler = self.handler(self, request)
+                handler._execute([])
+
+    @gen.coroutine
+    def setup(self):
+        with self.scope():
+            # default plugins
+            self.scope.activate(rw.routing.plugin)
+            # user plugins
+            # TODO
 
     def log_request(self, request):
-        pass
+        print(request)
 
 
 class RequestHandler(tornado.web.RequestHandler):
