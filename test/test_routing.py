@@ -1,11 +1,12 @@
 import pytest
+import tornado.testing
 
-import rw
 import rw.routing
+import rw.scope
 
 
 def generate_rule(route):
-    return rw.routing.Rule(route, None)
+    return rw.routing.Rule(route)
 
 
 def test_parse_rule():
@@ -35,6 +36,9 @@ def test_rule_compare():
     ):
         assert rule_0 < rule_1
         assert rule_1 > rule_0
+
+    assert not generate_rule('/name') < generate_rule('/name')
+    assert not generate_rule('/name') > generate_rule('/name')
 
 
 def test_rule_eq():
@@ -91,64 +95,15 @@ def test_convert_uint():
     with pytest.raises(rw.routing.NoMatchError):
         assert rw.routing.converter_uint('-1431') == (5, -1431)
 
-# class HandlerA(rw.www.RequestHandler):
-#     @rw.www.post('/post')
-#     def post(self):
-#         pass
-#
-#
-# class HandlerB(rw.www.RequestHandler):
-#     @rw.www.post('/bost')
-#     def postB(self):
-#         pass
-#
-#
-# class Handler2(HandlerA, HandlerB):
-#     @rw.www.get('/get')
-#     def get_(self):
-#         pass
-#
-#
-# def gen_handler(handler_cls, method, path):
-#     req = httpserver.HTTPRequest(method, path, remote_ip='127.0.0.1')
-#     return handler_cls(web.Application(), req)
-#
-#
-# def test_inheritance():
-#     routes = rw.www.generate_routing(Handler2)
-#     assert len(routes['get']) == 1
-#     assert len(routes['post']) == 2
-#     # assert gen_handler(Handler2, 'GET', '/get')._execute([])
-#     # assert gen_handler(Handler2, 'POST', '/post')._handle_request()
-#     # assert gen_handler(Handler2, 'POST', '/bost')._handle_request()
-#     # assert not gen_handler(Handler2, 'POST', '/get')._handle_request()
-#     # assert not gen_handler(Handler2, 'GET', '/post')._handle_request()
-#
-#
-# class TestHandler(rw.www.RequestHandler):
-#     last_invoced = None
-#
-#     @rw.www.get('/')
-#     def index(self):
-#         TestHandler.last_invoced = 'index'
-#
-#     @rw.www.get('/<name>')
-#     def page(self, name):
-#         TestHandler.last_invoced = 'page:' + name
 
+class MyTestCase(tornado.testing.AsyncTestCase):
+    @tornado.testing.gen_test
+    def test_rule_match(self):
+        # match must be used inside scope with rw.routing:plugin activated
+        scope = rw.scope.Scope()
 
-# def test_minimum_consume():
-#     gen_handler(TestHandler, 'GET', '/')._handle_request()
-#     assert TestHandler.last_invoced == 'index'
-#     gen_handler(TestHandler, 'GET', '/asd')._handle_request()
-#     assert TestHandler.last_invoced == 'page:asd'
-#     gen_handler(TestHandler, 'GET', '/')._handle_request()
-#     assert TestHandler.last_invoced == 'index'
-
-#def test_converter():
-#    a = generate_rule('/a/<x:int>/<y:int>')
-#    class Req(object):
-#        def __init__(self, path, type):
-#            self.path = path
-#            self.type = type
-#    assert a.match(None, Req('/a/1/2'))
+        with scope():
+            yield scope.activate(rw.routing.plugin)
+            assert generate_rule('/').match('/') == {}
+            assert generate_rule('/').match('/asd') is None
+            assert generate_rule('/<foo>').match('/asd') == {'foo': 'asd'}

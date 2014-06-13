@@ -18,6 +18,8 @@ import re
 from future.builtins import range
 from tornado import util
 
+import rw.plugin
+
 
 _rule_re = re.compile(r'''
     (?P<static>[^<]*)                           # static rule data
@@ -77,58 +79,11 @@ class NoMatchError(Exception):
     pass
 
 
-def converter_default(data):
-    length = data.find('/')
-    if length == 1 or len(data) == 0:
-        raise NoMatchError()
-    elif length < 0:
-        length = len(data)
-    return length, util.unicode_type(data[:length])
-
-
-NON_INT = re.compile('[^0-9-]')
-
-
-def converter_int(data):
-    length = NON_INT.search(data)
-    length = length.start() if length else len(data)
-    if length <= 0:
-        raise NoMatchError()
-    return length, int(data[:length])
-
-
-NON_UINT = re.compile('[^0-9]')
-
-
-def converter_uint(data):
-    length = NON_UINT.search(data)
-    length = length.start() if length else len(data)
-    if length <= 0:
-        raise NoMatchError()
-    return length, int(data[:length])
-
-
 class Rule(object):
-    def __init__(self, path, callback):
+    def __init__(self, path):
         """Rule for `callback` matching given `path`"""
         self.path = path
-        self.callback = callback
         self.route = list(parse_rule(path))
-
-    def weight(self):
-        weight = []
-        for converter, args, data in self.route:
-            if converter:
-                # A variable url part in a routing rule is
-                # always to be scored worse than any static
-                # rule part, so we assign a score of 4096
-                # which is hither than the de facto limit
-                # of full urls (~ 2000).
-                # http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
-                weight.append(4096)
-            else:
-                weight.append(len(data))
-        return weight
 
     def _sort_struct(self):
         variables = [route[0] for route in self.route if route[0] is not None]
@@ -177,23 +132,27 @@ class Rule(object):
         """
         return self.route == o.route
 
-    def match(self, request):
-        test_path = request.path
+    @rw.scope.inject
+    def match(self, test_path, scope):
         arguments = {}
-        for converter, args, data in self.route:
-            if converter:
+        for converter_name, args, data in self.route:
+            if converter_name:
+                converters = scope.get('rw.routing:converters')
+                converter = converters.get(converter_name)
+                if converter is None:
+                    raise AttributeError('No converter for {} avaiable'.format(converter_name))
                 try:
                     consumed, arguments[data] = converter(test_path)
                 except NoMatchError:
-                    return False
+                    return None
             elif not test_path.startswith(data):
-                return False
+                return None
             else:
                 consumed = len(data)
             test_path = test_path[consumed:]
         if not test_path:
-            return self.callback, arguments
-        return False
+            return arguments
+        return None
 
     def get_path(self, values=None):
         if values is None:
@@ -208,3 +167,66 @@ class Rule(object):
 
     def __repr__(self):
         return '<Rule "%s">' % self.path
+
+
+class RoutingTable(dict):
+    def setup(self):
+        """setup routing table"""
+
+        # sort all rules
+        for key in self:
+            self[key].sort()
+
+    def add_route(self, method, path, fn):
+        self.setdefault(method, []).append((Rule(path), fn))
+
+    def find_route(self, method, path):
+        for rule, fn in self.get(method.lower(), []):
+            args = rule.match(path)
+            if args is not None:
+                return fn, args
+        return None, None
+
+
+def converter_default(data):
+    length = data.find('/')
+    if length == 1 or len(data) == 0:
+        raise NoMatchError()
+    elif length < 0:
+        length = len(data)
+    return length, util.unicode_type(data[:length])
+
+
+NON_INT = re.compile('[^0-9-]')
+
+
+def converter_int(data):
+    length = NON_INT.search(data)
+    length = length.start() if length else len(data)
+    if length <= 0:
+        raise NoMatchError()
+    return length, int(data[:length])
+
+
+NON_UINT = re.compile('[^0-9]')
+
+
+def converter_uint(data):
+    length = NON_UINT.search(data)
+    length = length.start() if length else len(data)
+    if length <= 0:
+        raise NoMatchError()
+    return length, int(data[:length])
+
+
+plugin = rw.plugin.Plugin(__name__)
+
+
+@plugin.init
+def init(scope):
+    scope.setdefault('rw.routing:converters', {}).update({
+        'str': converter_default,
+        'int': converter_int,
+        'uint': converter_uint,
+    })
+
