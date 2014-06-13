@@ -84,6 +84,7 @@ def serv(args):
     extra = []
 
     if sys.stdout.isatty():
+        # set terminal title
         sys.stdout.write('\x1b]2;rw: {}\x07'.format(' '.join(sys.argv[2:])))
 
     if args.cfg:
