@@ -23,6 +23,10 @@ NOT_PROVIDED = object()
 current_scope = None
 
 
+class OutsideScopeError(Exception):
+    pass
+
+
 class Scope(dict):
     def __init__(self, **kwargs):
         super(Scope, self).__init__(**kwargs)
@@ -78,7 +82,7 @@ def inject(fn):
             for key in missing_args:
                 if key not in kwargs:
                     if current_scope is None:
-                        raise ReferenceError('Cannot use inject outside of scope')
+                        raise OutsideScopeError('Cannot use inject outside of scope')
                     kwargs[key] = current_scope.get(key)
         return fn(*args, **kwargs)
     return wrapper

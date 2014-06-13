@@ -65,6 +65,18 @@ def test_basic():
         assert bar() == 42
 
 
+def test_fail():
+    @rw.scope.inject
+    def foo(something_to_inject):
+        pass
+
+    with pytest.raises(rw.scope.OutsideScopeError):
+        foo()
+
+    # if all arguments are provided we are ok to run outside of a scope
+    foo(something_to_inject=1)
+
+
 class ConcurrencyTest(tornado.testing.AsyncTestCase):
     """test concurrent ioloop futures inside different scopes
 
