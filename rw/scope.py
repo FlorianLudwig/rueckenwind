@@ -13,7 +13,7 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
-from tornado import stack_context
+from tornado import stack_context, gen
 import contextlib
 import functools
 
@@ -28,12 +28,15 @@ class Scope(dict):
         super(Scope, self).__init__(**kwargs)
         self._provider = {}
         self.parent = None
+        self.plugins = set()
 
     def provider(self, key, provider):
         self._provider[key] = provider
 
     def get(self, key, default=NOT_PROVIDED):
-        if not key in self:
+        if key == 'scope':
+            return self
+        elif not key in self:
             if key in self._provider:
                 self[key] = self._provider[key]()
                 del self._provider[key]
@@ -44,6 +47,11 @@ class Scope(dict):
             else:
                 raise IndexError('No value for "{}" stored and no default given'.format(key))
         return self[key]
+
+    @gen.coroutine
+    def activate(self, plugin):
+        yield plugin.activate()
+        self.plugins.add(plugin)
 
     def __call__(self):
         return stack_context.StackContext(functools.partial(set_context, self))
@@ -69,6 +77,8 @@ def inject(fn):
             missing_args = set(arg_spec.args[len(args):])
             for key in missing_args:
                 if key not in kwargs:
+                    if current_scope is None:
+                        raise ReferenceError('Cannot use inject outside of scope')
                     kwargs[key] = current_scope.get(key)
         return fn(*args, **kwargs)
     return wrapper
