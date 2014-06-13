@@ -15,7 +15,14 @@
 """Load yaml based configuration"""
 from __future__ import absolute_import, division, print_function, with_statement
 
+import os
+import pkg_resources
+import logging
+
 import yaml
+
+
+LOG = logging.getLogger(__name__)
 
 
 def read_file(paths):
@@ -45,3 +52,33 @@ def merge(re, cfg):
         else:
             raise AttributeError('Config files must be in format {category: {key: value, ...}, ...}')
 
+
+def get_config_paths(module_name):
+    cfg_name = module_name + '.yml'
+    paths = []
+    if module_name != 'rw':
+        paths = get_config_paths('rw')
+    paths += [
+        pkg_resources.resource_filename(module_name, cfg_name),
+        '/etc/' + cfg_name,
+        os.path.expanduser('~/.') + cfg_name
+    ]
+    if 'VIRTUAL_ENV' in os.environ:
+        paths.append(os.environ['VIRTUAL_ENV'] + '/etc/' + cfg_name)
+    return paths
+
+
+def read_configs(module_name, extra_configs=None):
+    cfg = {}
+    paths = get_config_paths(module_name)
+    if extra_configs:
+        if isinstance(extra_configs, list):
+            paths.extend(extra_configs)
+        else:
+            paths.append(extra_configs)
+
+    for path in paths:
+        if os.path.exists(path):
+            LOG.info('reading config: ' + path)
+            merge(cfg, read_file(path))
+    return cfg

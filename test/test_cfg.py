@@ -44,3 +44,20 @@ def test_simple():
     ])
     assert cfg['rw.plugins']['rw.db'] is True
     assert cfg['rw.plugins']['someother_db'] is True
+
+
+def test_config_paths():
+    """when inside a virtualenv we are looking for more configs"""
+    env = os.environ.get('VIRTUAL_ENV')
+    if env is not None:
+        del os.environ['VIRTUAL_ENV']
+    configs = rw.cfg.get_config_paths('rw')
+    os.environ['VIRTUAL_ENV'] = '/tmp'
+    configs_ve = rw.cfg.get_config_paths('rw')
+    if env is None:
+        del os.environ['VIRTUAL_ENV']
+    else:
+        os.environ['VIRTUAL_ENV'] = env
+
+    assert len(configs) < len(configs_ve)
+
