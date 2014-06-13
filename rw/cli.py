@@ -35,7 +35,7 @@ SUB_PARSER = ARG_PARSER.add_subparsers(help='Command help')
 
 def command(func):
     """Decorator for CLI exposed functions"""
-    func.parser = SUB_PARSER.add_parser(func.func_name, help=func.__doc__)
+    func.parser = SUB_PARSER.add_parser(func.__name__, help=func.__doc__)
     func.parser.set_defaults(func=func)
     return func
 
