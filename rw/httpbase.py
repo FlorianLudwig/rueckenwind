@@ -160,10 +160,6 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                                "by using async operations without the "
                                "@asynchronous decorator.")
 
-        if template is not None:
-            assert chunk is None
-            chunk = ''
-
         if chunk is not None:
             self.write(chunk)
 
