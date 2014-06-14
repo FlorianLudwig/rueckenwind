@@ -25,7 +25,11 @@ import logging
 
 import argcomplete
 import pkg_resources
+import tornado.httpserver
+import tornado.ioloop
 import jinja2
+
+import rw
 
 
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
@@ -80,7 +84,11 @@ def serv(args):
     """Serve a rueckenwind application"""
     import rw
     rw.DEBUG = not args.no_debug
-    module = args.MODULE.replace('/', '.').strip('.')
+    module_path = args.MODULE
+    module_name = 'root'
+    if ':' in module_path:
+        module_path, module_name = module_path.split(':', 1)
+    module = module_path.replace('/', '.').strip('.')
     extra = []
 
     if sys.stdout.isatty():
@@ -90,9 +98,20 @@ def serv(args):
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
 
-    rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
+    # rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
+    module = __import__(module_path)
+    module = getattr(module, module_name)
+    app = rw.httpbase.Application(root=module)
 
-serv.parser.add_argument('-p', '--port', type=str, default='8000+',
+    server = tornado.httpserver.HTTPServer(app)
+    server.listen(int(args.port), args.address)
+
+    ioloop = tornado.ioloop.IOLoop.instance()
+    ioloop.run_sync(rw.start)
+    ioloop.start()
+
+
+serv.parser.add_argument('-p', '--port', type=str, default='8000',
                          help='Specifiy port to run http server on')
 serv.parser.add_argument('-a', '--address', type=str,
                          help='Specifiy port to run http server on')

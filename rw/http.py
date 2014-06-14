@@ -1,15 +1,34 @@
 import tornado.web
 
-from . import scope, routing, plugin
+from . import scope
+
+import rw.plugin
+import rw.routing
+import rw.template
 
 
-class Module(plugin.Plugin):
+class Module(rw.plugin.Plugin):
     def __init__(self, name):
         super(Module, self).__init__(name)
-        self.routes = routing.RoutingTable()
+        self.routes = rw.routing.RoutingTable()
+        self.activate.add(self.setup)
+        self.template_env = None
 
     def setup(self):
+        # if a Module instance is created inside some python
+        # module __init__ we cannot create the template env
+        # at module creation as it results in the module
+        # itself being imported while getting setup
+        pkgs = [self.name]  # TODO, Breadth-first search for dependencies
+        self.template_env = rw.template.create_template_env(pkgs)
         self.routes.setup()
+
+    @scope.inject
+    def render_template(self, template_name, handler):
+        if not template_name.startswith('/'):
+            template_name = self.name + '/' + template_name
+        template = self.template_env.get_template(template_name)
+        handler.finish(template.render(**handler))
 
     def _handle_request(self, handler):
         """called by RequestHandler"""

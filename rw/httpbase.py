@@ -18,8 +18,11 @@ import tornado.httpserver
 from tornado import gen
 from tornado.web import HTTPError
 
+import rw
+import rw.cfg
 import rw.scope
 import rw.routing
+import rw.template
 
 
 class Application(object):
@@ -33,15 +36,20 @@ class Application(object):
         """
         self.settings = {}
         self.root = root
+        self.scope = rw.scope.Scope()
         if self.root:
-            self.root.setup()
             self.handler = handler if handler is not None else RequestHandler
         else:
             self.handler = handler
             assert handler is not None
 
-        self.scope = rw.scope.Scope()
         self._wsgi = False  # wsgi is not supported
+        rw.PHASE_CONFIGURATION.add(self.configure)
+
+    def configure(self):
+        with self.scope():
+            self.settings = rw.cfg.read_configs(self.root.name)
+            self.scope.activate(self.root)
 
     def __call__(self, request):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""
@@ -56,14 +64,16 @@ class Application(object):
         with self.scope():
             # default plugins
             self.scope.activate(rw.routing.plugin)
+            # self.scope.activate(rw.template.plugin)
             # user plugins
             # TODO
 
     def log_request(self, request):
-        print(request)
+        # TODO print(request)
+        pass
 
 
-class RequestHandler(tornado.web.RequestHandler):
+class RequestHandler(tornado.web.RequestHandler, dict):
     def __init__(self, application, request, **kwargs):
         # The super class is not called since it creates
         # some structures we do not care about.  Since
@@ -149,6 +159,10 @@ class RequestHandler(tornado.web.RequestHandler):
             raise RuntimeError("finish() called twice.  May be caused "
                                "by using async operations without the "
                                "@asynchronous decorator.")
+
+        if template is not None:
+            assert chunk is None
+            chunk = ''
 
         if chunk is not None:
             self.write(chunk)

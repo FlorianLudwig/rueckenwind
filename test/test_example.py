@@ -1,48 +1,11 @@
 import rw.testing
-import rw.http
-import rw.httpbase
 
-test = rw.http.Module(__name__)
-
-
-@test.get('/')
-def root(handler):
-    handler.finish('Hello rw.http')
-
-
-@test.post('/')
-def root_submit(handler):
-    handler.finish('root POST')
-
-
-@test.get('/user/<name>')
-def root_submit(handler, name):
-    handler.finish('Hello ' + name)
-
-
-@test.get('/otherplace')
-def other(handler):
-    handler.finish('other')
-
-
-@test.put('/put')
-def put(handler):
-    handler.finish('put')
-
-
-@test.delete('/delete')
-def delete(handler):
-    handler.finish('delete')
-
-
-@test.options('/options')
-def options(handler):
-    handler.finish('options')
+from . import example
 
 
 class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def get_app(self):
-        return rw.httpbase.Application(root=test)
+        return rw.httpbase.Application(root=example.root)
 
     def test_basic_routing(self):
         response = self.fetch('/')
@@ -72,4 +35,5 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
 
         response = self.fetch('/options', method='OPTIONS')
         assert response.body.decode('utf-8') == u'options'
+
 
