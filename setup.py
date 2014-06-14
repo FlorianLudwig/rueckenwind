@@ -38,7 +38,6 @@ setup(
     author='Florian Ludwig',
     install_requires=['tornado>=3.0.1,<4.0',
                       'jinja2',
-                      'werkzeug==0.6.2',
                       'babel',
                       'argcomplete>=0.6.6,<1.0',
                       'mock',
