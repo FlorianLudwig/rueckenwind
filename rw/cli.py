@@ -27,6 +27,7 @@ import argcomplete
 import pkg_resources
 import tornado.httpserver
 import tornado.ioloop
+import tornado.autoreload
 import jinja2
 
 import rw
@@ -82,8 +83,8 @@ skel.parser.add_argument('--name', type=str,
 @command
 def serv(args):
     """Serve a rueckenwind application"""
-    import rw
-    rw.DEBUG = not args.no_debug
+    if not args.no_debug:
+        tornado.autoreload.start()
     module_path = args.MODULE
     module_name = 'root'
     if ':' in module_path:
@@ -98,7 +99,6 @@ def serv(args):
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
 
-    # rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
     module = __import__(module_path)
     module = getattr(module, module_name)
     app = rw.httpbase.Application(root=module)
