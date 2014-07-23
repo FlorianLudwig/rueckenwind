@@ -97,13 +97,14 @@ def test_convert_uint():
 
 
 class MyTestCase(tornado.testing.AsyncTestCase):
-    @tornado.testing.gen_test
     def test_rule_match(self):
         # match must be used inside scope with rw.routing:plugin activated
         scope = rw.scope.Scope()
 
         with scope():
-            yield scope.activate(rw.routing.plugin)
-            assert generate_rule('/').match('/') == {}
-            assert generate_rule('/').match('/asd') is None
-            assert generate_rule('/<foo>').match('/asd') == {'foo': 'asd'}
+            scope.activate(rw.routing.plugin, callback=self.inside_scope)
+
+    def inside_scope(self, result):
+        assert generate_rule('/').match('/') == {}
+        assert generate_rule('/').match('/asd') is None
+        assert generate_rule('/<foo>').match('/asd') == {'foo': 'asd'}

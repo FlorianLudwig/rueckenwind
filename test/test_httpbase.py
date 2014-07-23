@@ -4,7 +4,7 @@ import rw.httpbase
 
 
 class HelloWorldHandler(rw.httpbase.RequestHandler):
-    def _execute_method(self):
+    def handle_request(self):
         self.finish('Hello World')
 
 

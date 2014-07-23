@@ -16,7 +16,10 @@ from __future__ import absolute_import, division, print_function, with_statement
 import tornado.web
 import tornado.httpserver
 from tornado import gen
+from tornado import iostream
 from tornado.web import HTTPError
+from tornado.concurrent import is_future
+from tornado.web import _has_stream_request_body
 
 import rw
 import rw.cfg
@@ -86,7 +89,14 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         self._finished = False
         self._auto_finish = False  # vanilla tornado defaults to True
         self._transforms = None  # will be set in _execute
+        self._prepared_future = None
+
+        # variables from vanilla tornado, not avaiable in rw
+        # self.path_args
+        # self.path_kwargs
+        # self.ui
         self.clear()
+        self.request.connection.set_close_callback(self.on_connection_close)
         self.initialize(**kwargs)
 
     def render(self, template_name, **kwargs):
@@ -122,36 +132,52 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         """
         raise NotImplementedError()
 
-    def flush(self, include_footers=False, callback=None):
-        """Flushes the current output buffer to the network.
-
-        The ``callback`` argument, if given, can be used for flow control:
-        it will be run when all flushed data has been written to the socket.
-        Note that only one flush callback can be outstanding at a time;
-        if another flush occurs before the previous flush's callback
-        has been run, the previous callback will be discarded.
-        """
-        chunk = b"".join(self._write_buffer)
-        self._write_buffer = []
-        if not self._headers_written:
-            self._headers_written = True
-            for transform in self._transforms:
-                self._status_code, self._headers, chunk = \
-                    transform.transform_first_chunk(
-                        self._status_code, self._headers, chunk, include_footers)
-            headers = self._generate_headers()
-        else:
-            for transform in self._transforms:
-                chunk = transform.transform_chunk(chunk, include_footers)
-            headers = b""
-
-        # Ignore the chunk and only write the headers for HEAD requests
-        if self.request.method == "HEAD":
-            if headers:
-                self.request.write(headers, callback=callback)
-            return
-
-        self.request.write(headers + chunk, callback=callback)
+    # def flush(self, include_footers=False, callback=None):
+    #     """Flushes the current output buffer to the network.
+    #
+    #     The ``callback`` argument, if given, can be used for flow control:
+    #     it will be run when all flushed data has been written to the socket.
+    #     Note that only one flush callback can be outstanding at a time;
+    #     if another flush occurs before the previous flush's callback
+    #     has been run, the previous callback will be discarded.
+    #
+    #     .. versionchanged:: 4.0
+    #        Now returns a `.Future` if no callback is given.
+    #     """
+    #     chunk = b"".join(self._write_buffer)
+    #     self._write_buffer = []
+    #     if not self._headers_written:
+    #         self._headers_written = True
+    #         for transform in self._transforms:
+    #             self._status_code, self._headers, chunk = \
+    #                 transform.transform_first_chunk(
+    #                     self._status_code, self._headers, chunk, include_footers)
+    #         # Ignore the chunk and only write the headers for HEAD requests
+    #         if self.request.method == "HEAD":
+    #             chunk = None
+    #
+    #         # Finalize the cookie headers (which have been stored in a side
+    #         # object so an outgoing cookie could be overwritten before it
+    #         # is sent).
+    #         if hasattr(self, "_new_cookie"):
+    #             for cookie in self._new_cookie.values():
+    #                 self.add_header("Set-Cookie", cookie.OutputString(None))
+    #
+    #         start_line = httputil.ResponseStartLine(self.request.version,
+    #                                                 self._status_code,
+    #                                                 self._reason)
+    #         return self.request.connection.write_headers(
+    #             start_line, self._headers, chunk, callback=callback)
+    #     else:
+    #         for transform in self._transforms:
+    #             chunk = transform.transform_chunk(chunk, include_footers)
+    #         # Ignore the chunk and only write the headers for HEAD requests
+    #         if self.request.method != "HEAD":
+    #             return self.request.connection.write(chunk, callback=callback)
+    #         else:
+    #             future = Future()
+    #             future.set_result(None)
+    #             return future
 
     def finish(self, chunk=None):
         """Finishes this response, ending the HTTP request."""
@@ -202,24 +228,62 @@ class RequestHandler(tornado.web.RequestHandler, dict):
     # def get_current_user(self):
     # def _when_complete(self, result, callback):
 
+    @gen.coroutine
     def _execute(self, transforms, *args, **kwargs):
         """Executes this request with the given output transforms."""
         self._transforms = transforms
         try:
             if self.request.method not in self.SUPPORTED_METHODS:
                 raise HTTPError(405)
-
+            self.path_args = [self.decode_argument(arg) for arg in args]
+            self.path_kwargs = dict((k, self.decode_argument(v, name=k))
+                                    for (k, v) in kwargs.items())
             # If XSRF cookies are turned on, reject form submissions without
             # the proper cookie
             if self.request.method not in ("GET", "HEAD", "OPTIONS") and \
                     self.application.settings.get("xsrf_cookies"):
                 self.check_xsrf_cookie()
-            self._when_complete(self.prepare(), self._execute_method)
+
+            result = self.prepare()
+            if is_future(result):
+                result = yield result
+            if result is not None:
+                raise TypeError("Expected None, got %r" % result)
+            if self._prepared_future is not None:
+                # Tell the Application we've finished with prepare()
+                # and are ready for the body to arrive.
+                self._prepared_future.set_result(None)
+            if self._finished:
+                return
+
+            if _has_stream_request_body(self.__class__):
+                # In streaming mode request.body is a Future that signals
+                # the body has been completely received.  The Future has no
+                # result; the data has been passed to self.data_received
+                # instead.
+                try:
+                    yield self.request.body
+                except iostream.StreamClosedError:
+                    return
+
+            result = self.handle_request()
+            if is_future(result):
+                result = yield result
+            if result is not None:
+                raise TypeError("Expected None, got %r" % result)
+            if self._auto_finish and not self._finished:
+                self.finish()
         except Exception as e:
             self._handle_request_exception(e)
+            if (self._prepared_future is not None and
+                    not self._prepared_future.done()):
+                # In case we failed before setting _prepared_future, do it
+                # now (to unblock the HTTP server).  Note that this is not
+                # in a finally block to avoid GC issues prior to Python 3.4.
+                self._prepared_future.set_result(None)
 
-    def _execute_method(self):
-        self.application.root._handle_request(self)
+    def handle_request(self):
+        return self.application.root._handle_request(self)
 
     # overwrite methodes that are not supported to make sure
     # they get not used by accident.

@@ -1,3 +1,5 @@
+import tornado.gen
+
 import rw.testing
 
 from . import example
@@ -9,12 +11,15 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
 
     def test_basic_routing(self):
         response = self.fetch('/')
+        assert response.code == 200
         assert response.body.decode('utf-8') == u'Hello rw.http'
 
         response = self.fetch('/otherplace')
+        assert response.code == 200
         assert response.body.decode('utf-8') == u'other'
 
         response = self.fetch('/user/me')
+        assert response.code == 200
         assert response.body.decode('utf-8') == u'Hello me'
 
         response = self.fetch('/nowhere')

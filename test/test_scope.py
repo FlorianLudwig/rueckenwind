@@ -93,6 +93,7 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
         assert (yield future_b) == 'b'
         assert (yield future_a) == 'a'
 
+    @tornado.testing.gen_test
     def test_concurrent_scopes_ba(self):
         """b then a"""
         future_a, future_b = self.setup()
@@ -103,6 +104,7 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
         self.lock_a.set_result(None)
         assert (yield future_a) == 'a'
 
+    @tornado.testing.gen_test
     def test_concurrent_scopes_ab(self):
         """a then b"""
         future_a, future_b = self.setup()

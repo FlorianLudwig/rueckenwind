@@ -5,7 +5,6 @@ import rw.scope
 
 
 class MyTestCase(tornado.testing.AsyncTestCase):
-    @tornado.testing.gen_test
     def test_basic(self):
         scope = rw.scope.Scope()
 
@@ -16,21 +15,8 @@ class MyTestCase(tornado.testing.AsyncTestCase):
             scope['foo'] = 1
 
         with scope():
-            yield scope.activate(plugin)
-            assert scope.get('foo') == 1
+            scope.activate(plugin, callback=self.inside_scope)
 
-        # plugin.provider
-        # plugin.
-        # @plugin.func
-        # def inc(foo):
-        #     return foo + 1
-        #
-        # @plugin.provider
-        # def inc(foo):
-        #     return foo + 1
-
-
-        # scope.get('inc') == inc
-        # assert scope.get('inc')(1) == 2
-
-
+    @rw.scope.inject
+    def inside_scope(self, result, scope):
+        assert scope.get('foo') == 1
