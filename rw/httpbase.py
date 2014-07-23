@@ -132,53 +132,6 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         """
         raise NotImplementedError()
 
-    # def flush(self, include_footers=False, callback=None):
-    #     """Flushes the current output buffer to the network.
-    #
-    #     The ``callback`` argument, if given, can be used for flow control:
-    #     it will be run when all flushed data has been written to the socket.
-    #     Note that only one flush callback can be outstanding at a time;
-    #     if another flush occurs before the previous flush's callback
-    #     has been run, the previous callback will be discarded.
-    #
-    #     .. versionchanged:: 4.0
-    #        Now returns a `.Future` if no callback is given.
-    #     """
-    #     chunk = b"".join(self._write_buffer)
-    #     self._write_buffer = []
-    #     if not self._headers_written:
-    #         self._headers_written = True
-    #         for transform in self._transforms:
-    #             self._status_code, self._headers, chunk = \
-    #                 transform.transform_first_chunk(
-    #                     self._status_code, self._headers, chunk, include_footers)
-    #         # Ignore the chunk and only write the headers for HEAD requests
-    #         if self.request.method == "HEAD":
-    #             chunk = None
-    #
-    #         # Finalize the cookie headers (which have been stored in a side
-    #         # object so an outgoing cookie could be overwritten before it
-    #         # is sent).
-    #         if hasattr(self, "_new_cookie"):
-    #             for cookie in self._new_cookie.values():
-    #                 self.add_header("Set-Cookie", cookie.OutputString(None))
-    #
-    #         start_line = httputil.ResponseStartLine(self.request.version,
-    #                                                 self._status_code,
-    #                                                 self._reason)
-    #         return self.request.connection.write_headers(
-    #             start_line, self._headers, chunk, callback=callback)
-    #     else:
-    #         for transform in self._transforms:
-    #             chunk = transform.transform_chunk(chunk, include_footers)
-    #         # Ignore the chunk and only write the headers for HEAD requests
-    #         if self.request.method != "HEAD":
-    #             return self.request.connection.write(chunk, callback=callback)
-    #         else:
-    #             future = Future()
-    #             future.set_result(None)
-    #             return future
-
     def finish(self, chunk=None):
         """Finishes this response, ending the HTTP request."""
         if self._finished:
