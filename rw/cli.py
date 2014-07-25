@@ -113,15 +113,15 @@ def serv(args):
 
 
 serv.parser.add_argument('-p', '--port', type=str, default='8000',
-                         help='Specifiy port to run http server on')
+                         help='Specify port to run http server on')
 serv.parser.add_argument('-a', '--address', type=str,
-                         help='Specifiy port to run http server on')
+                         help='Specify port to run http server on')
 serv.parser.add_argument('--no-debug', action='store_true',
                          help='Run in production mode')
 serv.parser.add_argument('-c', '--cfg', type=str,
                          help='Additional config to load')
 serv.parser.add_argument('MODULE',
-                         help='Module to serv')
+                         help='Module to serve')
 
 
 def main():
