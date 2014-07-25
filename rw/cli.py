@@ -87,9 +87,10 @@ def serv(args):
         tornado.autoreload.start()
     module_path = args.MODULE
     module_name = 'root'
+    from_list = []
     if ':' in module_path:
         module_path, module_name = module_path.split(':', 1)
-    module = module_path.replace('/', '.').strip('.')
+    module_path = module_path.replace('/', '.').strip('.')
     extra = []
 
     if sys.stdout.isatty():
@@ -99,7 +100,7 @@ def serv(args):
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
 
-    module = __import__(module_path)
+    module = __import__(module_path, fromlist=[module_name])
     module = getattr(module, module_name)
     app = rw.httpbase.Application(root=module)
 
