@@ -17,7 +17,7 @@ def something_lazy(x):
 class MyTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_exception_handling(self):
-        MY_EVENT = rw.event.Event()
+        MY_EVENT = rw.event.Event('MY_EVENT')
 
         @MY_EVENT.add
         def fail():
@@ -37,7 +37,7 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_event_listener(self):
-        MY_EVENT = rw.event.Event()
+        MY_EVENT = rw.event.Event('MY_EVENT')
         args = []
 
         def listener(greeting):
@@ -52,7 +52,7 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_decorator(self):
-        MY_EVENT = rw.event.Event()
+        MY_EVENT = rw.event.Event('MY_EVENT')
         args = []
 
         @MY_EVENT.add
@@ -64,7 +64,7 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_accumulator(self):
-        MY_EVENT = rw.event.Event(sum)
+        MY_EVENT = rw.event.Event('MY_EVENT', sum)
         MY_EVENT.add(lambda: 1)
         MY_EVENT.add(lambda: 2)
 
@@ -72,7 +72,7 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_futures(self):
-        MY_EVENT = rw.event.Event()
+        MY_EVENT = rw.event.Event('MY_EVENT')
         MY_EVENT.add(something_lazy)
         result = yield MY_EVENT(12)
         assert result == [12]
@@ -84,7 +84,7 @@ class MyTestCase(tornado.testing.AsyncTestCase):
             yield something_lazy(1)
             1 / 0
 
-        MY_EVENT = rw.event.Event()
+        MY_EVENT = rw.event.Event('MY_EVENT')
         MY_EVENT.add(something_lazy_failing)
 
         with pytest.raises(rw.event.EventException):

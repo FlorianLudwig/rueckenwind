@@ -49,7 +49,8 @@ class Scope(dict):
             elif self.parent is not None:
                 return self.parent.get(key, default)
             else:
-                raise IndexError('No value for "{}" stored and no default given'.format(key))
+                msg = 'No value for "{}" stored and no default given'.format(key)
+                raise IndexError(msg)
         return self[key]
 
     @gen.coroutine
@@ -64,11 +65,15 @@ class Scope(dict):
 @contextlib.contextmanager
 def set_context(scope):
     global current_scope
-    if current_scope is not None:
+    if current_scope is not None and current_scope is not scope:
         scope.parent = current_scope
     current_scope = scope
     yield
     current_scope = current_scope.parent
+
+
+def get_context():
+    return current_scope
 
 
 def inject(fn):

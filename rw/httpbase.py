@@ -21,11 +21,11 @@ from tornado.web import HTTPError
 from tornado.concurrent import is_future
 from tornado.web import _has_stream_request_body
 
-import rw
 import rw.cfg
 import rw.scope
 import rw.routing
 import rw.template
+import rw.server
 
 
 class Application(object):
@@ -47,12 +47,12 @@ class Application(object):
             assert handler is not None
 
         self._wsgi = False  # wsgi is not supported
-        rw.PHASE_CONFIGURATION.add(self.configure)
+        rw.server.PHASE_CONFIGURATION.add(self.configure)
 
     def configure(self):
         with self.scope():
             self.settings = rw.cfg.read_configs(self.root.name)
-            self.scope.activate(self.root)
+            return self.scope.activate(self.root)
 
     def __call__(self, request):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""

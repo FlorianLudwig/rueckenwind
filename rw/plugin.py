@@ -20,7 +20,7 @@ import rw.scope
 class Plugin(object):
     def __init__(self, name):
         self.name = name
-        self.activate = rw.event.Event()
+        self.activate = rw.event.Event('PLUGIN_{}_ACTIVATE'.format(name))
 
     def init(self, function):
         function = rw.scope.inject(function)
