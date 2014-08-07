@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, with_statement
 import traceback
 
 from tornado import gen
+import rw.scope
 
 
 class EventException(Exception):
@@ -35,12 +36,16 @@ class EventException(Exception):
 
 
 class Event(set):
-    def __init__(self, accumulator=None):
+    def __init__(self, name, accumulator=None):
         super(Event, self).__init__()
+        self.name = name
         self.accumulator = accumulator
 
     @gen.coroutine
     def __call__(self, *args, **kwargs):
+        scope = rw.scope.get_context()
+        rw_tracing = scope.get('rw_trace', None) if scope else None
+
         re = []
         exceptions = []
         futures = []
