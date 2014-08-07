@@ -19,15 +19,13 @@ class Module(rw.plugin.Plugin):
         # module __init__ we cannot create the template env
         # at module creation as it results in the module
         # itself being imported while getting setup
-        pkgs = [self.name]  # TODO, Breadth-first search for dependencies
-        self.template_env = rw.template.create_template_env(pkgs)
         self.routes.setup()
 
     @scope.inject
-    def render_template(self, template_name, handler):
+    def render_template(self, template_name, app, handler):
         if not template_name.startswith('/'):
             template_name = self.name + '/' + template_name
-        template = self.template_env.get_template(template_name)
+        template = app.template_env.get_template(template_name)
         handler.finish(template.render(**handler))
 
     def _handle_request(self, handler):
