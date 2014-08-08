@@ -5,7 +5,7 @@ import rw.testing
 import rw.http
 import rw.httpbase
 
-root = rw.http.Module('example')
+root = rw.http.Module('test.example')
 
 
 @root.init
