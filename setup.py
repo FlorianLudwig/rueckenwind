@@ -47,6 +47,10 @@ setup(
                       'PyYAML>=3.10',
                       'future'
                       ],
+    extra_requires={
+        'test': ['tox', 'pytest'],
+        'docs': ['sphinx_rtd_theme']
+    },
     packages=find_packages(exclude=['*.test', '*.test.*']),
     include_package_data=True,
     package_data={
