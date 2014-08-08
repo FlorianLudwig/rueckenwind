@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
-from distutils.command.sdist import sdist
-from setuptools import setup, find_packages
 import sys
 
+from distutils.command.sdist import sdist
+from setuptools import setup, find_packages
+from setuptools.command.test import test as TestCommand
+
+
 version_suffix = ''
+
+
+class Tox(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        # self.test_args = ["-v", "-epy"]
+        self.test_suite = True
+
+    def run_tests(self):
+        import tox
+        tox.cmdline(self.test_args)
 
 
 def get_version_suffix():
@@ -47,7 +61,7 @@ setup(
                       'PyYAML>=3.10',
                       'future'
                       ],
-    extra_requires={
+    extras_requires={
         'test': ['tox', 'pytest'],
         'docs': ['sphinx_rtd_theme']
     },
