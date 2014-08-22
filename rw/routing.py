@@ -82,7 +82,7 @@ class NoMatchError(Exception):
 class Rule(object):
     def __init__(self, path):
         """Rule for `callback` matching given `path`"""
-        self.path = path
+        self.path = path.rstrip('/')
         self.route = list(parse_rule(path))
 
     def _sort_struct(self):
@@ -170,15 +170,38 @@ class Rule(object):
 
 
 class RoutingTable(dict):
+    def __init__(self):
+        dict.__init__(self)
+        self.prefix = ''
+        self.sub_modules = []
+
     def setup(self):
         """setup routing table"""
+
+        # get all routes from submodules
+        for key in self:
+            funcs = set(rule[1] for rule in self[key])
+            for module in self.sub_modules:
+                module.setup()
+                routes = module.routes
+                for rule in routes.get(key, []):
+                    if rule[1] not in funcs:
+                        new_rule = Rule(routes.prefix + rule[0].path)
+                        self[key].append((new_rule, rule[1]))
+                        print('found sub', new_rule)
 
         # sort all rules
         for key in self:
             self[key].sort(key=lambda rule: rule[0])
 
     def add_route(self, method, path, fn):
-        self.setdefault(method, []).append((Rule(path), fn))
+        rule = Rule(path)
+        self.setdefault(method, []).append((rule, fn))
+        return rule
+
+    def add_module(self, path, module):
+        module.routes.prefix = path
+        self.sub_modules.append(module)
 
     def find_route(self, method, path):
         for rule, fn in self.get(method.lower(), []):

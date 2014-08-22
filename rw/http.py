@@ -50,7 +50,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            self.routes.add_route('get', path, fn)
+            fn.rw_route = self.routes.add_route('get', path, fn)
             return fn
         return wrapper
 
@@ -65,7 +65,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            self.routes.add_route('post', path, fn)
+            fn.rw_route = self.routes.add_route('post', path, fn)
             return fn
         return wrapper
 
@@ -80,7 +80,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            self.routes.add_route('put', path, fn)
+            fn.rw_route = self.routes.add_route('put', path, fn)
             return fn
         return wrapper
 
@@ -95,7 +95,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            self.routes.add_route('delete', path, fn)
+            fn.rw_route = self.routes.add_route('delete', path, fn)
             return fn
         return wrapper
 
@@ -110,17 +110,13 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            self.routes.add_route('options', path, fn)
+            fn.rw_route = self.routes.add_route('options', path, fn)
             return fn
         return wrapper
 
-    def mount(self, module):
-        raise NotImplementedError()
-        # def __init__(self, route, mod):
-        #     self._rw_route = route
-        #     self._rw_mod = mod
-        #
-        # def __getattr__(self, item):
-        #     return getattr(self._rw_mod, item)
+    def mount(self, path, module):
+        self.routes.add_module(path, module)
 
 
+def url_for(func, **kwargs):
+    return func.rw_route.get_path(kwargs)
