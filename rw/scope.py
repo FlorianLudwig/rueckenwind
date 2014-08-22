@@ -40,7 +40,7 @@ class Scope(dict):
     def get(self, key, default=NOT_PROVIDED):
         if key == 'scope':
             return self
-        elif not key in self:
+        elif key not in self:
             if key in self._provider:
                 self[key] = self._provider[key]()
                 del self._provider[key]

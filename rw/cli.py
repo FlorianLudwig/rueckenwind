@@ -137,7 +137,7 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S')
 
     current_path = os.path.abspath('.')
-    if not current_path in sys.path:
+    if current_path not in sys.path:
         sys.path.insert(0, current_path)
     argcomplete.autocomplete(ARG_PARSER)
     args = ARG_PARSER.parse_args()

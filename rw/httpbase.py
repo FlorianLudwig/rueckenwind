@@ -149,8 +149,8 @@ class RequestHandler(tornado.web.RequestHandler, dict):
         # we have not flushed any content yet.
         if not self._headers_written:
             if (self._status_code == 200 and
-                        self.request.method in ("GET", "HEAD") and
-                        "Etag" not in self._headers):
+                self.request.method in ("GET", "HEAD") and
+               "Etag" not in self._headers):
                 self.set_etag_header()
                 if self.check_etag_header():
                     self._write_buffer = []

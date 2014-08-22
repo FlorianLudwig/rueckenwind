@@ -13,8 +13,8 @@ def create_template_env(pkgs):
     template_env = jinja2.Environment(
         loader=jinja2.ChoiceLoader(loaders),
         extensions=['jinja2.ext.loopcontrols',
-                    'jinja2.ext.i18n',
-        ])
+                    'jinja2.ext.i18n'],
+    )
 
     # some more default functions
     # template_env.globals['enumerate'] = enumerate

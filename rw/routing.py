@@ -252,4 +252,3 @@ def init(scope):
         'int': converter_int,
         'uint': converter_uint,
     })
-

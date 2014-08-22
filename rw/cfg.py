@@ -50,7 +50,8 @@ def merge(re, cfg):
             for key, value in category_data.items():
                 re[category][key] = value
         else:
-            raise AttributeError('Config files must be in format {category: {key: value, ...}, ...}')
+            raise AttributeError(
+                'Config files must be in format {category: {key: value, ...}, ...}')
 
 
 def get_config_paths(module_name):
