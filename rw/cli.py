@@ -31,6 +31,9 @@ import tornado.autoreload
 import jinja2
 
 import rw
+import rw.scope
+import rw.server
+import rw.httpbase
 
 
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
@@ -87,7 +90,6 @@ def serv(args):
         tornado.autoreload.start()
     module_path = args.MODULE
     module_name = 'root'
-    from_list = []
     if ':' in module_path:
         module_path, module_name = module_path.split(':', 1)
     module_path = module_path.replace('/', '.').strip('.')
@@ -108,8 +110,10 @@ def serv(args):
     server.listen(int(args.port), args.address)
 
     ioloop = tornado.ioloop.IOLoop.instance()
-    ioloop.run_sync(rw.start)
-    ioloop.start()
+    scope = rw.scope.Scope()
+    with scope():
+        ioloop.run_sync(rw.server.start)
+        ioloop.start()
 
 
 serv.parser.add_argument('-p', '--port', type=str, default='8000',
