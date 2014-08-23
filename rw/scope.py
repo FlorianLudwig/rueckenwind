@@ -68,11 +68,13 @@ def set_context(scope):
     if current_scope is not None and current_scope is not scope:
         scope.parent = current_scope
     current_scope = scope
-    yield
-    current_scope = current_scope.parent
+    try:
+        yield
+    finally:
+        current_scope = current_scope.parent
 
 
-def get_context():
+def get_current_scope():
     return current_scope
 
 

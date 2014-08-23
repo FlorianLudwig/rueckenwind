@@ -77,6 +77,20 @@ def test_fail():
     foo(something_to_inject=1)
 
 
+class ScopeLeakingTest(tornado.testing.AsyncTestCase):
+    def test_scope_leaking(self):
+        # if an exception ocurus inside a scope the scope might not
+        # get clean up correctly.
+        scope = rw.scope.Scope()
+
+        with pytest.raises(NotImplementedError):
+            with scope():
+                raise NotImplementedError('Just some random error')
+
+        # no we are outside of the scope
+        assert rw.scope.get_current_scope() is None
+
+
 class ConcurrencyTest(tornado.testing.AsyncTestCase):
     """test concurrent ioloop futures inside different scopes
 
