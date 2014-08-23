@@ -50,6 +50,9 @@ class Application(object):
             assert handler is not None
 
         self._wsgi = False  # wsgi is not supported
+        # compatibilty so we can mount tornado RequestHandlers
+        self.ui_modules = {}
+        self.ui_methods = {}
         rw.server.PHASE_CONFIGURATION.add(self.configure)
 
     def configure(self):

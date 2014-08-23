@@ -114,8 +114,10 @@ class Module(rw.plugin.Plugin):
             return fn
         return wrapper
 
-    def mount(self, path, module):
-        self.routes.add_module(path, module)
+    def mount(self, path, module, handler_args=None):
+        if handler_args is None:
+            handler_args = {}
+        self.routes.add_module(path, module, handler_args)
 
 
 def url_for(func, **kwargs):

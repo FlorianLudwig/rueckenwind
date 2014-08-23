@@ -1,5 +1,3 @@
-import tornado.gen
-
 import rw.testing
 
 from . import example
@@ -41,4 +39,6 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         response = self.fetch('/options', method='OPTIONS')
         assert response.body.decode('utf-8') == u'options'
 
-
+    def test_mount_tornado_handler(self):
+        response = self.fetch('/tornado', method='GET')
+        assert response.body.decode('utf-8') == u'Tornado GET'

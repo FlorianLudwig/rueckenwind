@@ -12,12 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
+import inspect
 
 import re
 
 from future.builtins import range
 from tornado import util
+import tornado.web
 
+from rw import scope
 import rw.plugin
 
 
@@ -169,6 +172,17 @@ class Rule(object):
         return '<Rule "%s">' % self.path
 
 
+def _generate_request_handler_proxy(handler_class, handler_args):
+    """When a tornado.web.RequestHandler gets mounted we create a launcher function"""
+
+    @scope.inject
+    def request_handler_wrapper(app, handler, **kwargs):
+        handler = handler_class(app, handler.request, **handler_args)
+        handler._execute([], **kwargs)
+
+    return request_handler_wrapper
+
+
 class RoutingTable(dict):
     def __init__(self):
         dict.__init__(self)
@@ -199,9 +213,19 @@ class RoutingTable(dict):
         self.setdefault(method, []).append((rule, fn))
         return rule
 
-    def add_module(self, path, module):
-        module.routes.prefix = path
-        self.sub_modules.append(module)
+    def add_module(self, path, module, handler_args):
+        if inspect.isclass(module) and issubclass(module, tornado.web.RequestHandler):
+            proxy = _generate_request_handler_proxy(module, handler_args)
+            for method in ['get', 'post', 'put', 'delete']:
+                if hasattr(module, method):
+                    route = self.add_route(method, path, proxy)
+                    unbount_method = getattr(module, method)
+                    # it is not possible to write to the unbount_method
+                    # but writing to the underlaying im_func works
+                    unbount_method.im_func.rw_route = route
+        else:
+            module.routes.prefix = path
+            self.sub_modules.append(module)
 
     def find_route(self, method, path):
         for rule, fn in self.get(method.lower(), []):
