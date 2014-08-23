@@ -220,6 +220,11 @@ def converter_default(data):
     return length, util.unicode_type(data[:length])
 
 
+def converter_path(data):
+    """consume rest of the path"""
+    return len(data), util.unicode_type(data)
+
+
 NON_INT = re.compile('[^0-9-]')
 
 
@@ -251,4 +256,5 @@ def init(scope):
         'str': converter_default,
         'int': converter_int,
         'uint': converter_uint,
+        'path': converter_path
     })

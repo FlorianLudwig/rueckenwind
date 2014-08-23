@@ -103,8 +103,12 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
         with scope():
             scope.activate(rw.routing.plugin, callback=self.inside_scope)
+        self.wait()
 
     def inside_scope(self, result):
         assert generate_rule('/').match('/') == {}
         assert generate_rule('/').match('/asd') is None
         assert generate_rule('/<foo>').match('/asd') == {'foo': 'asd'}
+        assert generate_rule('/<foo>').match('/foo/bar') is None
+        assert generate_rule('/<foo:path>').match('/foo/bar') == {'foo': 'foo/bar'}
+        self.stop()
