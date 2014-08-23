@@ -222,7 +222,10 @@ class RoutingTable(dict):
                     unbount_method = getattr(module, method)
                     # it is not possible to write to the unbount_method
                     # but writing to the underlaying im_func works
-                    unbount_method.im_func.rw_route = route
+                    if hasattr(unbount_method, '__func__'):
+                        unbount_method.__func__.rw_route = route
+                    else:
+                        unbount_method.rw_route = route
         else:
             module.routes.prefix = path
             self.sub_modules.append(module)
