@@ -43,7 +43,7 @@ class Event(set):
 
     @gen.coroutine
     def __call__(self, *args, **kwargs):
-        scope = rw.scope.get_context()
+        scope = rw.scope.get_current_scope()
         rw_tracing = scope.get('rw_trace', None) if scope else None
 
         re = []
@@ -58,7 +58,7 @@ class Event(set):
                     futures.append((func, result))
                 else:
                     re.append(result)
-            except Exception as e:
+            except Exception:
                 exceptions.append((func, traceback.format_exc()))
 
         # wait for results
@@ -66,7 +66,7 @@ class Event(set):
             try:
                 result = yield future
                 re.append(result)
-            except Exception as e:
+            except Exception:
                 exceptions.append((func, traceback.format_exc()))
 
         if exceptions:

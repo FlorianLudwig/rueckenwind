@@ -1,11 +1,28 @@
 """An example using as many different features of rueckenwind as possible
 
 """
+import os
+
+import tornado.web
 import rw.testing
 import rw.http
 import rw.httpbase
 
+
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Tornado GET")
+
+    def post(self):
+        self.write("Tornado POST")
+
+
 root = rw.http.Module('test.example')
+root.mount('/tornado', MainHandler)
+
 
 
 @root.init

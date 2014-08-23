@@ -7,8 +7,6 @@ import jinja2
 
 
 def create_template_env(pkgs):
-    # template pathes
-    # TODO use jinja2.PackageLoader
     loaders = [jinja2.PackageLoader(pkg, 'templates') for pkg in pkgs]
     template_env = jinja2.Environment(
         loader=jinja2.ChoiceLoader(loaders),

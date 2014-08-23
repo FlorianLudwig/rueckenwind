@@ -16,7 +16,9 @@ class MyTestCase(tornado.testing.AsyncTestCase):
 
         with scope():
             scope.activate(plugin, callback=self.inside_scope)
+        self.wait()
 
     @rw.scope.inject
     def inside_scope(self, result, scope):
         assert scope.get('foo') == 1
+        self.stop()
