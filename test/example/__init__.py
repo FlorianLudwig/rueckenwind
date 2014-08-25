@@ -27,7 +27,8 @@ root.mount('/tornado', MainHandler)
 
 @root.init
 def init():
-    root.template_env.globals['static_value'] = 42
+    pass
+    # root.template_env.globals['static_value'] = 42
 
 
 @root.get('/')

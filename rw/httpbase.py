@@ -57,8 +57,22 @@ class Application(object):
 
     def configure(self):
         with self.scope():
-            self.settings = rw.cfg.read_configs(self.root.name)
-            return self.scope.activate(self.root)
+            return self._scoped_configure()
+
+    @gen.coroutine
+    def _scoped_configure(self):
+        self.settings = rw.cfg.read_configs(self.root.name)
+        # load plugins
+        plugins = []
+        for plugin_name, active in self.settings.get('rw.plugins', {}).items():
+            plugin = __import__(plugin_name)
+            plugin_path = plugin_name.split('.')[1:] + ['plugin']
+            for sub in plugin_path:
+                plugin = getattr(plugin, sub)
+            plugins.append(self.scope.activate(plugin))
+
+        yield plugins
+        yield self.scope.activate(self.root)
 
     def __call__(self, request):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""
@@ -67,15 +81,6 @@ class Application(object):
             with request_scope():
                 handler = self.handler(self, request)
                 handler._execute([])
-
-    @gen.coroutine
-    def setup(self):
-        with self.scope():
-            # default plugins
-            self.scope.activate(rw.routing.plugin)
-            # self.scope.activate(rw.template.plugin)
-            # user plugins
-            # TODO
 
     def log_request(self, request):
         # TODO print(request)

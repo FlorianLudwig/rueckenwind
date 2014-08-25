@@ -20,6 +20,10 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         assert response.code == 200
         assert response.body.decode('utf-8') == u'Hello me'
 
+        response = self.fetch('/user/you')
+        assert response.code == 200
+        assert response.body.decode('utf-8') == u'Hello you'
+
         response = self.fetch('/nowhere')
         assert response.code == 404
 
@@ -42,3 +46,8 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def test_mount_tornado_handler(self):
         response = self.fetch('/tornado', method='GET')
         assert response.body.decode('utf-8') == u'Tornado GET'
+
+    def test_static(self):
+        response = self.fetch('/static/test.example/hello_world.txt', method='GET')
+        assert response.body.decode('utf-8') == u'Hello Static World'
+
