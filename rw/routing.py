@@ -220,11 +220,13 @@ class RoutingTable(dict):
                 if hasattr(module, method):
                     route = self.add_route(method, path, proxy)
                     unbount_method = getattr(module, method)
-                    # it is not possible to write to the unbount_method
-                    # but writing to the underlaying im_func works
                     if hasattr(unbount_method, '__func__'):
+                        # python 2
+                        # it is not possible to write to the unbount_method
+                        # but writing to the underlaying im_func works
                         unbount_method.__func__.rw_route = route
                     else:
+                        # python 3
                         unbount_method.rw_route = route
         else:
             module.routes.prefix = path
