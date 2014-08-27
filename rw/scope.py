@@ -20,7 +20,7 @@ import functools
 import inspect
 
 NOT_PROVIDED = object()
-current_scope = None
+SCOPE_CHAIN = None
 
 
 class OutsideScopeError(Exception):
@@ -28,30 +28,14 @@ class OutsideScopeError(Exception):
 
 
 class Scope(dict):
-    def __init__(self, **kwargs):
-        super(Scope, self).__init__(**kwargs)
+    def __init__(self, name=None):
+        super(Scope, self).__init__()
         self._provider = {}
-        self.parent = None
+        self.name = name
         self.plugins = set()
 
     def provider(self, key, provider):
         self._provider[key] = provider
-
-    def get(self, key, default=NOT_PROVIDED):
-        if key == 'scope':
-            return self
-        elif key not in self:
-            if key in self._provider:
-                self[key] = self._provider[key]()
-                del self._provider[key]
-            elif default is not NOT_PROVIDED:
-                return default
-            elif self.parent is not None:
-                return self.parent.get(key, default)
-            else:
-                msg = 'No value for "{}" stored and no default given'.format(key)
-                raise IndexError(msg)
-        return self[key]
 
     @gen.coroutine
     def activate(self, plugin):
@@ -64,22 +48,45 @@ class Scope(dict):
 
 @contextlib.contextmanager
 def set_context(scope):
-    global current_scope
-    if current_scope is not None and current_scope is not scope:
-        scope.parent = current_scope
-    current_scope = scope
+    global SCOPE_CHAIN
+    if SCOPE_CHAIN is None:
+        SCOPE_CHAIN = []
+    SCOPE_CHAIN.append(scope)
     try:
         yield
     finally:
-        current_scope = current_scope.parent
+        # TODO write unit test to get current_scope to be None
+        SCOPE_CHAIN.pop()
 
 
 def get_current_scope():
-    return current_scope
+    return SCOPE_CHAIN[-1] if SCOPE_CHAIN else None
+
+
+def get(key, default=NOT_PROVIDED):
+    print ('chain', SCOPE_CHAIN)
+    if key == 'scope':
+        return SCOPE_CHAIN[-1]
+
+    for scope in reversed(SCOPE_CHAIN):
+        if key in scope:
+            return scope[key]
+        elif key in scope._provider:
+            scope[key] = scope._provider[key]()
+            del scope._provider[key]
+            return scope[key]
+
+    if default is not NOT_PROVIDED:
+        return default
+
+    msg = 'No value for "{}" stored and no default given'.format(key)
+    raise IndexError(msg)
 
 
 def inject(fn):
-    arg_spec = inspect.getargspec(fn)
+    fn_inspect = getattr(fn, '_rw_wrapped_function', fn)
+    arg_spec = inspect.getargspec(fn_inspect)
+    print(fn, arg_spec)
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
@@ -88,8 +95,8 @@ def inject(fn):
             missing_args = set(arg_spec.args[len(args):])
             for key in missing_args:
                 if key not in kwargs:
-                    if current_scope is None:
+                    if not SCOPE_CHAIN:
                         raise OutsideScopeError('Cannot use inject outside of scope')
-                    kwargs[key] = current_scope.get(key)
+                    kwargs[key] = get(key)
         return fn(*args, **kwargs)
     return wrapper

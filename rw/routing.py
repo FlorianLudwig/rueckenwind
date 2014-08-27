@@ -140,7 +140,7 @@ class Rule(object):
         arguments = {}
         for converter_name, args, data in self.route:
             if converter_name:
-                converters = scope.get('rw.routing:converters')
+                converters = rw.scope.get('rw.routing:converters')
                 converter = converters.get(converter_name)
                 if converter is None:
                     raise AttributeError('No converter for {} avaiable'.format(converter_name))
