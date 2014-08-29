@@ -1,0 +1,3 @@
+static_value: {{ static_value }} == 42
+{{ static('test.example/hello_world.txt') }}
+{{ static('/static/test.example/hello_world.txt') }}

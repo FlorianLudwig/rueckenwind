@@ -2,11 +2,14 @@
 
 """
 import os
+import time
 
 import tornado.web
+import tornado.ioloop
 import rw.testing
 import rw.http
 import rw.httpbase
+from rw import gen
 
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -26,14 +29,20 @@ root.mount('/tornado', MainHandler)
 
 
 @root.init
-def init():
-    pass
-    # root.template_env.globals['static_value'] = 42
+def init(template_env):
+    template_env.globals['static_value'] = 42
 
 
 @root.get('/')
 def index(handler):
     handler.finish('Hello rw.http')
+
+
+@root.get('/lazy')
+@gen.coroutine
+def index(handler):
+    yield gen.Task(tornado.ioloop.IOLoop.current().add_timeout, time.time())
+    handler.finish('Hello lazy rw.http')
 
 
 @root.post('/')

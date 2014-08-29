@@ -1,1 +1,0 @@
-static_value: {{ static_value }} == 42

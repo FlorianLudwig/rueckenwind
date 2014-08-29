@@ -6,6 +6,7 @@ import pkg_resources
 import tornado.web
 
 import rw.plugin
+import rw.scope
 
 
 class StaticHandler(tornado.web.StaticFileHandler):
@@ -16,8 +17,6 @@ class StaticHandler(tornado.web.StaticFileHandler):
 
         ``roots`` is the path configured for this `StaticFileHandler`
         (in most cases the ``static_path`` `Application` setting).
-
-        .. versionadded:: 3.1
         """
         for root in roots:
             abspath = os.path.abspath(os.path.join(root, path))
@@ -36,8 +35,6 @@ class StaticHandler(tornado.web.StaticFileHandler):
         `RequestHandler.redirect` (return None after redirecting to
         halt further processing).  This is where 404 errors for missing files
         are generated.
-
-        .. versionadded:: 3.1
         """
         if absolute_path is None:
             raise tornado.web.HTTPError(404)
@@ -55,13 +52,27 @@ class StaticHandler(tornado.web.StaticFileHandler):
         return absolute_path
 
 
+class Static():
+    def __call__(self, path):
+        """returns url for static path"""
+        app = rw.scope.get('app')
+        # app.root.
+        # cfg = .settings.get('rw.static', {})
+        if not path.startswith('/'):
+            return '/static/' + path
+        return path
+
+
 plugin = rw.plugin.Plugin(__name__)
 
 
 @plugin.init
-def init(app):
+def init(scope, app):
     """serve static files"""
     cfg = app.settings.get('rw.static', {})
+    static = Static()
+    scope['static'] = static
+    scope['template_env'].globals['static'] = static
     for base_uri, sources in cfg.items():
         full_paths = []
         for source in sources:
@@ -70,3 +81,5 @@ def init(app):
             full_paths.append(full_path)
         app.root.mount('/' + base_uri + '/<path:path>',
                        StaticHandler, {'path': full_paths})
+        # handlers.append(base_uri)
+        # static.add_handler()
