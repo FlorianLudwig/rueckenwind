@@ -64,7 +64,6 @@ def get_current_scope():
 
 
 def get(key, default=NOT_PROVIDED):
-    print ('chain', SCOPE_CHAIN)
     if key == 'scope':
         return SCOPE_CHAIN[-1]
 
@@ -86,7 +85,6 @@ def get(key, default=NOT_PROVIDED):
 def inject(fn):
     fn_inspect = getattr(fn, '_rw_wrapped_function', fn)
     arg_spec = inspect.getargspec(fn_inspect)
-    print(fn, arg_spec)
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
