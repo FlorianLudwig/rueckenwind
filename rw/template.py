@@ -31,4 +31,3 @@ def create_template_env(pkgs):
     # filter
     # template_env.filters['json'] = dumps
     return template_env
-    # scope['template_env'] = template_env

@@ -22,10 +22,10 @@ class Module(rw.plugin.Plugin):
         self.routes.setup()
 
     @scope.inject
-    def render_template(self, template_name, app, handler):
+    def render_template(self, template_name, template_env, handler):
         if not template_name.startswith('/'):
             template_name = self.name + '/' + template_name
-        template = app.template_env.get_template(template_name)
+        template = template_env.get_template(template_name)
         handler.finish(template.render(**handler))
 
     def _handle_request(self, handler):
@@ -37,7 +37,7 @@ class Module(rw.plugin.Plugin):
             raise tornado.web.HTTPError(404)
         # parse arguments?
         with request_scope():
-            fn(**args)
+            return fn(**args)
 
     def get(self, path):
         """Expose a function for HTTP GET requests
