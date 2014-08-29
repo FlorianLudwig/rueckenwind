@@ -1,17 +1,27 @@
 from __future__ import absolute_import, division, print_function, with_statement
 
 import os
+import hashlib
+import base64
 
 import pkg_resources
 import tornado.web
+import types
 
 import rw.plugin
 import rw.scope
 
 
 class StaticHandler(tornado.web.StaticFileHandler):
+    def get(self, path, include_body=True, h=None):
+        # TODO only in development mode
+        self.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.set_header('Pragma', 'no-cache')
+        self.set_header('Expires', '0')
+        return super(StaticHandler, self).get(path, include_body)
+
     @classmethod
-    def get_absolute_path(self, roots, path):
+    def get_absolute_path(cls, roots, path):
         """Returns the absolute location of ``path`` relative to one of
         the ``roots``.
 
@@ -20,7 +30,7 @@ class StaticHandler(tornado.web.StaticFileHandler):
         """
         for root in roots:
             abspath = os.path.abspath(os.path.join(root, path))
-            if os.path.exists(abspath):
+            if abspath.startswith(root) and os.path.exists(abspath):
                 return abspath
         return None
 
@@ -44,7 +54,7 @@ class StaticHandler(tornado.web.StaticFileHandler):
                 break
         else:
             raise tornado.web.HTTPError(403, "%s is not in root static directory",
-                            self.path)
+                                        self.path)
 
         if not os.path.isfile(absolute_path):
             raise tornado.web.HTTPError(403, "%s is not a file", self.path)
@@ -52,16 +62,40 @@ class StaticHandler(tornado.web.StaticFileHandler):
         return absolute_path
 
 
-class Static():
+def file_hash(content):
+    h = hashlib.md5(content).digest()
+    # base64url with + -> - and / -> _
+    return base64.b64encode(h, altchars=b'-_')[:6]
+
+
+class Static(object):
+    def __init__(self):
+        self.handlers = []
+
     def __call__(self, path):
         """returns url for static path"""
-        app = rw.scope.get('app')
-        # app.root.
-        # cfg = .settings.get('rw.static', {})
         if not path.startswith('/'):
-            return '/static/' + path
-        return path
+            uri = '/static/' + path
+        else:
+            uri = path
 
+        for base_uri, handler_class, roots in self.handlers:
+            if uri.startswith('/' + base_uri + '/'):
+                path = uri[len(base_uri)+2:]  # remove /base_uri/
+                abs_path = handler_class.get_absolute_path(roots, path)
+                content = handler_class.get_content(abs_path)
+                if isinstance(content, types.GeneratorType):
+                    content = b''.join(content)
+                break
+        else:
+            # XXX todo: something more sensitive
+            raise Exception('File Not Found')
+
+        h = file_hash(content)
+        return '/{}/{}/{}'.format(base_uri, h, path)
+
+    def setup(self):
+        self.handlers.sort(key=lambda x: len(x[0]), reverse=True)
 
 plugin = rw.plugin.Plugin(__name__)
 
@@ -79,7 +113,7 @@ def init(scope, app):
             module_name, path = [part.strip() for part in source.split(',')]
             full_path = pkg_resources.resource_filename(module_name, path)
             full_paths.append(full_path)
-        app.root.mount('/' + base_uri + '/<path:path>',
+        app.root.mount('/' + base_uri + '/<h>/<path:path>',
                        StaticHandler, {'path': full_paths})
-        # handlers.append(base_uri)
+        static.handlers.append((base_uri, StaticHandler, full_paths))
         # static.add_handler()

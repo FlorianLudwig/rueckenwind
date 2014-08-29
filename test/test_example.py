@@ -70,13 +70,13 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
 
     def test_static(self):
         # from static folder
-        response = self.fetch('/static/test.example/hello_world.txt', method='GET')
+        response = self.fetch('/static/hash/test.example/hello_world.txt', method='GET')
         assert response.body.decode('utf-8') == u'Hello Static World'
 
         # from static2 folder
-        response = self.fetch('/static/test.example/hallo_welt.txt', method='GET')
+        response = self.fetch('/static/hash/test.example/hallo_welt.txt', method='GET')
         assert response.body.decode('utf-8') == u'Guten Tag.'
 
         # from static2 folder (higher in config file)
-        response = self.fetch('/static/test.example/overwrite.txt', method='GET')
+        response = self.fetch('/static/hash/test.example/overwrite.txt', method='GET')
         assert response.body.decode('utf-8') == u'Overwrite'

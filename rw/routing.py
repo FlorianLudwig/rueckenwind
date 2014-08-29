@@ -179,6 +179,8 @@ def _generate_request_handler_proxy(handler_class, handler_args):
     def request_handler_wrapper(app, handler, **kwargs):
         handler = handler_class(app, handler.request, **handler_args)
         handler._execute([], **kwargs)
+    request_handler_wrapper.handler_class = handler_class
+    request_handler_wrapper.handler_args = handler_args
 
     return request_handler_wrapper
 
@@ -202,7 +204,6 @@ class RoutingTable(dict):
                     if rule[1] not in funcs:
                         new_rule = Rule(routes.prefix + rule[0].path)
                         self[key].append((new_rule, rule[1]))
-                        print('found sub', new_rule)
 
         # sort all rules
         for key in self:
