@@ -83,13 +83,15 @@ class Static(object):
             if uri.startswith('/' + base_uri + '/'):
                 path = uri[len(base_uri)+2:]  # remove /base_uri/
                 abs_path = handler_class.get_absolute_path(roots, path)
+                if not abs_path:
+                    raise Exception('File Not Found %s' % repr(path))
                 content = handler_class.get_content(abs_path)
                 if isinstance(content, types.GeneratorType):
                     content = b''.join(content)
                 break
         else:
             # XXX todo: something more sensitive
-            raise Exception('File Not Found')
+            raise Exception('File Not Found %s' % repr(path))
 
         h = file_hash(content)
         return '/{}/{}/{}'.format(base_uri, h, path)
