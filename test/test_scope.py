@@ -85,6 +85,31 @@ def test_recursion():
     assert rw.scope.get_current_scope() is None
 
 
+def test_sub_scope():
+    scope1 = rw.scope.Scope()
+    scope2 = rw.scope.Scope()
+
+    sub1 = scope1.subscope('my_sub_scope')
+    sub2 = scope2.subscope('my_sub_scope')
+
+    sub1['value_1'] = 1
+    sub1['shared'] = 1
+    sub2['value_2'] = 2
+    sub2['shared'] = 2
+
+    with scope1():
+        assert rw.scope.get('my_sub_scope')['value_1'] == 1
+        assert rw.scope.get('my_sub_scope')['shared'] == 1
+        assert 'value_2' not in rw.scope.get('my_sub_scope')
+        with scope2():
+            assert rw.scope.get('my_sub_scope')['value_1'] == 1
+            assert rw.scope.get('my_sub_scope')['value_2'] == 2
+            assert rw.scope.get('my_sub_scope')['shared'] == 2
+        assert rw.scope.get('my_sub_scope')['value_1'] == 1
+        assert rw.scope.get('my_sub_scope')['shared'] == 1
+        assert 'value_2' not in rw.scope.get('my_sub_scope')
+
+
 def test_fail():
     @rw.scope.inject
     def foo(something_to_inject):

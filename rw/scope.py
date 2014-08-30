@@ -31,6 +31,7 @@ class Scope(dict):
     def __init__(self, name=None):
         super(Scope, self).__init__()
         self._provider = {}
+        self._subscopes = {}
         self.name = name
         self.plugins = set()
 
@@ -42,8 +43,65 @@ class Scope(dict):
         yield plugin.activate()
         self.plugins.add(plugin)
 
+    def subscope(self, key):
+        if not key in self._subscopes:
+            name = '{}.{}'.format(self.name, key)
+            subscope = SubScope(name, self)
+            self._subscopes[key] = subscope
+        return self._subscopes[key]
+
+    def get(self, key, default=NOT_PROVIDED, scopes=None):
+        """
+
+        :param str key:
+        :param default:
+        :param list[Scope] scopes:
+        :param str prefix:
+        :return: :raise IndexError:
+        """
+        if scopes is None:
+            scopes = list(reversed(SCOPE_CHAIN))
+        if key == 'scope':
+            return self
+
+        for i, scope in enumerate(scopes):
+            if key in scope:
+                return scope[key]
+            elif key in scope._provider:
+                scope[key] = scope._provider[key]()
+                del scope._provider[key]
+                return scope[key]
+            elif key in self._subscopes:
+                return SubScopeView(key, scopes)
+
+        if default is not NOT_PROVIDED:
+            return default
+
+        msg = 'No value for "{}" stored and no default given'.format(key)
+        raise IndexError(msg)
+
     def __call__(self):
         return stack_context.StackContext(functools.partial(set_context, self))
+
+
+class SubScope(Scope):
+    def __init__(self, name, parent):
+        self.parent = parent
+        super(SubScope, self).__init__(name)
+
+
+class SubScopeView(object):
+    def __init__(self, key, scope_chain):
+        self.key = key
+        self.scope_chain = scope_chain
+
+    def __getitem__(self, item):
+        for scope in self.scope_chain:
+            if self.key in scope._subscopes:
+                print(self.key, scope._subscopes)
+                if item in scope._subscopes[self.key]:
+                    return scope._subscopes[self.key][item]
+        raise IndexError()
 
 
 @contextlib.contextmanager
@@ -64,22 +122,9 @@ def get_current_scope():
 
 
 def get(key, default=NOT_PROVIDED):
-    if key == 'scope':
-        return SCOPE_CHAIN[-1]
-
-    for scope in reversed(SCOPE_CHAIN):
-        if key in scope:
-            return scope[key]
-        elif key in scope._provider:
-            scope[key] = scope._provider[key]()
-            del scope._provider[key]
-            return scope[key]
-
-    if default is not NOT_PROVIDED:
-        return default
-
-    msg = 'No value for "{}" stored and no default given'.format(key)
-    raise IndexError(msg)
+    if not SCOPE_CHAIN:
+        raise OutsideScopeError()
+    return SCOPE_CHAIN[-1].get(key, default, list(reversed(SCOPE_CHAIN)))
 
 
 def inject(fn):
