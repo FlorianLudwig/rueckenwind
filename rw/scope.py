@@ -4,7 +4,7 @@
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -71,7 +71,7 @@ class Scope(dict):
                 scope[key] = scope._provider[key]()
                 del scope._provider[key]
                 return scope[key]
-            elif key in self._subscopes:
+            elif key in scope._subscopes:
                 return SubScopeView(key, scopes)
 
         if default is not NOT_PROVIDED:
@@ -98,10 +98,16 @@ class SubScopeView(object):
     def __getitem__(self, item):
         for scope in self.scope_chain:
             if self.key in scope._subscopes:
-                print(self.key, scope._subscopes)
                 if item in scope._subscopes[self.key]:
                     return scope._subscopes[self.key][item]
         raise IndexError()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, SubScopeView)
+            and self.key == other.key
+            and self.scope_chain == other.scope_chain
+        )
 
 
 @contextlib.contextmanager
@@ -142,4 +148,5 @@ def inject(fn):
                         raise OutsideScopeError('Cannot use inject outside of scope')
                     kwargs[key] = get(key)
         return fn(*args, **kwargs)
+
     return wrapper

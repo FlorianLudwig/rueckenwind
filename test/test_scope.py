@@ -88,6 +88,7 @@ def test_recursion():
 def test_sub_scope():
     scope1 = rw.scope.Scope()
     scope2 = rw.scope.Scope()
+    scope3 = rw.scope.Scope()
 
     sub1 = scope1.subscope('my_sub_scope')
     sub2 = scope2.subscope('my_sub_scope')
@@ -97,17 +98,41 @@ def test_sub_scope():
     sub2['value_2'] = 2
     sub2['shared'] = 2
 
+    @rw.scope.inject
+    def get_sub_scope(my_sub_scope):
+        return my_sub_scope
+
+    @rw.scope.inject
+    def get_sub_scope_var(var, my_sub_scope):
+        return my_sub_scope[var]
+
+    def checks_inside_scope1():
+        assert rw.scope.get('my_sub_scope') == get_sub_scope()
+        assert rw.scope.get('my_sub_scope')['value_1'] == 1
+        assert get_sub_scope_var('value_1') == 1
+        assert rw.scope.get('my_sub_scope')['shared'] == 1
+        assert get_sub_scope_var('shared') == 1
+        assert 'value_2' not in rw.scope.get('my_sub_scope')
+
+    def checks_inside_scope2():
+        assert rw.scope.get('my_sub_scope') == get_sub_scope()
+        assert rw.scope.get('my_sub_scope')['value_1'] == 1
+        assert get_sub_scope_var('value_1') == 1
+        assert rw.scope.get('my_sub_scope')['value_2'] == 2
+        assert get_sub_scope_var('value_2') == 2
+        assert rw.scope.get('my_sub_scope')['shared'] == 2
+        assert get_sub_scope_var('shared') == 2
+
     with scope1():
-        assert rw.scope.get('my_sub_scope')['value_1'] == 1
-        assert rw.scope.get('my_sub_scope')['shared'] == 1
-        assert 'value_2' not in rw.scope.get('my_sub_scope')
+        checks_inside_scope1()
         with scope2():
-            assert rw.scope.get('my_sub_scope')['value_1'] == 1
-            assert rw.scope.get('my_sub_scope')['value_2'] == 2
-            assert rw.scope.get('my_sub_scope')['shared'] == 2
-        assert rw.scope.get('my_sub_scope')['value_1'] == 1
-        assert rw.scope.get('my_sub_scope')['shared'] == 1
-        assert 'value_2' not in rw.scope.get('my_sub_scope')
+            checks_inside_scope2()
+            with scope3():
+                # scope 3 does not have a 'my_sub_scope' subscope
+                # so we expect the same results as for scope 2
+                checks_inside_scope2()
+
+        checks_inside_scope1()
 
 
 def test_fail():
