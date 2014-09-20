@@ -5,4 +5,4 @@ rw.plugins:
 rw.static:
   static:
     - test.example, static2
-    - test.example, static
+    - test.example # this must default to "static"

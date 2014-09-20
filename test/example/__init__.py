@@ -77,4 +77,4 @@ def options(handler):
 
 @root.get('/foo')
 def some_page():
-    root.render_template('index.html.jj2')
+    root.render_template('index.html')
