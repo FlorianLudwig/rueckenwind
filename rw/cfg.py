@@ -19,6 +19,7 @@ import os
 import pkg_resources
 import logging
 
+import tornado.autoreload
 import yaml
 
 
@@ -81,5 +82,6 @@ def read_configs(module_name, extra_configs=None):
     for path in paths:
         if os.path.exists(path):
             LOG.info('reading config: ' + path)
+            tornado.autoreload.watch(path)
             merge(cfg, read_file(path))
     return cfg
