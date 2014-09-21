@@ -13,6 +13,8 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
+import os
+
 import tornado.web
 import tornado.httpserver
 from tornado import gen
@@ -38,6 +40,7 @@ class Application(object):
         :param handler: The request handler (should subclass `tornado.web.RequestHandler`)
         """
         self.settings = {}
+        self.rw_settings = {}
         self.root = root
         self.scope = rw.scope.Scope()
         self.scope['app'] = self
@@ -61,18 +64,43 @@ class Application(object):
 
     @gen.coroutine
     def _scoped_configure(self):
-        self.settings = rw.cfg.read_configs(self.root.name)
+        self.rw_settings = rw.cfg.read_configs(self.root.name)
+        cfg_rw_http = self.rw_settings.setdefault('rw.http', {})
+        cfg_rw_http['live_settings'] = self.settings
+        self.scope['settings'] = self.rw_settings
         # load plugins
         plugins = []
-        for plugin_name, active in self.settings.get('rw.plugins', {}).items():
+        for plugin_name, active in self.rw_settings.get('rw.plugins', {}).items():
             plugin = __import__(plugin_name)
             plugin_path = plugin_name.split('.')[1:] + ['plugin']
             for sub in plugin_path:
                 plugin = getattr(plugin, sub)
             plugins.append(self.scope.activate(plugin))
 
+        self._configure_cookie_secret()
+
         yield plugins
         yield self.scope.activate(self.root)
+
+    def _configure_cookie_secret(self):
+        cfg = self.rw_settings['rw.http']
+        if 'cookie_secret' in cfg:
+            if 'file' in cfg['cookie_secret']:
+                cs_path = cfg['cookie_secret']['file']
+                cs_path = cs_path.format(
+                    **os.environ
+                )
+                if os.path.exists(cs_path):
+                    cookie_secret = open(cs_path).read().strip()
+                else:
+                    cs_dir = os.path.dirname(cs_path)
+                    if not os.path.exists(cs_dir):
+                        os.makedirs(cs_dir)
+                    cookie_secret = os.urandom(32)
+                    open(cs_path, 'w').write(cookie_secret)
+            elif 'random' in cfg['cookie_secret'] and cfg['cookie_secret']['random']:
+                cookie_secret = os.urandom(32)
+            cfg['live_settings']['cookie_secret'] = cookie_secret
 
     def __call__(self, request):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""
