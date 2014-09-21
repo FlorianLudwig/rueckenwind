@@ -32,7 +32,8 @@ class StaticHandler(tornado.web.StaticFileHandler):
             abspath = os.path.abspath(os.path.join(root, path))
             if abspath.startswith(root) and os.path.exists(abspath):
                 return abspath
-        return None
+        # XXX TODO
+        return 'file-not-found'
 
     def validate_absolute_path(self, roots, absolute_path):
         """Validate and return the absolute path.
@@ -103,9 +104,9 @@ plugin = rw.plugin.Plugin(__name__)
 
 
 @plugin.init
-def init(scope, app):
+def init(scope, app, settings):
     """serve static files"""
-    cfg = app.settings.get('rw.static', {})
+    cfg = settings.get('rw.static', {})
     static = Static()
     scope['static'] = static
     scope['template_env'].globals['static'] = static
@@ -122,4 +123,5 @@ def init(scope, app):
         app.root.mount('/' + base_uri + '/<h>/<path:path>',
                        StaticHandler, {'path': full_paths})
         static.handlers.append((base_uri, StaticHandler, full_paths))
-        # static.add_handler()
+    static.setup()
+
