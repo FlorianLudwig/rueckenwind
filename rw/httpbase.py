@@ -48,6 +48,7 @@ class Application(object):
             self.handler = handler if handler is not None else RequestHandler
             pkgs = [root.name]  # TODO, Breadth-first search for dependencies
             self.scope['template_env'] = rw.template.create_template_env(pkgs)
+            self.scope['template_env'].globals['root_handler'] = root
         else:
             self.handler = handler
             assert handler is not None
