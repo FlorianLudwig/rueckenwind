@@ -53,6 +53,8 @@ def test_basic():
         assert foo(1) == 1
         assert foo() is current_user
         assert bar() == 42
+        assert bar(10) == 10
+        assert bar(some_static_value=11) == 11
 
         # check nested scope
         nested_scope = rw.scope.Scope()

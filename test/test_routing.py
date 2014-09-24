@@ -6,7 +6,7 @@ import rw.scope
 
 
 def generate_rule(route):
-    return rw.routing.Rule(route)
+    return rw.routing.Route(route)
 
 
 def test_parse_rule():

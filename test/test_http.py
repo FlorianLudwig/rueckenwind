@@ -18,12 +18,18 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         self.wait()
 
     def http(self, _):
+        sub = rw.http.Module('test')
+        sub_index = generate_handler_func(sub.get, '/')
+        sub_fun = generate_handler_func(sub.get, '/fun')
+        sub_posts = generate_handler_func(sub.get, '/<user_name:str>/posts')
+
         m = rw.http.Module('test')
         index = generate_handler_func(m.get, '/')
         index_post = generate_handler_func(m.post, '/')
         index_put = generate_handler_func(m.put, '/')
         index_delete = generate_handler_func(m.delete, '/')
         user = generate_handler_func(m.get, '/user/<user_name:str>')
+        m.mount('/sub', sub)
         m.setup()
 
         assert m.routes.find_route('get', '/')[0] == index
@@ -37,6 +43,12 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         assert rw.http.url_for(index_post) == '/'
 
         assert rw.http.url_for(user, user_name='joe') == '/user/joe'
+
+        # test mount
+        assert rw.http.url_for(sub_index) == '/sub'
+        assert rw.http.url_for(sub_fun) == '/sub/fun'
+        assert rw.http.url_for(sub_posts, user_name='bob') == '/sub/bob/posts'
+
         self.stop()
 
     def test_mount(self):

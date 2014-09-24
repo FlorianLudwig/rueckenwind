@@ -82,7 +82,7 @@ class NoMatchError(Exception):
     pass
 
 
-class Rule(object):
+class Route(object):
     def __init__(self, path):
         """Rule for `callback` matching given `path`"""
         self.path = path.rstrip('/')
@@ -96,7 +96,7 @@ class Rule(object):
     def __lt__(self, o):
         """less than `o`
 
-        :param Rule o: other rule to compare with
+        :param Route o: other rule to compare with
         """
         if self == o:
             return False
@@ -122,7 +122,7 @@ class Rule(object):
     def __gt__(self, o):
         """greater than `o`
 
-        :param Rule o: other rule to compare with
+        :param Route o: other rule to compare with
         """
         if self == o:
             return False
@@ -131,7 +131,7 @@ class Rule(object):
     def __eq__(self, o):
         """equal to `o`
 
-        :param Rule o: other rule to compare with
+        :param Route o: other rule to compare with
         """
         return self.route == o.route
 
@@ -200,19 +200,20 @@ class RoutingTable(dict):
             for module in self.sub_modules:
                 module.setup()
                 routes = module.routes
-                for rule in routes.get(key, []):
-                    if rule[1] not in funcs:
-                        new_rule = Rule(routes.prefix + rule[0].path)
-                        self[key].append((new_rule, rule[1]))
+                for route, fn in routes.get(key, []):
+                    if route not in funcs:
+                        new_route = Route(routes.prefix + route.path)
+                        fn.rw_route = new_route
+                        self[key].append((new_route, fn))
 
         # sort all rules
         for key in self:
             self[key].sort(key=lambda rule: rule[0])
 
     def add_route(self, method, path, fn):
-        rule = Rule(path)
-        self.setdefault(method, []).append((rule, fn))
-        return rule
+        route = Route(path)
+        self.setdefault(method, []).append((route, fn))
+        return route
 
     def add_module(self, path, module, handler_args):
         if inspect.isclass(module) and issubclass(module, tornado.web.RequestHandler):
@@ -224,7 +225,7 @@ class RoutingTable(dict):
                     if hasattr(unbount_method, '__func__'):
                         # python 2
                         # it is not possible to write to the unbount_method
-                        # but writing to the underlaying im_func works
+                        # but writing to the underlying im_func works
                         unbount_method.__func__.rw_route = route
                     else:
                         # python 3
