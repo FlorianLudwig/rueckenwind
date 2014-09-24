@@ -22,6 +22,7 @@ Design Principles and Goals
 .. note::
 
    Rückenwind is in **alpha** stage of development, backwards compatibility will break.
+   And actually did: 0.3.x and 0.4.x are quite different.
 
 
 Install
@@ -29,22 +30,24 @@ Install
 
 Use pip::
 
-  virtualenv --distribute my_playground
+  virtualenv my_playground
   . ./my_playground/bin/activate  
-  pip install -e git+git://github.com/FlorianLudwig/rueckenwind.git#egg=rueckenwind
+  pip install rueckenwind
 
 
 Quick start
 ===========
 
-It is highly recommended to develop and deploy within a `virtualenv <https://pypi.python.org/pypi/virtualenv>`_. Always. So this documentation just assumes you do without further mentioning it. After installing rückenwind you got a new command at your disposal: *rw*.
-You can use it to generate a new rückendwind project skelton::
+It is highly recommended to develop and deploy within a `virtualenv <https://pypi.python.org/pypi/virtualenv>`_. Always.
+So this documentation just assumes you do without further mentioning it.
+After installing rückenwind you got a new command at your disposal: *rw*.
+You can use it to generate a new rückendwind project skeleton::
 
   rw skel --name my_new_project
 
 To start your new project::
 
-  rw serv my_new_project
+  rw serv my_new_project.http
 
 Go and visit `127.0.0.1:8000 <http://127.0.0.1:8000/>`_ to grab your *hello world* while it is hot.
 
@@ -59,7 +62,7 @@ The basic structure::
 
   module/
           __init__.py
-          www.py
+          http.py
           static/
           templates/
           locale/
@@ -69,14 +72,14 @@ The obvious: all your static files go into the static/ folder and
 your `jinja2 <http://jinja.pocoo.org/>`_ templates into
 the templates/ folder.
 
-The www.py must contain a class named Main that derives from rw.RequestHandler.
-It is the entry point for all http requests to this module.
+The http.py must contain a Module named root.
+It is the entry point for all http requests to your app.
 
 
 .. note::
 
    Rückenwind does not try to be a framework for everyone and
-   everything. As one of the consequenes only a single templateing engine is supported.
+   everything.  As one of the consequences only a single templating engine is supported.
    This keeps rückendwind code KISS. Don't like jinja? Sorry,
    rückenwind is not for you, switch to 
    `one of the many other frameworks <http://wiki.python.org/moin/WebFrameworks>`_.
@@ -86,7 +89,8 @@ It is the entry point for all http requests to this module.
 Routing
 =======
 
-At the heard of rückenwind there is routing of http requests. It draws insparation from several other projects, like `Flask <http://flask.pocoo.org/>`_ .
+At the heart of rückenwind there is routing of http requests.
+It draws inspiration from several other projects, like `Flask <http://flask.pocoo.org/>`_ .
 
 Design notes
 
@@ -96,30 +100,31 @@ Design notes
 
 An example RequestHandler::
 
-  class Registration(RequestHandler):
-      @get('/')
-      def register(self):
-          self.finish(template='register.html')
+  registration = Module('my_playground')
+  @registration.get('/')
+  def register(handler):
+      handler.finish(template='register.html')
 
-      @post('/')
-      def register_post(self):
-          u = User(email= self.get_argument('email'),
-                   username=self.get_argument('password'))
-          self.redirect(url_fur(self.main))
+  @registration.post('/')
+  def register_post(handler):
+      u = User(email=handler.get_argument('email'),
+               username=handler.get_argument('password'))
+      handler.redirect(url_fur(root.index))
 
 
-  class Main(RequestHandler):
-      @get('/')
-      def main(self):
-          self['time'] = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
-          self.finish(template='index.html')
+  root = Module('my_playground')
+  @root.get('/')
+  def main(handler):
+      handler['time'] = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+      root.finish(template='my_playground/index.html')
 
-      @get('/entry/<id>')
-      def entry(self, id):
-          self['entries'] = get_entry_from_id(id)
-          self.finish(template='main.html')
+  @root.get('/entry/<id>')
+  @gen.coroutine
+  def entry(self, id):
+      self['entries'] = yield get_entry_from_id(id)
+      self.finish(template='my_playground/main.html')
 
-      mount('/register', Registration)
+  root.mount('/register', registration)
 
 For details see: :doc:`www`
 
@@ -130,11 +135,10 @@ For documentation about the Jinja templating engine please look at its beautiful
 
 Assigning variables::
 
-  class Main(RequestHandler):
-      @get('/')
-      def main(self):
-          self['time'] = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
-          self.finish(template='index.html')
+  @root.get('/')
+  def main(handler):
+      handler['time'] = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+      root.finish(template='my_playground/index.html')
 
 
 Within the template::
@@ -153,7 +157,8 @@ If you want to link to another page there is::
 
   {{ url_for(handler.login) }}
 
-Some more examples, same routes as before::
+
+Same routes as before::
 
   class Main(RequestHandler):
       @get('/')
