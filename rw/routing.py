@@ -201,7 +201,7 @@ class RoutingTable(dict):
                 module.setup()
                 routes = module.routes
                 for route, fn in routes.get(key, []):
-                    if route not in funcs:
+                    if fn not in funcs:
                         new_route = Route(routes.prefix + route.path)
                         fn.rw_route = new_route
                         self[key].append((new_route, fn))
