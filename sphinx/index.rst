@@ -12,14 +12,18 @@ Contents:
    www.rst
    static_data.rst
    cfg.rst
-   db.rst
    architecture.rst
 
-* TODO: Write docs about
- * plugin / bus system
+
+
+TODO
+====
+
+The documentation is far from completion, here are some TODOs
+
+ * plugin
  * debugging
  * i18n
- * database usage
  * deployment
 
 
