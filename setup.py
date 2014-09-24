@@ -1,23 +1,45 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 
 from distutils.command.sdist import sdist
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
+import setuptools.command.test
 
-
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 version_suffix = ''
 
 
-class Tox(TestCommand):
+class TestCommand(setuptools.command.test.test):
     def finalize_options(self):
-        TestCommand.finalize_options(self)
-        # self.test_args = ["-v", "-epy"]
+        setuptools.command.test.test.finalize_options(self)
+        self.test_args = []
         self.test_suite = True
 
     def run_tests(self):
-        import tox
-        tox.cmdline(self.test_args)
+        fails = []
+        from tox._config import parseconfig
+        from tox._cmdline import Session
+
+        config = parseconfig(self.test_args, 'tox')
+        retcode = Session(config).runcommand()
+        if retcode != 0:
+            fails.append('tox returned errors')
+
+        import pep8
+        style_guide = pep8.StyleGuide(config_file=BASE_PATH + '/.pep8')
+        style_guide.input_dir(BASE_PATH + '/rw')
+        if style_guide.options.report.get_count() != 0:
+            fails.append('pep8 returned errros for rw/')
+
+        style_guide = pep8.StyleGuide(config_file=BASE_PATH + '/.pep8')
+        style_guide.input_dir(BASE_PATH + '/test')
+        if style_guide.options.report.get_count() != 0:
+            fails.append('pep8 returned errros for test/')
+
+        if fails:
+            print('\n'.join(fails))
+            sys.exit(1)
 
 
 def get_version_suffix():
@@ -62,7 +84,7 @@ setup(
                       'future'
                       ],
     extras_requires={
-        'test': ['tox', 'pytest'],
+        'test': ['tox', 'pytest', 'pep8'],
         'docs': ['sphinx_rtd_theme']
     },
     packages=find_packages(exclude=['*.test', '*.test.*']),
@@ -75,5 +97,8 @@ setup(
             'rw = rw.cli:main',
         ],
     },
-    cmdclass={'sdist': sdist_git}
+    cmdclass={
+        'sdist': sdist_git,
+        'test': TestCommand
+    }
 )
