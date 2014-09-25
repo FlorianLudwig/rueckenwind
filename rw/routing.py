@@ -38,6 +38,10 @@ _rule_re = re.compile(r'''
 _simple_rule_re = re.compile(r'<([^>]+)>')
 
 
+class DuplicateError(Exception):
+    pass
+
+
 def parse_rule(rule):
     """Parse a rule and return it as list of tuples in the form
     ``(converter, arguments, variable)``. If the converter is
@@ -172,13 +176,14 @@ class Route(object):
         return '<Rule "%s">' % self.path
 
 
-def _generate_request_handler_proxy(handler_class, handler_args):
+def _generate_request_handler_proxy(handler_class, handler_args, name):
     """When a tornado.web.RequestHandler gets mounted we create a launcher function"""
 
     @scope.inject
     def request_handler_wrapper(app, handler, **kwargs):
         handler = handler_class(app, handler.request, **handler_args)
         handler._execute([], **kwargs)
+    request_handler_wrapper.__name__ = name
     request_handler_wrapper.handler_class = handler_class
     request_handler_wrapper.handler_args = handler_args
 
@@ -190,6 +195,7 @@ class RoutingTable(dict):
         dict.__init__(self)
         self.prefix = ''
         self.sub_modules = []
+        self.fn_namespace = {}
 
     def setup(self):
         """setup routing table"""
@@ -206,6 +212,9 @@ class RoutingTable(dict):
                         fn.rw_route = new_route
                         self[key].append((new_route, fn))
 
+                for key, fn in module.routes.fn_namespace.items():
+                    self.fn_namespace[module.name + '.' + key] = fn
+
         # sort all rules
         for key in self:
             self[key].sort(key=lambda rule: rule[0])
@@ -213,12 +222,28 @@ class RoutingTable(dict):
     def add_route(self, method, path, fn):
         route = Route(path)
         self.setdefault(method, []).append((route, fn))
+        # if fn.__name__ in self.fn_namespace:
+        #     msg = 'Module already contains route with name {}'.format(fn.__name__)
+        #     raise DuplicateError(msg)
+        self.fn_namespace[fn.__name__] = fn
         return route
 
-    def add_module(self, path, module, handler_args):
+    def get_path(self, func, kwargs):
+        if func not in self.fn_namespace:
+            # TODO do something more sensitve
+            # - Log warning
+            # - return actual 404 url
+            return '404'
+        return self.fn_namespace[func].rw_route.get_path(kwargs)
+
+    def add_module(self, path, module, handler_args, name):
         if inspect.isclass(module) and issubclass(module, tornado.web.RequestHandler):
-            proxy = _generate_request_handler_proxy(module, handler_args)
+            if name is None:
+                name = module.__name__
             for method in ['get', 'post', 'put', 'delete']:
+                proxy = _generate_request_handler_proxy(module,
+                                                        handler_args,
+                                                        name + '_' + method)
                 if hasattr(module, method):
                     route = self.add_route(method, path, proxy)
                     unbount_method = getattr(module, method)

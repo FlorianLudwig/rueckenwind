@@ -8,10 +8,11 @@ import rw.template
 
 
 class Module(rw.plugin.Plugin):
-    def __init__(self, name):
+    def __init__(self, name, resources=None):
         super(Module, self).__init__(name)
+        self.resources = name if resources is None else resources
         self.routes = rw.routing.RoutingTable()
-        self.activate.add(self.setup)
+        self.activate_event.add(self.setup)
         self.template_env = None
 
     def setup(self):
@@ -24,20 +25,9 @@ class Module(rw.plugin.Plugin):
     @scope.inject
     def render_template(self, template_name, template_env, handler):
         if not template_name.startswith('/'):
-            template_name = self.name + '/' + template_name
+            template_name = self.resources + '/' + template_name
         template = template_env.get_template(template_name)
         handler.finish(template.render(**handler))
-
-    def _handle_request(self, handler):
-        """called by RequestHandler"""
-        request_scope = scope.Scope()
-        request_scope['handler'] = handler
-        fn, args = self.routes.find_route(handler.request.method, handler.request.path)
-        if fn is None:
-            raise tornado.web.HTTPError(404)
-        # parse arguments?
-        with request_scope():
-            return fn(**args)
 
     def get(self, path):
         """Expose a function for HTTP GET requests
@@ -114,11 +104,23 @@ class Module(rw.plugin.Plugin):
             return fn
         return wrapper
 
-    def mount(self, path, module, handler_args=None):
+    def mount(self, path, module, handler_args=None, name=None):
         if handler_args is None:
             handler_args = {}
-        self.routes.add_module(path, module, handler_args)
+        self.routes.add_module(path, module, handler_args, name)
 
 
 def url_for(func, **kwargs):
-    return func.rw_route.get_path(kwargs)
+    if isinstance(func, str):
+        if func.startswith('.'):
+            # relative to current module
+            module = scope.get('module')
+            return module.routes.get_path(func[1:], kwargs)
+        else:
+            # absolute
+            root = scope.get('app').root
+            return root.routes.get_path(func, kwargs)
+    else:
+        return func.rw_route.get_path(kwargs)
+
+

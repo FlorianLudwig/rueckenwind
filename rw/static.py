@@ -120,8 +120,12 @@ def init(scope, app, settings):
                 path = 'static'
             full_path = pkg_resources.resource_filename(module_name, path)
             full_paths.append(full_path)
+
+
         app.root.mount('/' + base_uri + '/<h>/<path:path>',
-                       StaticHandler, {'path': full_paths})
+                       StaticHandler, {'path': full_paths},
+                       name='static_' + base_uri.replace('.', '_'))
+
         static.handlers.append((base_uri, StaticHandler, full_paths))
     static.setup()
 

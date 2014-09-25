@@ -54,7 +54,7 @@ class Application(object):
             assert handler is not None
 
         self._wsgi = False  # wsgi is not supported
-        # compatibilty so we can mount tornado RequestHandlers
+        # compatibility so we can mount tornado RequestHandlers
         self.ui_modules = {}
         self.ui_methods = {}
         rw.server.PHASE_CONFIGURATION.add(self.configure)
@@ -276,7 +276,15 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 self._prepared_future.set_result(None)
 
     def handle_request(self):
-        return self.application.root._handle_request(self)
+        request_scope = rw.scope.Scope()
+        request_scope['handler'] = self
+        root = self.application.root
+        fn, args = root.routes.find_route(self.request.method, self.request.path)
+        if fn is None:
+            raise tornado.web.HTTPError(404)
+        # parse arguments?
+        with request_scope():
+            return fn(**args)
 
     # overwrite methodes that are not supported to make sure
     # they get not used by accident.

@@ -13,6 +13,7 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
+import rw.gen
 import rw.event
 import rw.scope
 
@@ -20,9 +21,17 @@ import rw.scope
 class Plugin(object):
     def __init__(self, name):
         self.name = name
-        self.activate = rw.event.Event('PLUGIN_{}_ACTIVATE'.format(name))
+        self.activate_event = rw.event.Event('PLUGIN_{}_ACTIVATE'.format(name))
 
     def init(self, function):
         function = rw.scope.inject(function)
-        self.activate.add(function)
+        self.activate_event.add(function)
         return function
+
+    @rw.scope.inject
+    @rw.gen.coroutine
+    def activate(self, scope):
+        plugins = scope.get('rw.plugins', {})
+        if self not in plugins:
+            yield self.activate_event()
+            plugins[self] = {}

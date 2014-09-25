@@ -1,3 +1,6 @@
+from collections import namedtuple
+
+import pytest
 import tornado.testing
 
 import rw.scope
@@ -5,32 +8,52 @@ import rw.http
 import rw.routing
 
 
-def generate_handler_func(route_func, path):
+## TODO
+# def test_duplicated_functions():
+#     m = rw.http.Module('test')
+#
+#     @m.get('/')
+#     def foo():
+#         pass
+#
+#     with pytest.raises(rw.routing.DuplicateError):
+#         @m.get('/something_else')
+#         def foo():
+#             pass
+
+
+def generate_handler_func(route_func, path, name=None):
     f = lambda x: x
+    if name is None:
+        name = route_func.__name__ + '_' + {'/': 'index'}[path]
+    f.__name__ = name
     return route_func(path)(f)
 
 
 class HTTPTest(tornado.testing.AsyncTestCase):
     def test_http(self):
-        scope = rw.scope.Scope()
-        with scope():
-            scope.activate(rw.routing.plugin, callback=self.http)
+        self.scope = rw.scope.Scope()
+        with self.scope():
+            self.scope.activate(rw.routing.plugin, callback=self.http)
         self.wait()
 
     def http(self, _):
-        sub = rw.http.Module('test')
+        sub = rw.http.Module('sub')
         sub_index = generate_handler_func(sub.get, '/')
-        sub_fun = generate_handler_func(sub.get, '/fun')
-        sub_posts = generate_handler_func(sub.get, '/<user_name:str>/posts')
+        sub_fun = generate_handler_func(sub.get, '/fun', 'fun')
+        sub_posts = generate_handler_func(sub.get, '/<user_name:str>/posts', 'sub_posts')
 
         m = rw.http.Module('test')
         index = generate_handler_func(m.get, '/')
         index_post = generate_handler_func(m.post, '/')
         index_put = generate_handler_func(m.put, '/')
         index_delete = generate_handler_func(m.delete, '/')
-        user = generate_handler_func(m.get, '/user/<user_name:str>')
+        user = generate_handler_func(m.get, '/user/<user_name:str>', 'user_page')
         m.mount('/sub', sub)
         m.setup()
+
+        # mock app object
+        self.scope['app'] = namedtuple('Application', 'root')(m)
 
         assert m.routes.find_route('get', '/')[0] == index
         assert m.routes.find_route('post', '/')[0] == index_post
@@ -39,15 +62,33 @@ class HTTPTest(tornado.testing.AsyncTestCase):
 
         assert m.routes.find_route('get', '/user/joe') == (user, {'user_name': 'joe'})
 
+        ## test url_for
         assert rw.http.url_for(index) == '/'
         assert rw.http.url_for(index_post) == '/'
 
         assert rw.http.url_for(user, user_name='joe') == '/user/joe'
 
-        # test mount
+        ## test url_for within mount
         assert rw.http.url_for(sub_index) == '/sub'
         assert rw.http.url_for(sub_fun) == '/sub/fun'
         assert rw.http.url_for(sub_posts, user_name='bob') == '/sub/bob/posts'
+
+        ## test url_for with strings
+        assert rw.http.url_for('get_index') == '/'
+        assert rw.http.url_for('post_index') == '/'
+        assert rw.http.url_for('user_page', user_name='joe') == '/user/joe'
+
+        ## test url_for with strings and mount prefix
+        assert rw.http.url_for('sub.get_index') == '/sub'
+        assert rw.http.url_for('sub.fun') == '/sub/fun'
+        assert rw.http.url_for(sub_posts, user_name='bob') == '/sub/bob/posts'
+
+        ## test url_for with relative string
+
+        self.scope['module'] = m  # mock request
+        assert rw.http.url_for('.get_index') == '/'
+        self.scope['module'] = sub  # mock request
+        assert rw.http.url_for('.get_index') == '/sub'
 
         self.stop()
 

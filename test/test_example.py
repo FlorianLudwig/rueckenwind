@@ -1,3 +1,5 @@
+import imp
+
 import pkg_resources
 import rw.testing
 
@@ -6,7 +8,7 @@ from . import example
 
 class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def get_app(self):
-        return rw.httpbase.Application(root=example.root)
+        return rw.httpbase.Application(root=imp.reload(example).root)
 
     def test_basic_routing(self):
         response = self.fetch('/')
