@@ -40,7 +40,7 @@ def index(handler):
 
 @root.get('/lazy')
 @gen.coroutine
-def index(handler):
+def lazy(handler):
     yield gen.Task(tornado.ioloop.IOLoop.current().add_timeout, time.time())
     handler.finish('Hello lazy rw.http')
 
@@ -51,7 +51,7 @@ def root_submit(handler):
 
 
 @root.get('/user/<name>')
-def root_submit(handler, name):
+def user_page(handler, name):
     handler.finish('Hello ' + name)
 
 
