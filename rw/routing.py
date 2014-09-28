@@ -206,12 +206,11 @@ class RoutingTable(dict):
             for module in self.sub_modules:
                 module.setup()
                 routes = module.routes
-                for route, _, fn in routes.get(key, []):
-                    assert module is _
+                for route, route_module, fn in routes.get(key, []):
                     if fn not in funcs:
                         new_route = Route(routes.prefix + route.path)
                         fn.rw_route = new_route
-                        self[key].append((new_route, module, fn))
+                        self[key].append((new_route, route_module, fn))
 
                 for fn_key, fn in module.routes.fn_namespace.items():
                     self.fn_namespace[module.name + '.' + fn_key] = fn
