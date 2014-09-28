@@ -5,6 +5,7 @@ but is based on Jinja2.
 """
 import jinja2
 
+import rw.http
 
 def create_template_env(pkgs):
     loaders = [jinja2.PackageLoader(pkg, 'templates') for pkg in pkgs]
@@ -13,6 +14,7 @@ def create_template_env(pkgs):
         extensions=['jinja2.ext.loopcontrols',
                     'jinja2.ext.i18n'],
     )
+    template_env.globals['url_for'] = rw.http.url_for
 
     # some more default functions
     # template_env.globals['enumerate'] = enumerate
