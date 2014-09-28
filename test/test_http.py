@@ -43,6 +43,11 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         sub_fun = generate_handler_func(sub.get, '/fun', 'fun')
         sub_posts = generate_handler_func(sub.get, '/<user_name:str>/posts', 'sub_posts')
 
+        subsub = rw.http.Module('subsub')
+        subsub_index = generate_handler_func(subsub.get, '/')
+        subsub_fun = generate_handler_func(subsub.get, '/fun', 'fun')
+        sub.mount('/sub', subsub)
+
         sub2 = rw.http.Module('sub2')
         sub2_index = generate_handler_func(sub2.get, '/')
 
@@ -91,12 +96,21 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         assert rw.http.url_for('sub.get_index') == '/sub'
         assert rw.http.url_for('sub.fun') == '/sub/fun'
         assert rw.http.url_for(sub_posts, user_name='bob') == '/sub/bob/posts'
+        assert rw.http.url_for('sub.subsub.get_index') == '/sub/sub'
 
         ## test url_for with relative string
         self.scope['module'] = m  # mock request
         assert rw.http.url_for('.get_index') == '/'
         self.scope['module'] = sub  # mock request
         assert rw.http.url_for('.get_index') == '/sub'
+        assert rw.http.url_for('.fun') == '/sub/fun'
+        assert rw.http.url_for('.subsub.get_index') == '/sub/sub'
+        assert rw.http.url_for('.subsub.fun') == '/sub/sub/fun'
+
+        self.scope['module'] = subsub  # mock request
+        assert rw.http.url_for('.fun') == '/sub/sub/fun'
+
+
 
         self.stop()
 

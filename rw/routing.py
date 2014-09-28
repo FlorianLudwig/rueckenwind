@@ -196,6 +196,8 @@ class RoutingTable(dict):
         self.prefix = ''
         self.sub_modules = []
         self.fn_namespace = {}
+        for method in ['get', 'post', 'put', 'delete', 'options']:
+            self[method] = []
 
     def setup(self):
         """setup routing table"""
@@ -260,7 +262,7 @@ class RoutingTable(dict):
             self.sub_modules.append(module)
 
     def find_route(self, method, path):
-        for rule, module, fn in self.get(method.lower(), []):
+        for rule, module, fn in self[method.lower()]:
             args = rule.match(path)
             if args is not None:
                 return module, fn, args
