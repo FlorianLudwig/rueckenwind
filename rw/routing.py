@@ -212,8 +212,8 @@ class RoutingTable(dict):
                         fn.rw_route = new_route
                         self[key].append((new_route, fn))
 
-                for key, fn in module.routes.fn_namespace.items():
-                    self.fn_namespace[module.name + '.' + key] = fn
+                for fn_key, fn in module.routes.fn_namespace.items():
+                    self.fn_namespace[module.name + '.' + fn_key] = fn
 
         # sort all rules
         for key in self:

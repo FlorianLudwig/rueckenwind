@@ -43,6 +43,9 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         sub_fun = generate_handler_func(sub.get, '/fun', 'fun')
         sub_posts = generate_handler_func(sub.get, '/<user_name:str>/posts', 'sub_posts')
 
+        sub2 = rw.http.Module('sub2')
+        sub2_index = generate_handler_func(sub2.get, '/')
+
         m = rw.http.Module('test')
         index = generate_handler_func(m.get, '/')
         index_post = generate_handler_func(m.post, '/')
@@ -50,17 +53,23 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         index_delete = generate_handler_func(m.delete, '/')
         user = generate_handler_func(m.get, '/user/<user_name:str>', 'user_page')
         m.mount('/sub', sub)
+        m.mount('/sub2', sub2)
         m.setup()
 
         # mock app object
         self.scope['app'] = namedtuple('Application', 'root')(m)
 
+        ## test find_route
         assert m.routes.find_route('get', '/')[0] == index
         assert m.routes.find_route('post', '/')[0] == index_post
         assert m.routes.find_route('put', '/')[0] == index_put
         assert m.routes.find_route('delete', '/')[0] == index_delete
 
         assert m.routes.find_route('get', '/user/joe') == (user, {'user_name': 'joe'})
+
+        ## test find_route for mounts
+        assert m.routes.find_route('get', '/sub')[0] == sub_index
+        assert m.routes.find_route('get', '/sub2')[0] == sub2_index
 
         ## test url_for
         assert rw.http.url_for(index) == '/'
@@ -84,7 +93,6 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         assert rw.http.url_for(sub_posts, user_name='bob') == '/sub/bob/posts'
 
         ## test url_for with relative string
-
         self.scope['module'] = m  # mock request
         assert rw.http.url_for('.get_index') == '/'
         self.scope['module'] = sub  # mock request
