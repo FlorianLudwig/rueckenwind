@@ -206,11 +206,12 @@ class RoutingTable(dict):
             for module in self.sub_modules:
                 module.setup()
                 routes = module.routes
-                for route, fn in routes.get(key, []):
+                for route, _, fn in routes.get(key, []):
+                    assert module is _
                     if fn not in funcs:
                         new_route = Route(routes.prefix + route.path)
                         fn.rw_route = new_route
-                        self[key].append((new_route, fn))
+                        self[key].append((new_route, module, fn))
 
                 for fn_key, fn in module.routes.fn_namespace.items():
                     self.fn_namespace[module.name + '.' + fn_key] = fn
@@ -219,9 +220,9 @@ class RoutingTable(dict):
         for key in self:
             self[key].sort(key=lambda rule: rule[0])
 
-    def add_route(self, method, path, fn):
+    def add_route(self, method, path, module, fn):
         route = Route(path)
-        self.setdefault(method, []).append((route, fn))
+        self.setdefault(method, []).append((route, module, fn))
         # if fn.__name__ in self.fn_namespace:
         #     msg = 'Module already contains route with name {}'.format(fn.__name__)
         #     raise DuplicateError(msg)
@@ -245,7 +246,7 @@ class RoutingTable(dict):
                                                         handler_args,
                                                         name + '_' + method)
                 if hasattr(module, method):
-                    route = self.add_route(method, path, proxy)
+                    route = self.add_route(method, path, module, proxy)
                     unbount_method = getattr(module, method)
                     if hasattr(unbount_method, '__func__'):
                         # python 2
@@ -260,11 +261,11 @@ class RoutingTable(dict):
             self.sub_modules.append(module)
 
     def find_route(self, method, path):
-        for rule, fn in self.get(method.lower(), []):
+        for rule, module, fn in self.get(method.lower(), []):
             args = rule.match(path)
             if args is not None:
-                return fn, args
-        return None, None
+                return module, fn, args
+        return None, None, None
 
 
 def converter_default(data):

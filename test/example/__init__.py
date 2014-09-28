@@ -23,9 +23,15 @@ class MainHandler(tornado.web.RequestHandler):
         self.write("Tornado POST")
 
 
+sub = rw.http.Module(name='submodule', resources='test.example')
+@sub.get('/')
+def sub_index():
+    sub.render_template('sub.html')
+
+
 root = rw.http.Module('test.example')
 root.mount('/tornado', MainHandler)
-
+root.mount('/sub', sub)
 
 
 @root.init

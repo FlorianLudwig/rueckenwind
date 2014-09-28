@@ -40,7 +40,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('get', path, fn)
+            fn.rw_route = self.routes.add_route('get', path, self, fn)
             return fn
         return wrapper
 
@@ -55,7 +55,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('post', path, fn)
+            fn.rw_route = self.routes.add_route('post', path, self, fn)
             return fn
         return wrapper
 
@@ -70,7 +70,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('put', path, fn)
+            fn.rw_route = self.routes.add_route('put', path, self, fn)
             return fn
         return wrapper
 
@@ -85,7 +85,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('delete', path, fn)
+            fn.rw_route = self.routes.add_route('delete', path, self, fn)
             return fn
         return wrapper
 
@@ -100,7 +100,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('options', path, fn)
+            fn.rw_route = self.routes.add_route('options', path, self, fn)
             return fn
         return wrapper
 

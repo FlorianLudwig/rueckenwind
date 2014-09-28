@@ -276,10 +276,12 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 self._prepared_future.set_result(None)
 
     def handle_request(self):
+        root = self.application.root
+        module, fn, args = root.routes.find_route(self.request.method, self.request.path)
         request_scope = rw.scope.Scope()
         request_scope['handler'] = self
-        root = self.application.root
-        fn, args = root.routes.find_route(self.request.method, self.request.path)
+        request_scope['module'] = module
+
         if fn is None:
             raise tornado.web.HTTPError(404)
         # parse arguments?

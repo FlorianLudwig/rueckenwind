@@ -82,3 +82,7 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         # from static2 folder (higher in config file)
         response = self.fetch('/static/hash/test.example/overwrite.txt', method='GET')
         assert response.body.decode('utf-8') == u'Overwrite'
+
+    def test_url_for_inside_submodule(self):
+        response = self.fetch('/sub', method="GET")
+        assert response.body.decode('utf-8') == '/sub\n/sub'
