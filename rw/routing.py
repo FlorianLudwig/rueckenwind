@@ -210,12 +210,10 @@ class RoutingTable(dict):
             fn_name_prefixes = {}
             for fn_key, fn in routes.fn_namespace.items():
                 self.fn_namespace[routes.name + '.' + fn_key] = fn
-                print('fn_key', fn_key)
                 fn_prefix = routes.name
                 if '.' in fn_key:
                     fn_prefix += '.' + fn_key.rsplit('.', 1)[0]
                 fn_name_prefixes[fn] = fn_prefix
-            print('setup', self.name, fn_name_prefixes)
 
             for key in self:
                 funcs = set(rule[1] for rule in self[key])
