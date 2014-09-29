@@ -1,5 +1,4 @@
 import inspect
-import pprint
 import tornado.web
 
 from . import scope
@@ -40,7 +39,6 @@ class Module(rw.plugin.Plugin):
             current_scope = scope.get_current_scope()
             if current_scope is not None:
                 current_scope.setdefault('rw.http', {})['routing_table'] = routes
-                pprint.pprint(routes.fn_namespace)
         return routes
 
     @scope.inject
