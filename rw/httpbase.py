@@ -276,11 +276,11 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 self._prepared_future.set_result(None)
 
     def handle_request(self):
-        root = self.application.root
-        module, fn, args = root.routes.find_route(self.request.method, self.request.path)
+        routing_table = rw.scope.get('rw.http')['routing_table']
+        prefix, fn, args = routing_table.find_route(self.request.method, self.request.path)
         request_scope = rw.scope.Scope()
         request_scope['handler'] = self
-        request_scope['module'] = module
+        request_scope['rw.routing.prefix'] = prefix
 
         if fn is None:
             raise tornado.web.HTTPError(404)

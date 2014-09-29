@@ -191,31 +191,40 @@ def _generate_request_handler_proxy(handler_class, handler_args, name):
 
 
 class RoutingTable(dict):
-    def __init__(self):
+    def __init__(self, name):
         dict.__init__(self)
+        self.name = name
         self.prefix = ''
-        self.sub_modules = []
+        self.sub_rt = []  # child routing tables
         self.fn_namespace = {}
         for method in ['get', 'post', 'put', 'delete', 'options']:
             self[method] = []
 
     def setup(self):
         """setup routing table"""
-
         # get all routes from submodules
-        for key in self:
-            funcs = set(rule[1] for rule in self[key])
-            for module in self.sub_modules:
-                module.setup()
-                routes = module.routes
+        for prefix, routes in self.sub_rt:
+            routes.prefix = self.prefix + prefix
+            routes.setup()
+
+            fn_name_prefixes = {}
+            for fn_key, fn in routes.fn_namespace.items():
+                self.fn_namespace[routes.name + '.' + fn_key] = fn
+                print('fn_key', fn_key)
+                fn_prefix = routes.name
+                if '.' in fn_key:
+                    fn_prefix += '.' + fn_key.rsplit('.', 1)[0]
+                fn_name_prefixes[fn] = fn_prefix
+            print('setup', self.name, fn_name_prefixes)
+
+            for key in self:
+                funcs = set(rule[1] for rule in self[key])
                 for route, route_module, fn in routes.get(key, []):
                     if fn not in funcs:
-                        new_route = Route(routes.prefix + route.path)
+                        new_route = Route(prefix + route.path)
                         fn.rw_route = new_route
-                        self[key].append((new_route, route_module, fn))
-
-                for fn_key, fn in module.routes.fn_namespace.items():
-                    self.fn_namespace[module.name + '.' + fn_key] = fn
+                        fn_name_prefix = fn_name_prefixes[fn]
+                        self[key].append((new_route, fn_name_prefix, fn))
 
         # sort all rules
         for key in self:
@@ -223,10 +232,11 @@ class RoutingTable(dict):
 
     def add_route(self, method, path, module, fn):
         route = Route(path)
-        self.setdefault(method, []).append((route, module, fn))
+        self.setdefault(method, []).append((route, '', fn))
         # if fn.__name__ in self.fn_namespace:
         #     msg = 'Module already contains route with name {}'.format(fn.__name__)
         #     raise DuplicateError(msg)
+        fn.rw_route = route
         self.fn_namespace[fn.__name__] = fn
         return route
 
@@ -238,34 +248,34 @@ class RoutingTable(dict):
             return '404'
         return self.fn_namespace[func].rw_route.get_path(kwargs)
 
-    def add_module(self, path, module, handler_args, name):
-        if inspect.isclass(module) and issubclass(module, tornado.web.RequestHandler):
-            if name is None:
-                name = module.__name__
-            for method in ['get', 'post', 'put', 'delete']:
-                proxy = _generate_request_handler_proxy(module,
-                                                        handler_args,
-                                                        name + '_' + method)
-                if hasattr(module, method):
-                    route = self.add_route(method, path, module, proxy)
-                    unbount_method = getattr(module, method)
-                    if hasattr(unbount_method, '__func__'):
-                        # python 2
-                        # it is not possible to write to the unbount_method
-                        # but writing to the underlying im_func works
-                        unbount_method.__func__.rw_route = route
-                    else:
-                        # python 3
-                        unbount_method.rw_route = route
-        else:
-            module.routes.prefix = path
-            self.sub_modules.append(module)
+    def add_request_handler(self, path, module, handler_args, name):
+        if name is None:
+            name = module.__name__
+        for method in ['get', 'post', 'put', 'delete']:
+            proxy = _generate_request_handler_proxy(module,
+                                                    handler_args,
+                                                    name + '_' + method)
+            if hasattr(module, method):
+                route = self.add_route(method, path, module, proxy)
+                unbount_method = getattr(module, method)
+                if hasattr(unbount_method, '__func__'):
+                    # python 2
+                    # it is not possible to write to the unbount_method
+                    # but writing to the underlying im_func works
+                    unbount_method.__func__.rw_route = route
+                else:
+                    # python 3
+                    unbount_method.rw_route = route
+
+    def add_child(self, path, rt):
+            # module.routes.prefix = path
+        self.sub_rt.append((path, rt))
 
     def find_route(self, method, path):
-        for rule, module, fn in self[method.lower()]:
+        for rule, name_prefix, fn in self[method.lower()]:
             args = rule.match(path)
             if args is not None:
-                return module, fn, args
+                return name_prefix, fn, args
         return None, None, None
 
 

@@ -4,6 +4,8 @@ import tornado.testing
 import rw.routing
 import rw.scope
 
+from .common import generate_route_func
+
 
 def generate_rule(route):
     return rw.routing.Route(route)
@@ -96,6 +98,38 @@ def test_convert_uint():
         assert rw.routing.converter_uint('-1431') == (5, -1431)
 
 
+def test_submodules():
+    rt0 = rw.routing.RoutingTable('root')
+    rt0.add_route('get', '/', 0, generate_route_func('index'))
+    rt1 = rw.routing.RoutingTable('sub')
+    rt1.add_route('get', '/', 1, generate_route_func('index'))
+    rt2 = rw.routing.RoutingTable('subsub')
+    rt2.add_route('get', '/', 2, generate_route_func('index'))
+    rt2.add_route('get', '/fun', 2, generate_route_func('fun'))
+
+    rt0.add_child('/sub', rt1)
+    rt1.add_child('/subsub', rt2)
+    rt0.setup()
+
+    scope = rw.scope.Scope()
+    with scope():
+        prefix, func, args = rt0.find_route('get', '/')
+        assert prefix == ''
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub')
+        assert prefix == 'sub'
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub/subsub')
+        assert prefix == 'sub.subsub'
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub/subsub/fun')
+        assert prefix == 'sub.subsub'
+        assert func.__name__ == 'fun'
+
+
 class MyTestCase(tornado.testing.AsyncTestCase):
     def test_rule_match(self):
         # match must be used inside scope with rw.routing:plugin activated
@@ -112,3 +146,5 @@ class MyTestCase(tornado.testing.AsyncTestCase):
         assert generate_rule('/<foo>').match('/foo/bar') is None
         assert generate_rule('/<foo:path>').match('/foo/bar') == {'foo': 'foo/bar'}
         self.stop()
+
+

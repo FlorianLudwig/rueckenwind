@@ -1,3 +1,5 @@
+import inspect
+import pprint
 import tornado.web
 
 from . import scope
@@ -11,16 +13,35 @@ class Module(rw.plugin.Plugin):
     def __init__(self, name, resources=None):
         super(Module, self).__init__(name)
         self.resources = name if resources is None else resources
-        self.routes = rw.routing.RoutingTable()
         self.activate_event.add(self.setup)
+        self.routes = []
+        self.sub_rt = []
+        self.sub_request_handler = []
         self.template_env = None
 
-    def setup(self):
+    def setup(self, top=True):
         # if a Module instance is created inside some python
         # module __init__ we cannot create the template env
         # at module creation as it results in the module
         # itself being imported while getting setup
-        self.routes.setup()
+        routes = rw.routing.RoutingTable(self.name)
+        for args in self.routes:
+            routes.add_route(*args)
+
+        for path, module, _, _ in self.sub_rt:
+            sub_routes = module.setup(False)
+            routes.add_child(path, sub_routes)
+
+        for args in self.sub_request_handler:
+            routes.add_request_handler(*args)
+
+        if top:
+            routes.setup()
+            current_scope = scope.get_current_scope()
+            if current_scope is not None:
+                current_scope.setdefault('rw.http', {})['routing_table'] = routes
+                pprint.pprint(routes.fn_namespace)
+        return routes
 
     @scope.inject
     def render_template(self, template_name, template_env, handler):
@@ -40,7 +61,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('get', path, self, fn)
+            fn.rw_route = self.routes.append(('get', path, self, fn))
             return fn
         return wrapper
 
@@ -55,7 +76,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('post', path, self, fn)
+            fn.rw_route = self.routes.append(('post', path, self, fn))
             return fn
         return wrapper
 
@@ -70,7 +91,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('put', path, self, fn)
+            fn.rw_route = self.routes.append(('put', path, self, fn))
             return fn
         return wrapper
 
@@ -85,7 +106,7 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('delete', path, self, fn)
+            fn.rw_route = self.routes.append(('delete', path, self, fn))
             return fn
         return wrapper
 
@@ -100,26 +121,31 @@ class Module(rw.plugin.Plugin):
         """
         def wrapper(fn):
             fn = scope.inject(fn)
-            fn.rw_route = self.routes.add_route('options', path, self, fn)
+            fn.rw_route = self.routes.append(('options', path, self, fn))
             return fn
         return wrapper
 
     def mount(self, path, module, handler_args=None, name=None):
         if handler_args is None:
             handler_args = {}
-        self.routes.add_module(path, module, handler_args, name)
+        if inspect.isclass(module) and issubclass(module, tornado.web.RequestHandler):
+            self.sub_request_handler.append((path, module, handler_args, name))
+        else:
+            self.sub_rt.append((path, module, handler_args, name))
 
 
 def url_for(func, **kwargs):
     if isinstance(func, str):
         if func.startswith('.'):
             # relative to current module
-            module = scope.get('module')
-            return module.routes.get_path(func[1:], kwargs)
+            routing_table = scope.get('rw.http')['routing_table']
+            prefix = scope.get('rw.routing.prefix')
+            path = (prefix + func).lstrip('.')
+            return routing_table.get_path(path, kwargs)
         else:
             # absolute
-            root = scope.get('app').root
-            return root.routes.get_path(func, kwargs)
+            routing_table = scope.get('rw.http')['routing_table']
+            return routing_table.get_path(func, kwargs)
     else:
         return func.rw_route.get_path(kwargs)
 

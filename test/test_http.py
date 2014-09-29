@@ -7,6 +7,7 @@ import rw.scope
 import rw.http
 import rw.routing
 
+from .common import generate_handler_func
 
 ## TODO
 # def test_duplicated_functions():
@@ -20,14 +21,6 @@ import rw.routing
 #         @m.get('/something_else')
 #         def foo():
 #             pass
-
-
-def generate_handler_func(route_func, path, name=None):
-    f = lambda x: x
-    if name is None:
-        name = route_func.__name__ + '_' + {'/': 'index'}[path]
-    f.__name__ = name
-    return route_func(path)(f)
 
 
 class HTTPTest(tornado.testing.AsyncTestCase):
@@ -59,22 +52,22 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         user = generate_handler_func(m.get, '/user/<user_name:str>', 'user_page')
         m.mount('/sub', sub)
         m.mount('/sub2', sub2)
-        m.setup()
+        routes = m.setup()
 
         # mock app object
         self.scope['app'] = namedtuple('Application', 'root')(m)
 
         ## test find_route
-        assert m.routes.find_route('get', '/')[1] == index
-        assert m.routes.find_route('post', '/')[1] == index_post
-        assert m.routes.find_route('put', '/')[1] == index_put
-        assert m.routes.find_route('delete', '/')[1] == index_delete
+        assert routes.find_route('get', '/')[1] == index
+        assert routes.find_route('post', '/')[1] == index_post
+        assert routes.find_route('put', '/')[1] == index_put
+        assert routes.find_route('delete', '/')[1] == index_delete
 
-        assert m.routes.find_route('get', '/user/joe') == (m, user, {'user_name': 'joe'})
+        assert routes.find_route('get', '/user/joe') == ('', user, {'user_name': 'joe'})
 
         ## test find_route for mounts
-        assert m.routes.find_route('get', '/sub')[1] == sub_index
-        assert m.routes.find_route('get', '/sub2')[1] == sub2_index
+        assert routes.find_route('get', '/sub')[1] == sub_index
+        assert routes.find_route('get', '/sub2')[1] == sub2_index
 
         ## test url_for
         assert rw.http.url_for(index) == '/'
@@ -99,18 +92,16 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         assert rw.http.url_for('sub.subsub.get_index') == '/sub/sub'
 
         ## test url_for with relative string
-        self.scope['module'] = m  # mock request
+        self.scope['rw.routing.prefix'] = ''  # mock request
         assert rw.http.url_for('.get_index') == '/'
-        self.scope['module'] = sub  # mock request
+        self.scope['rw.routing.prefix'] = 'sub'  # mock request
         assert rw.http.url_for('.get_index') == '/sub'
         assert rw.http.url_for('.fun') == '/sub/fun'
         assert rw.http.url_for('.subsub.get_index') == '/sub/sub'
         assert rw.http.url_for('.subsub.fun') == '/sub/sub/fun'
 
-        self.scope['module'] = subsub  # mock request
+        self.scope['rw.routing.prefix'] = 'sub.subsub'  # mock request
         assert rw.http.url_for('.fun') == '/sub/sub/fun'
-
-
 
         self.stop()
 
@@ -128,8 +119,8 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         sub_index = generate_handler_func(sub.get, '/')
         m.mount('/foo', sub)
 
-        m.setup()
+        routes = m.setup()
 
-        assert m.routes.find_route('get', '/')[1] == index
-        assert m.routes.find_route('get', '/foo')[1] == sub_index
+        assert routes.find_route('get', '/')[1] == index
+        assert routes.find_route('get', '/foo')[1] == sub_index
         self.stop()

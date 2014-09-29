@@ -2,10 +2,15 @@
 
 Rueckenwind does not contain it's own templating engine
 but is based on Jinja2.
+
+Added methods inside functions:
+ * url_for
+ * handler
 """
 import jinja2
 
 import rw.http
+
 
 def create_template_env(pkgs):
     loaders = [jinja2.PackageLoader(pkg, 'templates') for pkg in pkgs]
