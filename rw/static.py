@@ -51,6 +51,7 @@ class StaticHandler(tornado.web.StaticFileHandler):
             raise tornado.web.HTTPError(404)
 
         for root in roots:
+
             if (absolute_path + os.path.sep).startswith(root):
                 break
         else:
@@ -64,9 +65,25 @@ class StaticHandler(tornado.web.StaticFileHandler):
 
 
 def file_hash(content):
-    h = hashlib.md5(content).digest()
-    # base64url with + -> - and / -> _
-    return base64.b64encode(h, altchars=b'-_')[:6]
+    """
+    :param str|FileIO content: The content to hash, either as string or as file-like object
+    """
+    h = hashlib.md5()
+    if isinstance(content, str):
+        h.update(content)
+    else:
+        data = True
+        while data:
+            data = content.read(1024 * 1024)
+            h.update(data)
+    h_digest = h.digest()
+    # base64url
+    # | char | substitute |
+    # |   +  |    -       |
+    # |   /  |    _       |
+    #
+
+    return base64.b64encode(h_digest, altchars=b'-_').rstrip('=')
 
 
 class Static(object):
@@ -94,7 +111,7 @@ class Static(object):
             # XXX todo: something more sensitive
             raise Exception('File Not Found %s' % repr(path))
 
-        h = file_hash(content)
+        h = file_hash(content)[:6]
         return '/{}/{}/{}'.format(base_uri, h, path)
 
     def setup(self):
