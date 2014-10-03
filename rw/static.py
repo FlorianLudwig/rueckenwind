@@ -7,6 +7,7 @@ import base64
 import pkg_resources
 import tornado.web
 import types
+from tornado.util import bytes_type
 
 import rw.plugin
 import rw.scope
@@ -69,7 +70,7 @@ def file_hash(content):
     :param str|FileIO content: The content to hash, either as string or as file-like object
     """
     h = hashlib.md5()
-    if isinstance(content, str):
+    if isinstance(content, bytes_type):
         h.update(content)
     else:
         data = True
@@ -83,7 +84,7 @@ def file_hash(content):
     # |   /  |    _       |
     #
 
-    return base64.b64encode(h_digest, altchars=b'-_').rstrip('=')
+    return base64.b64encode(h_digest, altchars=b'-_').rstrip(b'=')
 
 
 class Static(object):
