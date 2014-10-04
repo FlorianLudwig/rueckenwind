@@ -146,7 +146,12 @@ def inject(fn):
                 if key not in kwargs:
                     if not SCOPE_CHAIN:
                         raise OutsideScopeError('Cannot use inject outside of scope')
-                    kwargs[key] = get(key)
+                    try:
+                        kwargs[key] = get(key)
+                    except IndexError:
+                        # the key might not be inside scope but there might be
+                        # a default parameter defined inside the function
+                        pass
         return fn(*args, **kwargs)
 
     return wrapper

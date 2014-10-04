@@ -48,6 +48,10 @@ def test_basic():
     def bar(some_static_value):
         return some_static_value
 
+    @rw.scope.inject
+    def some_function_with_a_default_value(my_paramenter='my_default_value'):
+        return my_paramenter
+
     with scope():
         assert foo() is current_user
         assert foo(1) == 1
@@ -55,6 +59,10 @@ def test_basic():
         assert bar() == 42
         assert bar(10) == 10
         assert bar(some_static_value=11) == 11
+
+        # normal calling behaviour must be preserved
+        assert some_function_with_a_default_value('value') == 'value'
+        assert some_function_with_a_default_value() == 'my_default_value'
 
         # check nested scope
         nested_scope = rw.scope.Scope()
