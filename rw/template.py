@@ -9,6 +9,7 @@ Added methods inside functions:
 """
 import json
 
+import tornado.util
 import jinja2
 
 import rw.http
@@ -23,6 +24,7 @@ def create_template_env(pkgs):
     )
     template_env.globals['url_for'] = rw.http.url_for
     template_env.filters['json'] = json.dumps
+    template_env.globals['str'] = tornado.util.unicode_type
 
     # some more default functions
     # template_env.globals['enumerate'] = enumerate
@@ -30,7 +32,7 @@ def create_template_env(pkgs):
     # template_env.globals['len'] = len
     # # default types
     # template_env.globals['int'] = int
-    # template_env.globals['str'] = str
+
     # template_env.globals['unicode'] = unicode
     # template_env.globals['list'] = list
     # template_env.globals['tuple'] = tuple
