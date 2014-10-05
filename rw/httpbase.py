@@ -28,6 +28,11 @@ import rw.scope
 import rw.routing
 import rw.template
 import rw.server
+import rw.event
+
+
+PRE_REQUEST = rw.event.Event('httpbase.pre_request')
+POST_REQUEST = rw.event.Event('httpbase.post_request')
 
 
 class Application(object):
@@ -108,8 +113,15 @@ class Application(object):
         with self.scope():
             request_scope = rw.scope.Scope()
             with request_scope():
-                handler = self.handler(self, request)
-                handler._execute([])
+                self._handle_request(request)
+
+    @gen.coroutine
+    def _handle_request(self, request):
+        yield PRE_REQUEST()
+        handler = self.handler(self, request)
+        yield handler._execute([])
+        yield POST_REQUEST()
+
 
     def log_request(self, request):
         # TODO print(request)
