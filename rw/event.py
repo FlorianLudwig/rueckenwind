@@ -64,8 +64,10 @@ class Event(set):
         # wait for results
         for func, future in futures:
             try:
-                result = yield future
-                re.append(result)
+                if not future.done():
+                    yield future
+                re.append(future.result())
+
             except Exception:
                 exceptions.append((func, traceback.format_exc()))
 
