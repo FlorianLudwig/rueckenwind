@@ -17,6 +17,7 @@ import os
 
 import tornado.web
 import tornado.httpserver
+import tornado.ioloop
 from tornado import gen
 from tornado import iostream
 from tornado.web import HTTPError
@@ -44,6 +45,7 @@ class Application(object):
         :param rw.http.Module root: The root module to serve
         :param handler: The request handler (should subclass `tornado.web.RequestHandler`)
         """
+        self.io_loop = tornado.ioloop.IOLoop.current()
         self.settings = {}
         self.rw_settings = {}
         self.root = root
@@ -93,9 +95,7 @@ class Application(object):
         if 'cookie_secret' in cfg:
             if 'file' in cfg['cookie_secret']:
                 cs_path = cfg['cookie_secret']['file']
-                cs_path = cs_path.format(
-                    **os.environ
-                )
+                cs_path = cs_path.format(**os.environ)
                 if os.path.exists(cs_path):
                     cookie_secret = open(cs_path).read().strip()
                 else:
@@ -113,15 +113,21 @@ class Application(object):
         with self.scope():
             request_scope = rw.scope.Scope()
             with request_scope():
-                self._handle_request(request)
+                request_handling = self._handle_request(request_scope, request)
+                self.io_loop.add_future(request_handling, self._request_finished)
 
     @gen.coroutine
-    def _handle_request(self, request):
-        yield PRE_REQUEST()
+    def _handle_request(self, request_scope, request):
         handler = self.handler(self, request)
+        request_scope['handler'] = handler
+        yield PRE_REQUEST()
         yield handler._execute([])
         yield POST_REQUEST()
 
+    def _request_finished(self, request_future):
+        # access result to throw exceptions that might have occurred during
+        # request handling
+        request_future.result()
 
     def log_request(self, request):
         # TODO print(request)
@@ -290,15 +296,12 @@ class RequestHandler(tornado.web.RequestHandler, dict):
     def handle_request(self):
         routing_table = rw.scope.get('rw.http')['routing_table']
         prefix, fn, args = routing_table.find_route(self.request.method, self.request.path)
-        request_scope = rw.scope.Scope()
-        request_scope['handler'] = self
-        request_scope['rw.routing.prefix'] = prefix
+        rw.scope.get_current_scope()['rw.routing.prefix'] = prefix
 
         if fn is None:
             raise tornado.web.HTTPError(404)
-        # parse arguments?
-        with request_scope():
-            return fn(**args)
+
+        return fn(**args)
 
     # overwrite methodes that are not supported to make sure
     # they get not used by accident.
