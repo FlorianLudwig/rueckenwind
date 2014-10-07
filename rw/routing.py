@@ -147,7 +147,7 @@ class Route(object):
                 converters = rw.scope.get('rw.routing:converters')
                 converter = converters.get(converter_name)
                 if converter is None:
-                    raise AttributeError('No converter for {} avaiable'.format(converter_name))
+                    raise AttributeError('No converter for {} available'.format(converter_name))
                 try:
                     consumed, arguments[data] = converter(test_path)
                 except NoMatchError:
