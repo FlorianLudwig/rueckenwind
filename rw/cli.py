@@ -28,6 +28,7 @@ import pkg_resources
 import tornado.httpserver
 import tornado.ioloop
 import tornado.autoreload
+import tornado.util
 import jinja2
 
 import rw
@@ -88,11 +89,7 @@ def serv(args):
     """Serve a rueckenwind application"""
     if not args.no_debug:
         tornado.autoreload.start()
-    module_path = args.MODULE
-    module_name = 'root'
-    if ':' in module_path:
-        module_path, module_name = module_path.split(':', 1)
-    module_path = module_path.replace('/', '.').strip('.')
+
     extra = []
 
     if sys.stdout.isatty():
@@ -102,18 +99,36 @@ def serv(args):
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
 
-    module = __import__(module_path, fromlist=[module_name])
-    module = getattr(module, module_name)
-    app = rw.httpbase.Application(root=module)
+    listen = (int(args.port), args.address)
+    ioloop = tornado.ioloop.IOLoop.instance()
+    setup_app(app=args.MODULE, extra_cfg=extra, ioloop=ioloop, listen=listen)
+    ioloop.start()
+
+
+def setup_app(app, extra_cfg=None, ioloop=None, listen=None):
+    if ioloop is None:
+        ioloop = tornado.ioloop.IOLoop.instance()
+    if extra_cfg is None:
+        extra_cfg = []
+
+    if isinstance(app, tornado.util.basestring_type):
+        module_path = app
+        module_name = 'root'
+        if ':' in module_path:
+            module_path, module_name = module_path.split(':', 1)
+        module_path = module_path.replace('/', '.').strip('.')
+        module = __import__(module_path, fromlist=[module_name])
+        module = getattr(module, module_name)
+        app = rw.httpbase.Application(root=module)
 
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(int(args.port), args.address)
+    if listen:
+        server.listen(*listen)
 
-    ioloop = tornado.ioloop.IOLoop.instance()
     scope = rw.scope.Scope()
     with scope():
         ioloop.run_sync(rw.server.start)
-        ioloop.start()
+    return app.scope
 
 
 serv.parser.add_argument('-p', '--port', type=str, default='8000',
