@@ -69,7 +69,7 @@ def file_hash(content):
     """
     :param str|FileIO content: The content to hash, either as string or as file-like object
     """
-    h = hashlib.md5()
+    h = hashlib.sha256()
     if isinstance(content, bytes_type):
         h.update(content)
     else:
