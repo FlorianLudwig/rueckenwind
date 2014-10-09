@@ -131,14 +131,17 @@ def init(scope, app, settings):
     for base_uri, sources in cfg.items():
         full_paths = []
         for source in sources:
-            if ',' in source:
+            if isinstance(source, dict):
+                full_path = source['path']
+                full_paths.append(full_path.format(**os.environ))
+                continue
+            elif ',' in source:
                 module_name, path = [part.strip() for part in source.split(',')]
             else:
                 module_name = source
                 path = 'static'
             full_path = pkg_resources.resource_filename(module_name, path)
             full_paths.append(full_path)
-
 
         app.root.mount('/' + base_uri + '/<h>/<path:path>',
                        StaticHandler, {'path': full_paths},
