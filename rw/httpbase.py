@@ -305,13 +305,17 @@ class RequestHandler(tornado.web.RequestHandler, dict):
             raise tornado.web.HTTPError(404)
 
         # only supply arguments if those are "welcome"
-        arg_spec = inspect.getargspec(fn)
+        if hasattr(fn, '_rw_wrapped_function'):
+            arg_spec = inspect.getargspec(fn._rw_wrapped_function)
+        else:
+            arg_spec = inspect.getargspec(fn)
+
         if arg_spec.keywords is not None:
-            # accepts **keywords arguments so we pass all variables
+            # fn accepts **keywords arguments so we pass all variables
             return fn(**args)
 
         call_args = {}
-        for arg, value in args:
+        for arg, value in args.items():
             if arg in arg_spec.args:
                 call_args[arg] = value
         return fn(**call_args)
