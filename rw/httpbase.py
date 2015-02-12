@@ -1,4 +1,4 @@
-# Copyright 2014 Florian Ludwig
+# Copyright 2015 Florian Ludwig
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,6 +14,7 @@
 from __future__ import absolute_import, division, print_function, with_statement
 
 import os
+import inspect
 
 import tornado.web
 import tornado.httpserver
@@ -296,12 +297,24 @@ class RequestHandler(tornado.web.RequestHandler, dict):
     def handle_request(self):
         routing_table = rw.scope.get('rw.http')['routing_table']
         prefix, fn, args = routing_table.find_route(self.request.method, self.request.path)
-        rw.scope.get_current_scope()['rw.routing.prefix'] = prefix
+        current_scope = rw.scope.get_current_scope()
+        current_scope['rw.routing.prefix'] = prefix
+        current_scope['url_variables'] = args
 
         if fn is None:
             raise tornado.web.HTTPError(404)
 
-        return fn(**args)
+        # only supply arguments if those are "welcome"
+        arg_spec = inspect.getargspec(fn)
+        if arg_spec.keywords is not None:
+            # accepts **keywords arguments so we pass all variables
+            return fn(**args)
+
+        call_args = {}
+        for arg, value in args:
+            if arg in arg_spec.args:
+                call_args[arg] = value
+        return fn(**call_args)
 
     # overwrite methodes that are not supported to make sure
     # they get not used by accident.

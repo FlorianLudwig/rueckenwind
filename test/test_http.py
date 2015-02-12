@@ -124,3 +124,23 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         assert routes.find_route('get', '/')[1] == index
         assert routes.find_route('get', '/foo')[1] == sub_index
         self.stop()
+
+    def test_mount_variables(self):
+        scope = rw.scope.Scope()
+        with scope():
+            scope.activate(rw.routing.plugin, callback=self.mount)
+        self.wait()
+
+    def mount_variables(self, _):
+        m = rw.http.Module('test')
+        index = generate_handler_func(m.get, '/')
+
+        sub = rw.http.Module('test')
+        sub_index = generate_handler_func(sub.get, '/')
+        m.mount('/foo/<var>', sub)
+
+        routes = m.setup()
+
+        assert routes.find_route('get', '/')[1] == index
+        assert routes.find_route('get', '/foo/bar')[1] == sub_index
+        self.stop()
