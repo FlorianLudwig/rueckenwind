@@ -106,7 +106,10 @@ class Static(object):
                     raise Exception('File Not Found %s' % repr(path))
                 content = handler_class.get_content(abs_path)
                 if isinstance(content, types.GeneratorType):
-                    content = b''.join(content)
+                    try:
+                        content = b''.join(content)
+                    except IOError:
+                        raise Exception('File Not Found %s' % repr(path))
                 break
         else:
             # XXX todo: something more sensitive
