@@ -16,9 +16,6 @@ setup(
                       'motor==0.1.1', 'PyMongo==2.5.0', 'pytz', 'argcomplete>=0.6.6,<1.0'],
     packages=find_packages(exclude=['*.test', '*.test.*']),
     include_package_data=True,
-    package_data={
-        'rw': ['*.html', '*.css', 'templates/html5', 'templates/form', 'templates/nginx']
-    },
     entry_points={
         'console_scripts': [
             'rw = rw.cli:main',
