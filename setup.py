@@ -3,36 +3,10 @@ from distutils.command.sdist import sdist
 from setuptools import setup, find_packages
 import sys
 
-version_suffix = ''
-
-
-def get_version_suffix():
-    from git import Repo
-    from datetime import datetime
-    repo = Repo()
-    committed_date = repo.head.commit.committed_date
-    return '.git' + datetime.fromtimestamp(committed_date).strftime('%Y%m%d%H%M%S')
-
-
-class sdist_git(sdist):
-    def make_release_tree(self, base_dir, files):
-        sdist.make_release_tree(self, base_dir, files)
-        # make sure we include the git version in the release
-        setup_py = open(base_dir + '/setup.py').read()
-        setup_py = setup_py.replace("\nversion_suffix = ''\n", "\nversion_suffix = {}\n".format(repr(version_suffix)))
-        f = open(base_dir + '/setup.py', 'w')
-        f.write(setup_py)
-        f.close()
-
-
-if '--dev' in sys.argv:
-    version_suffix = get_version_suffix()
-    sys.argv.remove('--dev')
-
 
 setup(
     name="rueckenwind",
-    version="0.3.0" + version_suffix,
+    version="0.3.1",
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     author='Florian Ludwig',
@@ -49,6 +23,5 @@ setup(
         'console_scripts': [
             'rw = rw.cli:main',
         ],
-    },
-    cmdclass={'sdist': sdist_git}
+    }
 )
