@@ -1,0 +1,8 @@
+rw.plugins:
+  rw.static: true
+  rw.routing: true
+
+rw.static:
+  static:
+    - test.example, static2
+    - test.example # this must default to "static"

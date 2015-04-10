@@ -1,0 +1,3 @@
+rw.plugins:
+  rw.db: True
+

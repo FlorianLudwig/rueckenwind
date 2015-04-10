@@ -1,2 +1,0 @@
-class StopIOLoop(Exception):
-    pass

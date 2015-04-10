@@ -1,4 +1,4 @@
-# Copyright 2012 Florian Ludwig
+# Copyright 2014 Florian Ludwig
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +15,8 @@
 # PYTHON_ARGCOMPLETE_OK
 
 """rueckenwind command line tool"""
+from __future__ import absolute_import, division, print_function, with_statement
+
 import shutil
 import sys
 import os
@@ -23,7 +25,16 @@ import logging
 
 import argcomplete
 import pkg_resources
+import tornado.httpserver
+import tornado.ioloop
+import tornado.autoreload
+import tornado.util
 import jinja2
+
+import rw
+import rw.scope
+import rw.server
+import rw.httpbase
 
 
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
@@ -33,7 +44,7 @@ SUB_PARSER = ARG_PARSER.add_subparsers(help='Command help')
 
 def command(func):
     """Decorator for CLI exposed functions"""
-    func.parser = SUB_PARSER.add_parser(func.func_name, help=func.__doc__)
+    func.parser = SUB_PARSER.add_parser(func.__name__, help=func.__doc__)
     func.parser.set_defaults(func=func)
     return func
 
@@ -63,7 +74,7 @@ def skel(args):
     else:
         name = raw_input('Name: ')
     if os.path.exists(name):
-        print 'Already exists'
+        print('Already exists')
         sys.exit(1)
 
     os.mkdir(name)
@@ -76,28 +87,60 @@ skel.parser.add_argument('--name', type=str,
 @command
 def serv(args):
     """Serve a rueckenwind application"""
-    import rw
-    rw.DEBUG = not args.no_debug
-    module = args.MODULE.replace('/', '.').strip('.')
+    if not args.no_debug:
+        tornado.autoreload.start()
+
     extra = []
 
     if sys.stdout.isatty():
+        # set terminal title
         sys.stdout.write('\x1b]2;rw: {}\x07'.format(' '.join(sys.argv[2:])))
 
     if args.cfg:
         extra.append(os.path.abspath(args.cfg))
-    rw.start(module, extra_config_files=extra, address=args.address, port=args.port)
 
-serv.parser.add_argument('-p', '--port', type=str, default='8000+',
-                         help='Specifiy port to run http server on')
+    listen = (int(args.port), args.address)
+    ioloop = tornado.ioloop.IOLoop.instance()
+    setup_app(app=args.MODULE, extra_cfg=extra, ioloop=ioloop, listen=listen)
+    ioloop.start()
+
+
+def setup_app(app, extra_cfg=None, ioloop=None, listen=None):
+    if ioloop is None:
+        ioloop = tornado.ioloop.IOLoop.instance()
+    if extra_cfg is None:
+        extra_cfg = []
+
+    if isinstance(app, tornado.util.basestring_type):
+        module_path = app
+        module_name = 'root'
+        if ':' in module_path:
+            module_path, module_name = module_path.split(':', 1)
+        module_path = module_path.replace('/', '.').strip('.')
+        module = __import__(module_path, fromlist=[module_name])
+        module = getattr(module, module_name)
+        app = rw.httpbase.Application(root=module)
+
+    server = tornado.httpserver.HTTPServer(app)
+    if listen:
+        server.listen(*listen)
+
+    scope = rw.scope.Scope()
+    with scope():
+        ioloop.run_sync(rw.server.start)
+    return app.scope
+
+
+serv.parser.add_argument('-p', '--port', type=str, default='8000',
+                         help='Specify port to run http server on')
 serv.parser.add_argument('-a', '--address', type=str,
-                         help='Specifiy port to run http server on')
+                         help='Specify port to run http server on')
 serv.parser.add_argument('--no-debug', action='store_true',
                          help='Run in production mode')
 serv.parser.add_argument('-c', '--cfg', type=str,
                          help='Additional config to load')
 serv.parser.add_argument('MODULE',
-                         help='Module to serv')
+                         help='Module to serve')
 
 
 def main():
@@ -109,7 +152,7 @@ def main():
                         datefmt='%Y-%m-%d %H:%M:%S')
 
     current_path = os.path.abspath('.')
-    if not current_path in sys.path:
+    if current_path not in sys.path:
         sys.path.insert(0, current_path)
     argcomplete.autocomplete(ARG_PARSER)
     args = ARG_PARSER.parse_args()

@@ -1,9 +1,45 @@
 # -*- coding: utf-8 -*-
-from distutils.command.sdist import sdist
-from setuptools import setup, find_packages
+import os
 import sys
 
+from distutils.command.sdist import sdist
+from setuptools import setup, find_packages
+import setuptools.command.test
+
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 version_suffix = ''
+
+
+class TestCommand(setuptools.command.test.test):
+    def finalize_options(self):
+        setuptools.command.test.test.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        fails = []
+        from tox._config import parseconfig
+        from tox._cmdline import Session
+
+        config = parseconfig(self.test_args, 'tox')
+        retcode = Session(config).runcommand()
+        if retcode != 0:
+            fails.append('tox returned errors')
+
+        import pep8
+        style_guide = pep8.StyleGuide(config_file=BASE_PATH + '/.pep8')
+        style_guide.input_dir(BASE_PATH + '/rw')
+        if style_guide.options.report.get_count() != 0:
+            fails.append('pep8 returned errros for rw/')
+
+        style_guide = pep8.StyleGuide(config_file=BASE_PATH + '/.pep8')
+        style_guide.input_dir(BASE_PATH + '/test')
+        if style_guide.options.report.get_count() != 0:
+            fails.append('pep8 returned errros for test/')
+
+        if fails:
+            print('\n'.join(fails))
+            sys.exit(1)
 
 
 def get_version_suffix():
@@ -32,14 +68,25 @@ if '--dev' in sys.argv:
 
 setup(
     name="rueckenwind",
-    version="0.3.0" + version_suffix,
+    version="0.4.0" + version_suffix,
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     author='Florian Ludwig',
-    # use fix versions of motor und PyMongo for now, see:
-    # https://groups.google.com/forum/?hl=de&fromgroups=#!topic/python-tornado/xEpZ_NU5eDE
-    install_requires=['tornado>=3.0.1,<4.0', 'jinja2', 'werkzeug==0.6.2', 'babel', 'mock', 'configobj', 'chardet',
-                      'motor==0.1.1', 'PyMongo==2.5.0', 'pytz', 'argcomplete>=0.6.6,<1.0'],
+    install_requires=['tornado>=4.0.0,<5.0',
+                      'jinja2',
+                      'babel',
+                      'argcomplete>=0.6.6,<1.0',
+                      'mock',
+                      'configobj',
+                      'chardet',
+                      'pytz',
+                      'PyYAML>=3.10',
+                      'future'
+                      ],
+    extras_requires={
+        'test': ['tox', 'pytest', 'pep8'],
+        'docs': ['sphinx_rtd_theme']
+    },
     packages=find_packages(exclude=['*.test', '*.test.*']),
     include_package_data=True,
     package_data={
@@ -50,5 +97,18 @@ setup(
             'rw = rw.cli:main',
         ],
     },
-    cmdclass={'sdist': sdist_git}
+    cmdclass={
+        'sdist': sdist_git,
+        'test': TestCommand
+    },
+    license="http://www.apache.org/licenses/LICENSE-2.0",
+    classifiers=[
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
+    ],
 )

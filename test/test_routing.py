@@ -1,21 +1,21 @@
 import pytest
-from tornado import web
-from tornado import httpserver
+import tornado.testing
 
-import rw
-import rw.www
 import rw.routing
+import rw.scope
+
+from .common import generate_route_func
 
 
 def generate_rule(route):
-    return rw.routing.Rule(route, None, None)
+    return rw.routing.Route(route)
 
 
 def test_parse_rule():
     assert rw.routing.parse_rule('/asdf/') == [(None, None, '/asdf/')]
     rule = rw.routing.parse_rule('/foo/<name>/bar')
     assert rule[0] == (None, None, '/foo/')
-    assert rule[1] == (rw.routing.converter_default, None, 'name')
+    assert rule[1] == ('str', None, 'name')
     assert rule[2] == (None, None, '/bar')
 
 
@@ -29,11 +29,38 @@ def test_parse_rule_errors():
         list(rw.routing.parse_rule('/<name/asd'))
 
 
+def test_rule_compare():
+    for rule_0, rule_1 in (
+        (generate_rule('/name'), generate_rule('/<something>')),
+        (generate_rule('/name'), generate_rule('/na<something>')),
+        (generate_rule('/name<something>'), generate_rule('/na<something>')),
+        (generate_rule('/<something:int>'), generate_rule('/<something>')),
+    ):
+        assert rule_0 < rule_1
+        assert rule_1 > rule_0
+
+    assert not generate_rule('/name') < generate_rule('/name')
+    assert not generate_rule('/name') > generate_rule('/name')
+
+
+def test_rule_eq():
+    assert generate_rule('/') == generate_rule('/')
+    assert generate_rule('/foo') == generate_rule('/foo')
+    assert generate_rule('/name/<name>/photo') == generate_rule('/name/<name>/photo')
+    assert generate_rule('/name/<name>/photo/<num:int>') == generate_rule('/name/<name>/photo/<num:int>')
+
+    assert generate_rule('/') != generate_rule('/foo')
+    assert generate_rule('/name/<name>/photo/<num>') != generate_rule('/name/<name>/photo/<num:int>')
+
+
 def test_rule_sorting():
-    rules = [generate_rule('/'),
-             generate_rule('/<something>'),
-             generate_rule('/name/<else>'),
-             generate_rule('/name/<name>/foto')]
+    rules = [
+        generate_rule('/name'),
+        generate_rule('/'),
+        generate_rule('/name/<name>/photo'),
+        generate_rule('/name/<else>'),
+        generate_rule('/<something>'),
+    ]
     rules2 = rules[:]
     rules2.sort()
     assert rules == rules2
@@ -56,73 +83,68 @@ def test_converter_default():
 
 
 def test_convert_int():
-    assert (3, 123) == rw.routing.converter_int('123')
-    assert (4, 4321) == rw.routing.converter_int('4321Hello World')
+    assert rw.routing.converter_int('123') == (3, 123)
+    assert rw.routing.converter_int('4321Hello World') == (4, 4321)
+    assert rw.routing.converter_int('-1431') == (5, -1431)
+    with pytest.raises(rw.routing.NoMatchError):
+        rw.routing.converter_int('foo')
 
 
-class HandlerA(rw.www.RequestHandler):
-    @rw.www.post('/post')
-    def post(self):
-        pass
+def test_convert_uint():
+    assert rw.routing.converter_uint('123') == (3, 123)
+    assert rw.routing.converter_uint('4321Hello World') == (4, 4321)
+
+    with pytest.raises(rw.routing.NoMatchError):
+        assert rw.routing.converter_uint('-1431') == (5, -1431)
 
 
-class HandlerB(rw.www.RequestHandler):
-    @rw.www.post('/bost')
-    def postB(self):
-        pass
+def test_submodules():
+    rt0 = rw.routing.RoutingTable('root')
+    rt0.add_route('get', '/', 0, generate_route_func('index'))
+    rt1 = rw.routing.RoutingTable('sub')
+    rt1.add_route('get', '/', 1, generate_route_func('index'))
+    rt2 = rw.routing.RoutingTable('subsub')
+    rt2.add_route('get', '/', 2, generate_route_func('index'))
+    rt2.add_route('get', '/fun', 2, generate_route_func('fun'))
+
+    rt0.add_child('/sub', rt1)
+    rt1.add_child('/subsub', rt2)
+    rt0.setup()
+
+    scope = rw.scope.Scope()
+    with scope():
+        prefix, func, args = rt0.find_route('get', '/')
+        assert prefix == ''
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub')
+        assert prefix == 'sub'
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub/subsub')
+        assert prefix == 'sub.subsub'
+        assert func.__name__ == 'index'
+
+        prefix, func, args = rt0.find_route('get', '/sub/subsub/fun')
+        assert prefix == 'sub.subsub'
+        assert func.__name__ == 'fun'
 
 
-class Handler2(HandlerA, HandlerB):
-    @rw.www.get('/get')
-    def get_(self):
-        pass
+class MyTestCase(tornado.testing.AsyncTestCase):
+    def test_rule_match(self):
+        # match must be used inside scope with rw.routing:plugin activated
+        scope = rw.scope.Scope()
+
+        with scope():
+            scope.activate(rw.routing.plugin, callback=self.inside_scope)
+        self.wait()
+
+    def inside_scope(self, result):
+        assert generate_rule('/').match('/') == {}
+        assert generate_rule('/').match('/asd') is None
+        assert generate_rule('/<foo>').match('/asd') == {'foo': 'asd'}
+        assert generate_rule('/<foo>').match('/foo/bar') is None
+        assert generate_rule('/<foo:path>').match('/foo/bar') == {'foo': 'foo/bar'}
+        self.stop()
 
 
-def gen_handler(handler_cls, method, path):
-    req = httpserver.HTTPRequest(method, path, remote_ip='127.0.0.1')
-    return handler_cls(web.Application(), req)
-
-
-def test_inheritance():
-    routes = rw.www.generate_routing(Handler2)
-    assert len(routes['get']) == 1
-    assert len(routes['post']) == 2
-    # assert gen_handler(Handler2, 'GET', '/get')._execute([])
-    # assert gen_handler(Handler2, 'POST', '/post')._handle_request()
-    # assert gen_handler(Handler2, 'POST', '/bost')._handle_request()
-    # assert not gen_handler(Handler2, 'POST', '/get')._handle_request()
-    # assert not gen_handler(Handler2, 'GET', '/post')._handle_request()
-
-
-class TestHandler(rw.www.RequestHandler):
-    last_invoced = None
-
-    @rw.www.get('/')
-    def index(self):
-        TestHandler.last_invoced = 'index'
-
-    @rw.www.get('/<name>')
-    def page(self, name):
-        TestHandler.last_invoced = 'page:' + name
-
-
-
-
-
-
-
-# def test_minimum_consume():
-#     gen_handler(TestHandler, 'GET', '/')._handle_request()
-#     assert TestHandler.last_invoced == 'index'
-#     gen_handler(TestHandler, 'GET', '/asd')._handle_request()
-#     assert TestHandler.last_invoced == 'page:asd'
-#     gen_handler(TestHandler, 'GET', '/')._handle_request()
-#     assert TestHandler.last_invoced == 'index'
-
-#def test_converter():
-#    a = generate_rule('/a/<x:int>/<y:int>')
-#    class Req(object):
-#        def __init__(self, path, type):
-#            self.path = path
-#            self.type = type
-#    assert a.match(None, Req('/a/1/2'))
