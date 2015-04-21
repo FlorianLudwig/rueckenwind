@@ -239,4 +239,3 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
 
         self.lock_b.set_result(None)
         assert (yield future_b) == 'b'
-

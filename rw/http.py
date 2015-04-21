@@ -146,5 +146,3 @@ def url_for(func, **kwargs):
             return routing_table.get_path(func, kwargs)
     else:
         return func.rw_route.get_path(kwargs)
-
-

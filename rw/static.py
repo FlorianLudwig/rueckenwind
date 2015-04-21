@@ -100,7 +100,7 @@ class Static(object):
 
         for base_uri, handler_class, roots in self.handlers:
             if uri.startswith('/' + base_uri + '/'):
-                path = uri[len(base_uri)+2:]  # remove /base_uri/
+                path = uri[len(base_uri) + 2:]  # remove /base_uri/
                 abs_path = handler_class.get_absolute_path(roots, path)
                 if not abs_path:
                     raise Exception('File Not Found %s' % repr(path))
@@ -152,4 +152,3 @@ def init(scope, app, settings):
 
         static.handlers.append((base_uri, StaticHandler, full_paths))
     static.setup()
-

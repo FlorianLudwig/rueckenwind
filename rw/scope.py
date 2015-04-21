@@ -48,7 +48,7 @@ class Scope(dict):
         self.plugins.add(plugin)
 
     def subscope(self, key):
-        if not key in self._subscopes:
+        if key not in self._subscopes:
             name = '{}.{}'.format(self.name, key)
             subscope = SubScope(name, self)
             self._subscopes[key] = subscope

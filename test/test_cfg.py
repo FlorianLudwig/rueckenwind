@@ -60,4 +60,3 @@ def test_config_paths():
         os.environ['VIRTUAL_ENV'] = env
 
     assert len(configs) < len(configs_ve)
-

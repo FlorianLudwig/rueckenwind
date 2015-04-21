@@ -44,13 +44,14 @@ def test_rule_compare():
 
 
 def test_rule_eq():
-    assert generate_rule('/') == generate_rule('/')
-    assert generate_rule('/foo') == generate_rule('/foo')
-    assert generate_rule('/name/<name>/photo') == generate_rule('/name/<name>/photo')
-    assert generate_rule('/name/<name>/photo/<num:int>') == generate_rule('/name/<name>/photo/<num:int>')
+    rules = ['/', '/foo', '/name/<name>/photo', '/name/<name>/photo/<num:int>']
+    # rules must implement __eq__
+    for rule in rules:
+        assert generate_rule(rule) == generate_rule(rule)
 
     assert generate_rule('/') != generate_rule('/foo')
-    assert generate_rule('/name/<name>/photo/<num>') != generate_rule('/name/<name>/photo/<num:int>')
+    assert (generate_rule('/name/<name>/photo/<num>')
+            != generate_rule('/name/<name>/photo/<num:int>'))
 
 
 def test_rule_sorting():
@@ -146,5 +147,3 @@ class MyTestCase(tornado.testing.AsyncTestCase):
         assert generate_rule('/<foo>').match('/foo/bar') is None
         assert generate_rule('/<foo:path>').match('/foo/bar') == {'foo': 'foo/bar'}
         self.stop()
-
-

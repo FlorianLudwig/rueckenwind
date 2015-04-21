@@ -24,6 +24,8 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 sub = rw.http.Module(name='submodule', resources='test.example')
+
+
 @sub.get('/')
 def sub_index():
     sub.render_template('sub.html')
