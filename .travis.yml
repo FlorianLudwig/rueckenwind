@@ -1,7 +1,7 @@
 language: python
 python: 2.7
 install:
-  - pip install tox coveralls pytest-cov
+  - pip install tox coveralls pytest-cov pep8
 script:
   # run tests in different python versions with tox
   # and run pep8
