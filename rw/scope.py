@@ -13,11 +13,15 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
-from tornado import stack_context, gen
 import contextlib
 import functools
-
 import inspect
+
+from tornado import stack_context
+
+import rw.cfg
+from . import gen
+
 
 NOT_PROVIDED = object()
 SCOPE_CHAIN = None
@@ -155,3 +159,22 @@ def inject(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+@gen.coroutine
+def setup_app_scope(name, scope):
+    """Load confing and activate plugins accordingly"""
+    settings = rw.cfg.read_configs(name)
+    scope['settings'] = settings
+
+    # load plugins
+    plugins = []
+    for plugin_name, active in settings.get('rw.plugins', {}).items():
+        plugin = __import__(plugin_name)
+        plugin_path = plugin_name.split('.')[1:] + ['plugin']
+        for sub in plugin_path:
+            plugin = getattr(plugin, sub)
+        plugins.append(scope.activate(plugin))
+
+    yield plugins
+    raise rw.gen.Return(settings)

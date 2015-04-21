@@ -73,22 +73,12 @@ class Application(object):
 
     @gen.coroutine
     def _scoped_configure(self):
-        self.rw_settings = rw.cfg.read_configs(self.root.name)
+        yield rw.scope.setup_app_scope(self.root.name, self.scope)
+        self.rw_settings = self.scope['settings']
         cfg_rw_http = self.rw_settings.setdefault('rw.http', {})
         cfg_rw_http['live_settings'] = self.settings
-        self.scope['settings'] = self.rw_settings
-        # load plugins
-        plugins = []
-        for plugin_name, active in self.rw_settings.get('rw.plugins', {}).items():
-            plugin = __import__(plugin_name)
-            plugin_path = plugin_name.split('.')[1:] + ['plugin']
-            for sub in plugin_path:
-                plugin = getattr(plugin, sub)
-            plugins.append(self.scope.activate(plugin))
-
         self._configure_cookie_secret()
 
-        yield plugins
         yield self.scope.activate(self.root)
 
     def _configure_cookie_secret(self):
