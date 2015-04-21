@@ -4,7 +4,8 @@ install:
   - pip install tox coveralls pytest-cov
 script:
   # run tests in different python versions with tox
-  - tox
+  # and run pep8
+  - python setup.py test
   # for coverage
   - pip install -e .
   - py.test --cov scope --cov doc
