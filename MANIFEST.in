@@ -1,3 +1,4 @@
 include .pep8
 include tox.ini
 recursive-include test *.yml *.txt *.html
+recursive-include rw *.yml *.txt *.html *.svg *.css

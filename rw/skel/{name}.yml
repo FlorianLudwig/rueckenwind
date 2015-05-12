@@ -1,0 +1,25 @@
+{{name}}:
+  # put application specific config stuff here
+  config: something
+
+rw.plugins:
+  rw.static: true
+  rw.routing: true
+#  rwdb: true
+
+
+rw.http:
+  cookie_secret:
+    file: "{VIRTUAL_ENV}/etc/cookie_secret"
+
+
+rw.static:
+  static:
+    - {{name}}
+
+
+# rwdb mongo connection
+rwdb:
+  default:
+    host: 127.0.0.1
+    db: creadit

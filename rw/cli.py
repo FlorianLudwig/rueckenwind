@@ -51,19 +51,26 @@ def command(func):
 
 def create_skel(src, dst, data):
     """generate skeleton rw project"""
+    dst = dst.format(**data)
+    if not os.path.exists(dst):
+        print( 'mk', dst )
+        os.makedirs(dst)
+
     for fname in pkg_resources.resource_listdir(__name__, src):
-        path = src + '/' + fname
+        path = os.path.join(src, fname)
+        dest_fname = os.path.join(dst, fname.format(**data))
+        ext = os.path.splitext(fname)[1].lower()
+
         if pkg_resources.resource_isdir(__name__, path):
-            os.mkdir(dst + '/' + fname)
             create_skel(path, dst + '/' + fname, data)
-        elif fname.endswith('.py') or fname.endswith('.html'):
+        elif ext in ('.py', '.svg', '.yml'):
             tpl = pkg_resources.resource_string(__name__, path)
             tpl = tpl.decode('utf-8')
             content = jinja2.Template(tpl).render(**data)
-            open(dst + '/' + fname, 'w').write(content.encode('utf-8'))
-        elif fname.endswith('.css') or fname.endswith('.png'):
+            open(dest_fname, 'w').write(content.encode('utf-8'))
+        elif ext in ('.css', '.png', '.html'):
             src = pkg_resources.resource_filename(__name__, path)
-            shutil.copy(src, dst + '/' + fname)
+            shutil.copy(src, dest_fname)
 
 
 @command

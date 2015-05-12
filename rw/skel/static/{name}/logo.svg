@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.1"
+   id="svg2"
+   viewBox="0 0 26.458333 15.875"
+   height="60"
+   width="120">
+  <defs
+     id="defs4" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-1.4682982,-1.8443818)"
+     id="layer1">
+    <text
+       id="text3336"
+       y="13.427031"
+       x="13.363476"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:234.99999046%;font-family:'Liberation Serif';text-align:start;letter-spacing:-6.25739574px;word-spacing:0px;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       xml:space="preserve"><tspan
+         style="text-align:start;text-anchor:start;stroke-width:0.26458332px"
+         y="13.427031"
+         x="13.363476"
+         id="tspan3338" /></text>
+    <text
+       id="text3340"
+       y="10.487066"
+       x="1.1229076"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:0%;font-family:'Liberation Serif';text-align:start;letter-spacing:-6.25739574px;word-spacing:0px;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       xml:space="preserve"><tspan
+         style="line-height:0%;text-align:start;letter-spacing:0px;text-anchor:start;stroke-width:0.26458332px"
+         y="10.487066"
+         x="1.1229076"
+         id="tspan3342">Logo</tspan></text>
+    <text
+       id="text3344"
+       y="16.968351"
+       x="14.499372"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.69999981px;line-height:234.99999046%;font-family:'Liberation Serif';text-align:center;letter-spacing:-6.25739574px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       xml:space="preserve"><tspan
+         style="font-size:3.52777767px;letter-spacing:0px;stroke-width:0.26458332px"
+         y="16.968351"
+         x="14.499372"
+         id="tspan3346">Project: <tspan
+   id="tspan3352"
+   style="fill:#204a87">{{name}}</tspan></tspan></text>
+    <path
+       id="path3348"
+       d="m 1.4682982,12.588901 12.9999998,0"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.26096028px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 21.468298,12.58709 5.679476,0"
+       id="path3350" />
+  </g>
+</svg>
