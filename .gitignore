@@ -1,4 +1,5 @@
 *.py[co]
+MANIFEST
 
 # Packages
 *.egg
@@ -28,3 +29,4 @@ pip-log.txt
 
 # docs build
 docs.*
+
