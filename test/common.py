@@ -1,5 +1,7 @@
 def generate_route_func(name):
-    f = lambda x: x
+    def f(x):
+        return x
+
     f.__name__ = name
     return f
 

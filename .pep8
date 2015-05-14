@@ -2,6 +2,8 @@
 
 # E265 - comments might start with ##
 # E266 - comments might start with ##
+# W503 - line break before binary operator
+# 	 (conflits with my multi line returns / ifs)
 
-ignore = E127,W292,E265,E266
+ignore = E127,W292,E265,E266,W503
 max-line-length = 99
