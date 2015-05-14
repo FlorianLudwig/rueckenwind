@@ -18,8 +18,8 @@ class TestCommand(setuptools.command.test.test):
 
     def run_tests(self):
         fails = []
-        from tox._config import parseconfig
-        from tox._cmdline import Session
+        from tox.config import parseconfig
+        from tox.session import Session
 
         config = parseconfig(self.test_args, 'tox')
         retcode = Session(config).runcommand()
