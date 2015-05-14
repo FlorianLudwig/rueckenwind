@@ -53,7 +53,6 @@ def create_skel(src, dst, data):
     """generate skeleton rw project"""
     dst = dst.format(**data)
     if not os.path.exists(dst):
-        print( 'mk', dst )
         os.makedirs(dst)
 
     for fname in pkg_resources.resource_listdir(__name__, src):
