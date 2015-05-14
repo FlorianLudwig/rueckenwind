@@ -21,7 +21,7 @@ class TestCommand(setuptools.command.test.test):
         from tox.config import parseconfig
         from tox.session import Session
 
-        config = parseconfig(self.test_args, 'tox')
+        config = parseconfig(self.test_args)
         retcode = Session(config).runcommand()
         if retcode != 0:
             fails.append('tox returned errors')
