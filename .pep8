@@ -1,5 +1,7 @@
 [pep8]
 
 # E265 - comments might start with ##
-ignore = E127,W292,E265
+# E266 - comments might start with ##
+
+ignore = E127,W292,E265,E266
 max-line-length = 99
