@@ -7,18 +7,16 @@ A python web framework based on tornado, jinja2, babel.
 Documentation
 =============
 
-Please refer to the documentation of rueckenwind for more details. The 
-Documentation can either be build from source using:
+Head over to `Read The Docs<http://ruckenwind.readthedocs.org/en/latest/>`_ and read the docs! Or build the docs from source using:
 
 ``sphinx-build -b html sphinx/ docs.html/``
 
-or viewed `online <http://florianludwig.github.com/rueckenwind/index.html>`_.
-
+and enjoy locally.
 
 0.X
 ===
 
-Currently the framework is still in development and it does not provide a stable API.  If the API stabalizes the version is incremented to 1.x
+Currently the framework is still in development and it does not provide a stable API.  When the API stabalizes the version is incremented to 1.x
 
 0.4.x
 -----
