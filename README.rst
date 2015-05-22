@@ -7,7 +7,7 @@ A python web framework based on tornado, jinja2, babel.
 Documentation
 =============
 
-Head over to `Read The Docs<http://ruckenwind.readthedocs.org/en/latest/>`_ and read the docs! Or build the docs from source using:
+Head over to `Read The Docs <http://ruckenwind.readthedocs.org/en/latest/>`_ and read the docs! Or build the docs from source using:
 
 ``sphinx-build -b html sphinx/ docs.html/``
 
