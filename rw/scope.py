@@ -13,6 +13,7 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, with_statement
 
+import sys
 import contextlib
 import functools
 import inspect
@@ -156,7 +157,13 @@ def inject(fn):
                         # the key might not be inside scope but there might be
                         # a default parameter defined inside the function
                         pass
-        return fn(*args, **kwargs)
+
+        try:
+            return fn(*args, **kwargs)
+        except:
+            msg = 'Error injecting into {}.{}'
+            print(msg.format(fn.__module__, fn.__name__), file=sys.stderr)
+            raise
 
     return wrapper
 
