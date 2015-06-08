@@ -92,9 +92,8 @@ Routing
 At the heart of rückenwind there is routing of http requests.
 It draws inspiration from several other projects, like `Flask <http://flask.pocoo.org/>`_ .
 
-Design notes
+.. note::
 
- * **Classes** are used to allow request handlers to be reused via inheritance.
  * **HTTP methods** are strictly seperated. You cannot have one python function answering GET and POST.
 
 
