@@ -1,0 +1,20 @@
+<html>
+<body>
+    <script>
+        function newWS() {
+            var ws = new WebSocket("ws://127.0.0.1:8000/ws");
+
+            ws.onmessage = function (event) {
+              console.log('ws onmessage', event.data);
+            }
+
+            ws.onopen = function (event) {
+                ws.close();
+                newWS();
+            };
+        }
+
+        newWS();
+
+    </script>
+</body>
