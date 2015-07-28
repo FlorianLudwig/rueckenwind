@@ -44,7 +44,7 @@ class TestCommand(setuptools.command.test.test):
 
 setup(
     name="rueckenwind",
-    version="0.4.1",
+    version="0.4.2",
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     author='Florian Ludwig',
