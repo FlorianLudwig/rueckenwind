@@ -113,7 +113,7 @@ def serv(args):
 
 def setup_app(app, extra_cfg=None, ioloop=None, listen=None):
     if ioloop is None:
-        ioloop = tornado.ioloop.IOLoop.instance()
+        ioloop = tornado.ioloop.IOLoop.current()
     if extra_cfg is None:
         extra_cfg = []
 
