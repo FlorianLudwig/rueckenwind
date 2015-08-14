@@ -217,12 +217,13 @@ class RoutingTable(dict):
 
             for key in self:
                 funcs = set(rule[1] for rule in self[key])
-                for route, route_module, fn in routes.get(key, []):
+                for route, route_module, module, fn in routes.get(key, []):
                     if fn not in funcs:
                         new_route = Route(prefix + route.path)
                         fn.rw_route = new_route
                         fn_name_prefix = fn_name_prefixes[fn]
-                        self[key].append((new_route, fn_name_prefix, fn))
+                        data = (new_route, fn_name_prefix, module, fn)
+                        self[key].append(data)
 
         # sort all rules
         for key in self:
@@ -230,7 +231,7 @@ class RoutingTable(dict):
 
     def add_route(self, method, path, module, fn):
         route = Route(path)
-        self.setdefault(method, []).append((route, '', fn))
+        self.setdefault(method, []).append((route, '', module, fn))
         # if fn.__name__ in self.fn_namespace:
         #     msg = 'Module already contains route with name {}'.format(fn.__name__)
         #     raise DuplicateError(msg)
@@ -270,11 +271,12 @@ class RoutingTable(dict):
         self.sub_rt.append((path, rt))
 
     def find_route(self, method, path):
-        for rule, name_prefix, fn in self[method.lower()]:
+        for x in self[method.lower()]:
+            rule, name_prefix, module, fn = x
             args = rule.match(path)
             if args is not None:
-                return name_prefix, fn, args
-        return None, None, None
+                return name_prefix, module, fn, args
+        return None, None, None, None
 
 
 def converter_default(data):

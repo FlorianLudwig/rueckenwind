@@ -94,9 +94,14 @@ class Static(object):
     def __call__(self, path):
         """returns url for static path"""
         if not path.startswith('/'):
-            uri = '/static/' + path
+            module = rw.scope.get('module', None)
+            if module is None:
+                msg = 'Relative pathes are only allowed from within a request.'
+                raise AttributeError(msg)
+
+            uri = '/static/{}/{}'.format(module.name, path)
         else:
-            uri = path
+            uri = '/static' + path
 
         for base_uri, handler_class, roots in self.handlers:
             if uri.startswith('/' + base_uri + '/'):
@@ -121,12 +126,13 @@ class Static(object):
     def setup(self):
         self.handlers.sort(key=lambda x: len(x[0]), reverse=True)
 
+
 plugin = rw.plugin.Plugin(__name__)
 
 
 @plugin.init
 def init(scope, app, settings):
-    """serve static files"""
+    """Plugin for serving static files in development mode"""
     cfg = settings.get('rw.static', {})
     static = Static()
     scope['static'] = static

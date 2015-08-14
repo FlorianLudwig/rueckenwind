@@ -114,19 +114,19 @@ def test_submodules():
 
     scope = rw.scope.Scope()
     with scope():
-        prefix, func, args = rt0.find_route('get', '/')
+        prefix, moudle, func, args = rt0.find_route('get', '/')
         assert prefix == ''
         assert func.__name__ == 'index'
 
-        prefix, func, args = rt0.find_route('get', '/sub')
+        prefix, moudle, func, args = rt0.find_route('get', '/sub')
         assert prefix == 'sub'
         assert func.__name__ == 'index'
 
-        prefix, func, args = rt0.find_route('get', '/sub/subsub')
+        prefix, moudle, func, args = rt0.find_route('get', '/sub/subsub')
         assert prefix == 'sub.subsub'
         assert func.__name__ == 'index'
 
-        prefix, func, args = rt0.find_route('get', '/sub/subsub/fun')
+        prefix, moudle, func, args = rt0.find_route('get', '/sub/subsub/fun')
         assert prefix == 'sub.subsub'
         assert func.__name__ == 'fun'
 

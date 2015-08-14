@@ -58,16 +58,18 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         self.scope['app'] = namedtuple('Application', 'root')(m)
 
         ## test find_route
-        assert routes.find_route('get', '/')[1] == index
-        assert routes.find_route('post', '/')[1] == index_post
-        assert routes.find_route('put', '/')[1] == index_put
-        assert routes.find_route('delete', '/')[1] == index_delete
+        assert routes.find_route('get', '/')[1] == m
+        assert routes.find_route('get', '/')[2] == index
+        assert routes.find_route('post', '/')[2] == index_post
+        assert routes.find_route('put', '/')[2] == index_put
+        assert routes.find_route('delete', '/')[2] == index_delete
 
-        assert routes.find_route('get', '/user/joe') == ('', user, {'user_name': 'joe'})
+        assert routes.find_route('get', '/user/joe') == \
+                                             ('', m, user, {'user_name': 'joe'})
 
         ## test find_route for mounts
-        assert routes.find_route('get', '/sub')[1] == sub_index
-        assert routes.find_route('get', '/sub2')[1] == sub2_index
+        assert routes.find_route('get', '/sub')[2] == sub_index
+        assert routes.find_route('get', '/sub2')[2] == sub2_index
 
         ## test url_for
         assert rw.http.url_for(index) == '/'
@@ -121,8 +123,8 @@ class HTTPTest(tornado.testing.AsyncTestCase):
 
         routes = m.setup()
 
-        assert routes.find_route('get', '/')[1] == index
-        assert routes.find_route('get', '/foo')[1] == sub_index
+        assert routes.find_route('get', '/')[2] == index
+        assert routes.find_route('get', '/foo')[2] == sub_index
         self.stop()
 
     def test_mount_variables(self):
