@@ -1,3 +1,5 @@
+|travis|_
+
 rückenwind
 ==========
 
@@ -18,13 +20,11 @@ and enjoy locally.
 
 Currently the framework is still in development and it does not provide a stable API.  When the API stabalizes the version is incremented to 1.x
 
-0.4.x
------
-The 0.4 branch introduces a new API and is incompatible with 0.3 in many details.
+master
+------
+The current master branch is 0.5.x.  The API is not fully backward compatible to 0.4.x releases. The 0.4 branch is a major overhaul and is incompatible with 0.3.
 
 
-|travis_04|_  (0.4 branch)
 
-
-.. |travis_04| image:: https://travis-ci.org/FlorianLudwig/rueckenwind.svg?branch=kill_rbus
-.. _travis_04: https://travis-ci.org/FlorianLudwig/rueckenwind
+.. |travis| image:: https://travis-ci.org/FlorianLudwig/rueckenwind.svg?branch=master
+.. _travis: https://travis-ci.org/FlorianLudwig/rueckenwind
