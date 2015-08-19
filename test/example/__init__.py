@@ -46,6 +46,11 @@ def index(handler):
     handler.finish('Hello rw.http')
 
 
+@root.get('/hello_return')
+def hello_return():
+    return 'Return World'
+
+
 @root.get('/lazy')
 @gen.coroutine
 def lazy(handler):

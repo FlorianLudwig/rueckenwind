@@ -29,6 +29,9 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         self.check_path('/nowhere', code=404)
         self.check_path('/put', code=404)
 
+    def test_return(self):
+        self.check_path('/hello_return', u'Return World')
+
     def test_template(self):
         response = self.fetch('/foo')
         assert response.code == 200

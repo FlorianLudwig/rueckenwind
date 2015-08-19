@@ -250,7 +250,8 @@ class RequestHandler(tornado.web.RequestHandler, dict):
             if is_future(result):
                 result = yield result
             if result is not None:
-                raise TypeError("Expected None, got %r" % result)
+                self.finish(result)
+
             if self._prepared_future is not None:
                 # Tell the Application we've finished with prepare()
                 # and are ready for the body to arrive.
@@ -272,7 +273,8 @@ class RequestHandler(tornado.web.RequestHandler, dict):
             if is_future(result):
                 result = yield result
             if result is not None:
-                raise TypeError("Expected None, got %r" % result)
+                self.finish(result)
+                
             if self._auto_finish and not self._finished:
                 self.finish()
         except Exception as e:
