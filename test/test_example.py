@@ -6,36 +6,28 @@ import rw.testing
 from . import example
 
 
+
+
 class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def get_app(self):
         return rw.httpbase.Application(root=imp.reload(example).root)
 
+    def check_path(self, path, response_body=None, code=200,
+                   method='GET', request_body=None):
+        response = self.fetch(path, method=method, body=request_body)
+        assert response.code == code
+        if response_body is not None:
+            assert response.body.decode('utf-8') == response_body
+        return response
+
     def test_basic_routing(self):
-        response = self.fetch('/')
-        assert response.code == 200
-        assert response.body.decode('utf-8') == u'Hello rw.http'
-
-        response = self.fetch('/lazy')
-        assert response.code == 200
-        assert response.body.decode('utf-8') == u'Hello lazy rw.http'
-
-        response = self.fetch('/otherplace')
-        assert response.code == 200
-        assert response.body.decode('utf-8') == u'other'
-
-        response = self.fetch('/user/me')
-        assert response.code == 200
-        assert response.body.decode('utf-8') == u'Hello me'
-
-        response = self.fetch('/user/you')
-        assert response.code == 200
-        assert response.body.decode('utf-8') == u'Hello you'
-
-        response = self.fetch('/nowhere')
-        assert response.code == 404
-
-        response = self.fetch('/put')
-        assert response.code == 404
+        self.check_path('/', u'Hello rw.http')
+        self.check_path('/lazy', u'Hello lazy rw.http')
+        self.check_path('/otherplace', u'other')
+        self.check_path('/user/me', u'Hello me')
+        self.check_path('/user/you', u'Hello you')
+        self.check_path('/nowhere', code=404)
+        self.check_path('/put', code=404)
 
     def test_template(self):
         response = self.fetch('/foo')
@@ -45,44 +37,30 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
 
         hello_world_content = pkg_resources.resource_string(
             'test.example', 'static/test.example/hello_world.txt')
-        hello_world_response = self.fetch(hello_world)
-        assert hello_world_response.code == 200
-        assert hello_world_response.body == hello_world_content
 
-        hello_world_response2 = self.fetch(hello_world2)
-        assert hello_world_response2.code == 200
-        assert hello_world_response2.body == hello_world_content
+        self.check_path(hello_world, hello_world_content)
+        self.check_path(hello_world2, hello_world_content)
+        hello_world_response = self.fetch(hello_world)
 
     def test_different_methods(self):
-        response = self.fetch('/', method='POST', body='')
-        assert response.body.decode('utf-8') == u'root POST'
-
-        response = self.fetch('/put', method='PUT', body='')
-        assert response.body.decode('utf-8') == u'put'
-
-        response = self.fetch('/delete', method='DELETE')
-        assert response.body.decode('utf-8') == u'delete'
-
-        response = self.fetch('/options', method='OPTIONS')
-        assert response.body.decode('utf-8') == u'options'
+        self.check_path('/', u'root POST', method='POST', request_body='')
+        self.check_path('/put', u'put', method='PUT', request_body='')
+        self.check_path('/delete', u'delete', method='DELETE')
+        self.check_path('/options', u'options', method='OPTIONS')
 
     def test_mount_tornado_handler(self):
-        response = self.fetch('/tornado', method='GET')
-        assert response.body.decode('utf-8') == u'Tornado GET'
+        self.check_path('/tornado', u'Tornado GET')
 
     def test_static(self):
         # from static folder
-        response = self.fetch('/static/hash/test.example/hello_world.txt', method='GET')
-        assert response.body.decode('utf-8') == u'Hello Static World'
+        base_url = '/static/hash/test.example/'
+        self.check_path(base_url + 'hello_world.txt', u'Hello Static World')
 
         # from static2 folder
-        response = self.fetch('/static/hash/test.example/hallo_welt.txt', method='GET')
-        assert response.body.decode('utf-8') == u'Guten Tag.'
+        self.check_path(base_url + 'hallo_welt.txt', u'Guten Tag.')
 
         # from static2 folder (higher in config file)
-        response = self.fetch('/static/hash/test.example/overwrite.txt', method='GET')
-        assert response.body.decode('utf-8') == u'Overwrite'
+        self.check_path(base_url + 'overwrite.txt', u'Overwrite')
 
     def test_url_for_inside_submodule(self):
-        response = self.fetch('/sub', method="GET")
-        assert response.body.decode('utf-8') == '/sub\n/sub'
+        self.check_path('/sub', '/sub\n/sub')
