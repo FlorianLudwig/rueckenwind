@@ -6,6 +6,7 @@ import tornado.testing
 import rw.scope
 import rw.http
 import rw.routing
+import rw.template
 
 from .common import generate_handler_func
 
@@ -21,7 +22,6 @@ from .common import generate_handler_func
 #         @m.get('/something_else')
 #         def foo():
 #             pass
-
 
 class HTTPTest(tornado.testing.AsyncTestCase):
     def test_http(self):
@@ -52,7 +52,7 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         user = generate_handler_func(m.get, '/user/<user_name:str>', 'user_page')
         m.mount('/sub', sub)
         m.mount('/sub2', sub2)
-        routes = m.setup()
+        routes = m.setup_routing()
 
         # mock app object
         self.scope['app'] = namedtuple('Application', 'root')(m)
@@ -105,6 +105,18 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         self.scope['rw.routing.prefix'] = 'sub.subsub'  # mock request
         assert rw.http.url_for('.fun') == '/sub/sub/fun'
 
+        # test templates
+        module = rw.http.Module('test.example')
+
+        env = rw.template.create_template_env(['test.example'])
+        result = ''
+
+        def render(template):
+            return module.render_template(template, env, handler=None)
+
+        # assert render('static_files.html') == result
+
+
         self.stop()
 
     def test_mount(self):
@@ -121,7 +133,7 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         sub_index = generate_handler_func(sub.get, '/')
         m.mount('/foo', sub)
 
-        routes = m.setup()
+        routes = m.setup_routing()
 
         assert routes.find_route('get', '/')[2] == index
         assert routes.find_route('get', '/foo')[2] == sub_index
@@ -141,7 +153,7 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         sub_index = generate_handler_func(sub.get, '/')
         m.mount('/foo/<var>', sub)
 
-        routes = m.setup()
+        routes = m.setup_routing()
 
         assert routes.find_route('get', '/')[1] == index
         assert routes.find_route('get', '/foo/bar')[1] == sub_index

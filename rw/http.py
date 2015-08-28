@@ -12,13 +12,19 @@ class Module(rw.plugin.Plugin):
     def __init__(self, name, resources=None):
         super(Module, self).__init__(name)
         self.resources = name if resources is None else resources
-        self.activate_event.add(self.setup)
         self.routes = []
         self.sub_rt = []
         self.sub_request_handler = []
         self.template_env = None
 
-    def setup(self, top=True):
+    def activate(self):
+        ## setup rooting
+        self.setup_routing()
+
+        ## run activate of super
+        return super(Module, self).activate()
+
+    def setup_routing(self, top=True):
         # if a Module instance is created inside some python
         # module __init__ we cannot create the template env
         # at module creation as it results in the module
@@ -28,7 +34,7 @@ class Module(rw.plugin.Plugin):
             routes.add_route(*args)
 
         for path, module, _, _ in self.sub_rt:
-            sub_routes = module.setup(False)
+            sub_routes = module.setup_routing(False)
             routes.add_child(path, sub_routes)
 
         for args in self.sub_request_handler:
