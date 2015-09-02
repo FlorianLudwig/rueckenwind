@@ -1,3 +1,2 @@
 static_value: {{ static_value }} == 42
-{{ static('hello_world.txt') }}
-{{ static('/test.example/hello_world.txt') }}
+{% include '/test.example/static_files.html' %}
