@@ -18,6 +18,7 @@ import inspect
 
 import tornado.web
 import tornado.httpserver
+import tornado.httputil
 import tornado.ioloop
 from tornado import gen
 from tornado import iostream
@@ -37,7 +38,7 @@ PRE_REQUEST = rw.event.Event('httpbase.pre_request')
 POST_REQUEST = rw.event.Event('httpbase.post_request')
 
 
-class Application(object):
+class Application(tornado.httputil.HTTPServerConnectionDelegate):
     def __init__(self, handler=None, root=None):
         """rueckenwind Application to plug into tornado's httpserver.
 
@@ -99,13 +100,9 @@ class Application(object):
                 cookie_secret = os.urandom(32)
             cfg['live_settings']['cookie_secret'] = cookie_secret
 
-    def __call__(self, request):
+    def start_request(self, server_conn, request_conn):
         """Called by `tornado.httpserver.HTTPServer` to handle a request."""
-        with self.scope():
-            request_scope = rw.scope.Scope()
-            with request_scope():
-                request_handling = self._handle_request(request_scope, request)
-                self.io_loop.add_future(request_handling, self._request_finished)
+        return RequestDispatcher(self, request_conn)
 
     @gen.coroutine
     def _handle_request(self, request_scope, request):
@@ -123,6 +120,56 @@ class Application(object):
     def log_request(self, request):
         # TODO print(request)
         pass
+
+
+class RequestDispatcher(tornado.httputil.HTTPMessageDelegate):
+    def __init__(self, application, connection):
+        self.application = application
+        self.connection = connection
+        self.request = None
+        self.chunks = []
+        self.handler_class = None
+        self.handler_kwargs = None
+        self.path_args = []
+        self.path_kwargs = {}
+        self.stream_request_body = False
+
+    def headers_received(self, start_line, headers):
+        self.request = tornado.httputil.HTTPServerRequest(
+            connection=self.connection, start_line=start_line,
+            headers=headers)
+
+        if self.stream_request_body:
+            self.request.body = Future()
+            return self.execute()
+
+    def data_received(self, data):
+        if self.stream_request_body:
+            return self.handler.data_received(data)
+        else:
+            self.chunks.append(data)
+
+    def finish(self):
+        if self.stream_request_body:
+            self.request.body.set_result(None)
+        else:
+            self.request.body = b''.join(self.chunks)
+            self.request._parse_body()
+            self.execute()
+
+    def on_connection_close(self):
+        if self.stream_request_body:
+            self.handler.on_connection_close()
+        else:
+            self.chunks = None
+
+    def execute(self):
+        app = self.application
+        with app.scope():
+            request_scope = rw.scope.Scope()
+            with request_scope():
+                request_handling = app._handle_request(request_scope, self.request)
+                app.io_loop.add_future(request_handling, app._request_finished)
 
 
 class RequestHandler(tornado.web.RequestHandler, dict):
@@ -274,7 +321,7 @@ class RequestHandler(tornado.web.RequestHandler, dict):
                 result = yield result
             if result is not None:
                 self.finish(result)
-                
+
             if self._auto_finish and not self._finished:
                 self.finish()
         except Exception as e:
