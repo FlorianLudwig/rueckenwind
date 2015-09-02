@@ -6,8 +6,6 @@ import rw.testing
 from . import example
 
 
-
-
 class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def get_app(self):
         return rw.httpbase.Application(root=imp.reload(example).root)
@@ -21,7 +19,7 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         return response
 
     def test_basic_routing(self):
-        self.check_path('/', u'Hello rw.http')
+        self.check_path('/', u'Hello World')
         self.check_path('/lazy', u'Hello lazy rw.http')
         self.check_path('/otherplace', u'other')
         self.check_path('/user/me', u'Hello me')
@@ -30,7 +28,7 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         self.check_path('/put', code=404)
 
     def test_return(self):
-        self.check_path('/hello_return', u'Return World')
+        self.check_path('/hello_handler', u'Hello Handler!')
 
     def test_template(self):
         response = self.fetch('/foo')
