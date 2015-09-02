@@ -8,6 +8,6 @@ script:
   - python setup.py test
   # for coverage
   - pip install -e .
-  - py.test --cov rw --cov doc
+  - py.test --cov rw --cov doc --cov test
 after_success:
   coveralls
