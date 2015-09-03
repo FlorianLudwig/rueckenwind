@@ -84,7 +84,10 @@ def file_hash(content):
     # |   /  |    _       |
     #
 
-    return base64.b64encode(h_digest, altchars=b'-_').rstrip(b'=')
+    encoded = base64.b64encode(h_digest, altchars=b'-_')
+    # ensure this is a str object in 3.x
+    encoded = encoded.decode('utf-8')
+    return encoded.rstrip('=')
 
 
 class Static(object):
