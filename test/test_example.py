@@ -39,6 +39,7 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         hello_world_content = pkg_resources.resource_string(
             'test.example', 'static/test.example/hello_world.txt')
 
+        hello_world_content = hello_world_content.decode('utf-8')
         self.check_path(hello_world, hello_world_content)
         self.check_path(hello_world2, hello_world_content)
         hello_world_response = self.fetch(hello_world)
