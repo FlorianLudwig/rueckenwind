@@ -66,7 +66,8 @@ def create_skel(src, dst, data):
             tpl = pkg_resources.resource_string(__name__, path)
             tpl = tpl.decode('utf-8')
             content = jinja2.Template(tpl).render(**data)
-            open(dest_fname, 'w').write(content.encode('utf-8'))
+            with open(dest_fname, 'wb') as dest:
+                dest.write(content.encode('utf-8'))
         elif ext in ('.css', '.png', '.html'):
             src = pkg_resources.resource_filename(__name__, path)
             shutil.copy(src, dest_fname)
