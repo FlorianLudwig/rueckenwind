@@ -23,6 +23,7 @@ from .common import generate_handler_func
 #         def foo():
 #             pass
 
+
 class HTTPTest(tornado.testing.AsyncTestCase):
     def test_http(self):
         self.scope = rw.scope.Scope()
@@ -115,8 +116,6 @@ class HTTPTest(tornado.testing.AsyncTestCase):
             return module.render_template(template, env, handler=None)
 
         # assert render('static_files.html') == result
-
-
         self.stop()
 
     def test_mount(self):
@@ -142,7 +141,7 @@ class HTTPTest(tornado.testing.AsyncTestCase):
     def test_mount_variables(self):
         scope = rw.scope.Scope()
         with scope():
-            scope.activate(rw.routing.plugin, callback=self.mount)
+            scope.activate(rw.routing.plugin, callback=self.mount_variables)
         self.wait()
 
     def mount_variables(self, _):
@@ -155,6 +154,6 @@ class HTTPTest(tornado.testing.AsyncTestCase):
 
         routes = m.setup_routing()
 
-        assert routes.find_route('get', '/')[1] == index
-        assert routes.find_route('get', '/foo/bar')[1] == sub_index
+        assert routes.find_route('get', '/')[2] == index
+        assert routes.find_route('get', '/foo/bar')[2] == sub_index
         self.stop()

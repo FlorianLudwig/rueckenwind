@@ -94,15 +94,16 @@ class MainHandler(tornado.web.RequestHandler):
 
 sub = rw.http.Module(name='submodule', resources='test.example')
 
+
 @sub.init
 def sub_init(template_env):
     template_env.globals['static_value'] = 42
     # assert template_env is root.template_env
 
+
 @sub.get('/')
 def sub_index():
     return sub.render_template('sub.html')
-
 
 
 root.mount('/tornado', MainHandler)
