@@ -95,7 +95,7 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
                     if not os.path.exists(cs_dir):
                         os.makedirs(cs_dir)
                     cookie_secret = os.urandom(32)
-                    open(cs_path, 'w').write(cookie_secret)
+                    open(cs_path, 'wb').write(cookie_secret)
             elif 'random' in cfg['cookie_secret'] and cfg['cookie_secret']['random']:
                 cookie_secret = os.urandom(32)
             cfg['live_settings']['cookie_secret'] = cookie_secret
