@@ -30,3 +30,5 @@ pip-log.txt
 # docs build
 docs.*
 
+# perf results
+scripts/perf_*.csv
