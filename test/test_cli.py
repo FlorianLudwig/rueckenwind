@@ -26,7 +26,7 @@ class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
         import rwtest.http
         return rw.httpbase.Application(root=imp.reload(rwtest.http).root)
 
-    def test_basic_routing(self):
+    def test_skel_basic_routing(self):
         response = self.fetch('/')
         body = response.body.decode('utf-8')
         assert response.code == 200

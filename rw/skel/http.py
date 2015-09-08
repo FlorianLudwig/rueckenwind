@@ -10,4 +10,4 @@ root = rw.http.Module('{{name}}')
 
 @root.get('/')
 def index(handler):
-    root.render_template('index.html')
+    return root.render_template('index.html')
