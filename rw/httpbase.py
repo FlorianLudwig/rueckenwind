@@ -89,7 +89,7 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
                 cs_path = cfg['cookie_secret']['file']
                 cs_path = cs_path.format(**os.environ)
                 if os.path.exists(cs_path):
-                    cookie_secret = open(cs_path).read().strip()
+                    cookie_secret = open(cs_path, 'rb').read().strip()
                 else:
                     cs_dir = os.path.dirname(cs_path)
                     if not os.path.exists(cs_dir):
