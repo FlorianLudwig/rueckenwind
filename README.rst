@@ -20,5 +20,5 @@ The framework does not yet provide a stable API.  When the API stabalizes the ve
 .. |travis| image:: https://travis-ci.org/FlorianLudwig/rueckenwind.svg?branch=master
 .. _travis: https://travis-ci.org/FlorianLudwig/rueckenwind
 
-.. |coveralls| image:: https://coveralls.io/repos/FlorianLudwig/scope/rueckenwind.svg
-.. _coveralls: https://coveralls.io/r/FlorianLudwig/rueckenwind
+.. |coveralls| image:: https://coveralls.io/repos/FlorianLudwig/rueckenwind/badge.svg?branch=master&service=github
+.. _coveralls: https://coveralls.io/github/FlorianLudwig/rueckenwind?branch=master
