@@ -108,15 +108,15 @@ def serv(args):
 
     listen = (int(args.port), args.address)
     ioloop = tornado.ioloop.IOLoop.instance()
-    setup_app(app=args.MODULE, extra_cfg=extra, ioloop=ioloop, listen=listen)
+    setup_app(app=args.MODULE, extra_configs=extra, ioloop=ioloop, listen=listen)
     ioloop.start()
 
 
-def setup_app(app, extra_cfg=None, ioloop=None, listen=None):
+def setup_app(app, extra_configs=None, ioloop=None, listen=None):
     if ioloop is None:
         ioloop = tornado.ioloop.IOLoop.current()
-    if extra_cfg is None:
-        extra_cfg = []
+    if extra_configs is None:
+        extra_configs = []
 
     if isinstance(app, tornado.util.basestring_type):
         module_path = app
@@ -126,7 +126,7 @@ def setup_app(app, extra_cfg=None, ioloop=None, listen=None):
         module_path = module_path.replace('/', '.').strip('.')
         module = __import__(module_path, fromlist=[module_name])
         module = getattr(module, module_name)
-        app = rw.httpbase.Application(root=module)
+        app = rw.httpbase.Application(root=module, extra_configs=extra_configs)
 
     server = tornado.httpserver.HTTPServer(app)
     if listen:
