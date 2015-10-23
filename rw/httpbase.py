@@ -38,13 +38,14 @@ POST_REQUEST = rw.event.Event('httpbase.post_request')
 
 
 class Application(object):
-    def __init__(self, handler=None, root=None):
+    def __init__(self, handler=None, root=None, extra_configs=None):
         """rueckenwind Application to plug into tornado's httpserver.
 
         Either `root` or `handler` must be specified.
 
         :param rw.http.Module root: The root module to serve
         :param handler: The request handler (should subclass `tornado.web.RequestHandler`)
+        :param extra_configs: path to alternative config file for rueckenwind
         """
         self.io_loop = tornado.ioloop.IOLoop.current()
         self.settings = {}
@@ -52,6 +53,7 @@ class Application(object):
         self.root = root
         self.scope = rw.scope.Scope()
         self.scope['app'] = self
+        self.extra_configs = extra_configs
         if self.root:
             self.handler = handler if handler is not None else RequestHandler
             pkgs = [root.name]  # TODO, Breadth-first search for dependencies
@@ -73,7 +75,8 @@ class Application(object):
 
     @gen.coroutine
     def _scoped_configure(self):
-        yield rw.scope.setup_app_scope(self.root.name, self.scope)
+        yield rw.scope.setup_app_scope(
+            self.root.name, self.scope, extra_configs=self.extra_configs)
         self.rw_settings = self.scope['settings']
         cfg_rw_http = self.rw_settings.setdefault('rw.http', {})
         cfg_rw_http['live_settings'] = self.settings
