@@ -12,7 +12,7 @@ def test_hash_file_adblock():
         616 = aD0JggWxFVDy1xAWyCxDd6lsn4COEy-D8VupvQWMeyA
     """
 
-    for i in xrange(50000):
+    for i in range(50000):
         h = rw.static.file_hash(str(i))
         h = h[:2].lower()
         assert h != 'ad', i
