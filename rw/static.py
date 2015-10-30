@@ -66,8 +66,12 @@ class StaticHandler(tornado.web.StaticFileHandler):
 
 
 def file_hash(content):
-    """
-    :param str|FileIO content: The content to hash, either as string or as file-like object
+    """Generate hash for file or string and avoid strings starting with "ad"
+       to workaround ad blocks being over aggressiv.
+
+       The current implementation is based on sha256.
+
+       :param str|FileIO content: The content to hash, either as string or as file-like object
     """
     h = hashlib.sha256()
     if isinstance(content, bytes_type):
@@ -83,11 +87,19 @@ def file_hash(content):
     # |   +  |    -       |
     # |   /  |    _       |
     #
+    result = base64.b64encode(h_digest, altchars=b'-_').rstrip(b'=')
 
-    encoded = base64.b64encode(h_digest, altchars=b'-_')
+    if result[:2].lower() == 'ad':
+        # workaround adblockers blocking everything starting with "ad"
+        # by replacing the "d" with another charackter
+        if result[1] == 'd':
+            result = result[0] + '~' + result[2:]
+        else:
+            # upper case D
+            result = result[0] + '.' + result[2:]
+
     # ensure this is a str object in 3.x
-    encoded = encoded.decode('utf-8')
-    return encoded.rstrip('=')
+    return result.decode('utf-8')
 
 
 class Static(object):
