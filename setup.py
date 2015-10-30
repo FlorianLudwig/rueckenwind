@@ -53,7 +53,6 @@ setup(
                       'jinja2',
                       'babel',
                       'argcomplete>=0.6.6,<1.0',
-                      'mock',
                       'configobj',
                       'chardet',
                       'pytz',
