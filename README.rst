@@ -1,4 +1,4 @@
-|travis|_ |coveralls|_
+|travis|_ |coveralls|_ |license|
 
 rückenwind
 ==========
@@ -22,3 +22,6 @@ The framework does not yet provide a stable API.  When the API stabalizes the ve
 
 .. |coveralls| image:: https://img.shields.io/coveralls/FlorianLudwig/rueckenwind/master.svg?style=flat-square
 .. _coveralls: https://coveralls.io/github/FlorianLudwig/rueckenwind?branch=master
+
+.. |coveralls| image:: https://img.shields.io/github/license/florianludwig/rueckenwind.svg?style=flat-square
+
