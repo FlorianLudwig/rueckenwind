@@ -87,7 +87,10 @@ def file_hash(content):
     # |   +  |    -       |
     # |   /  |    _       |
     #
-    result = base64.b64encode(h_digest, altchars=b'-_').rstrip(b'=')
+    result = base64.b64encode(h_digest, altchars=b'-_')
+    # ensure this is a str object in 3.x
+    result = result.decode('ascii')
+    result = result.rstrip('=')
 
     if result[:2].lower() == 'ad':
         # workaround adblockers blocking everything starting with "ad"
@@ -98,8 +101,7 @@ def file_hash(content):
             # upper case D
             result = result[0] + '.' + result[2:]
 
-    # ensure this is a str object in 3.x
-    return result.decode('utf-8')
+    return result
 
 
 class Static(object):
