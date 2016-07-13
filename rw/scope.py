@@ -20,8 +20,7 @@ import inspect
 
 from tornado import stack_context
 
-import rw.cfg
-from . import gen
+import rw.gen
 
 
 NOT_PROVIDED = object()
@@ -43,7 +42,7 @@ class Scope(dict):
     def provider(self, key, provider):
         self._provider[key] = provider
 
-    @gen.coroutine
+    @rw.gen.coroutine
     def activate(self, plugin):
         yield plugin.activate()
         self.plugins.add(plugin)
@@ -168,10 +167,9 @@ def inject(fn):
     return wrapper
 
 
-@gen.coroutine
-def setup_app_scope(name, scope, extra_configs=None):
+@rw.gen.coroutine
+def setup_app_scope(name, scope, settings):
     """Load confing and activate plugins accordingly"""
-    settings = rw.cfg.read_configs(name, extra_configs)
     scope['settings'] = settings
 
     # load plugins

@@ -33,6 +33,7 @@ import jinja2
 
 import rw
 import rw.scope
+import rw.cfg
 import rw.server
 import rw.httpbase
 
@@ -125,7 +126,12 @@ def setup_app(app, extra_configs=None, ioloop=None, listen=None):
         module_path = module_path.replace('/', '.').strip('.')
         module = __import__(module_path, fromlist=[module_name])
         module = getattr(module, module_name)
-        app = rw.httpbase.Application(root=module, extra_configs=extra_configs)
+        settings = rw.cfg.read_configs(module.name, extra_configs)
+        app = rw.httpbase.Application(root=module, rw_settings=settings)
+    elif hasattr(app, 'rw_settings'):
+        settings = app.rw_settings
+    else:
+        settings = {}
 
     server = tornado.httpserver.HTTPServer(app)
     if listen:

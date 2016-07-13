@@ -8,7 +8,8 @@ from . import example
 
 class HTTPServerTest(rw.testing.AsyncHTTPTestCase):
     def get_app(self):
-        return rw.httpbase.Application(root=imp.reload(example).root)
+        settings = rw.cfg.read_configs('test.example')
+        return rw.httpbase.Application(root=imp.reload(example).root, rw_settings=settings)
 
     def test_basic_routing(self):
         response = self.fetch('/')
