@@ -133,7 +133,7 @@ def setup_app(app, extra_configs=None, ioloop=None, listen=None):
     else:
         settings = {}
 
-    server = tornado.httpserver.HTTPServer(app)
+    server = tornado.httpserver.HTTPServer(app, **settings.get('httpserver', {}))
     if listen:
         server.listen(*listen)
 
