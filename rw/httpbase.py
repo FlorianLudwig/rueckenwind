@@ -68,7 +68,6 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
             self.scope['settings'] = {}
             assert handler is not None
 
-
         self._wsgi = False  # wsgi is not supported
         # compatibility so we can mount tornado RequestHandlers
         self.ui_modules = {}
