@@ -14,6 +14,17 @@ default values for your configuration values inside your project that gets overw
 /etc that gets overwritten by user configuration in their homes that gets overwritten by configuratin inside your
 virtual_envs /etc.
 
+The tornado server can be configured with httpserver::
+
+    httpserver:
+      xheaders: true
+
+
+Note::
+
+  TODO: Configs are now yaml format. Document.
+
+
 For example if your your project features the following config file::
 
     [mongodb]
