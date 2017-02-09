@@ -128,7 +128,8 @@ def setup_app(app, extra_configs=None, ioloop=None, listen=None):
         module = getattr(module, module_name)
         app = rw.httpbase.Application(root=module, extra_configs=extra_configs)
 
-    server = tornado.httpserver.HTTPServer(app)
+    http_server_settings = app.scope['settings'].get('httpserver', {})
+    server = tornado.httpserver.HTTPServer(app, **http_server_settings)
     if listen:
         server.listen(*listen)
 
