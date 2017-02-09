@@ -60,9 +60,14 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
             pkgs = [root.name]  # TODO, Breadth-first search for dependencies
             self.scope['template_env'] = rw.template.create_template_env(pkgs)
             self.scope['template_env'].globals['app'] = self
+
+            self.scope['settings'] = rw.cfg.read_configs(self.root.name,
+                                                         self.extra_configs)
         else:
             self.handler = handler
+            self.scope['settings'] = {}
             assert handler is not None
+
 
         self._wsgi = False  # wsgi is not supported
         # compatibility so we can mount tornado RequestHandlers
@@ -76,8 +81,7 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
 
     @gen.coroutine
     def _scoped_configure(self):
-        yield rw.scope.setup_app_scope(
-            self.root.name, self.scope, extra_configs=self.extra_configs)
+        yield rw.scope.setup_app_scope(self.root.name, self.scope)
         self.rw_settings = self.scope['settings']
         cfg_rw_http = self.rw_settings.setdefault('rw.http', {})
         cfg_rw_http['live_settings'] = self.settings

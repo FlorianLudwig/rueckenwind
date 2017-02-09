@@ -169,14 +169,12 @@ def inject(fn):
 
 
 @gen.coroutine
-def setup_app_scope(name, scope, extra_configs=None):
-    """Load confing and activate plugins accordingly"""
-    settings = rw.cfg.read_configs(name, extra_configs)
-    scope['settings'] = settings
+def setup_app_scope(name, scope):
+    """activate plugins accordingly to config"""
 
     # load plugins
     plugins = []
-    for plugin_name, active in settings.get('rw.plugins', {}).items():
+    for plugin_name, active in get('settings').get('rw.plugins', {}).items():
         plugin = __import__(plugin_name)
         plugin_path = plugin_name.split('.')[1:] + ['plugin']
         for sub in plugin_path:
@@ -184,4 +182,4 @@ def setup_app_scope(name, scope, extra_configs=None):
         plugins.append(scope.activate(plugin))
 
     yield plugins
-    raise rw.gen.Return(settings)
+    raise rw.gen.Return(scope['settings'])
