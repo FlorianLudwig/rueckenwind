@@ -57,12 +57,15 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
         self.extra_configs = extra_configs
         if self.root:
             self.handler = handler if handler is not None else RequestHandler
-            pkgs = [root.name]  # TODO, Breadth-first search for dependencies
-            self.scope['template_env'] = rw.template.create_template_env(pkgs)
-            self.scope['template_env'].globals['app'] = self
-
             self.scope['settings'] = rw.cfg.read_configs(self.root.name,
                                                          self.extra_configs)
+
+            pkgs = self.scope['settings'].get('rw.templates', {}).get('pkgs', None)
+            if not pkgs:
+                pkgs = [root.name]
+
+            self.scope['template_env'] = rw.template.create_template_env(pkgs)
+            self.scope['template_env'].globals['app'] = self
         else:
             self.handler = handler
             self.scope['settings'] = {}
