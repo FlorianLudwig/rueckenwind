@@ -185,9 +185,6 @@ class ConcurrencyTestWithoutWithStatement(tornado.testing.AsyncTestCase):
         yield self.scope_a.run(check_a)
 
 
-
-
-
 class ConcurrencyTest(tornado.testing.AsyncTestCase):
     """test concurrent ioloop futures inside different scopes
 
