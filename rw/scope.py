@@ -87,6 +87,10 @@ class Scope(dict):
     def __call__(self):
         return stack_context.StackContext(functools.partial(set_context, self))
 
+    @rw.gen.coroutine
+    def run(self, target_coroutine):
+        yield stack_context.run_with_stack_context(self(), target_coroutine)
+
 
 class SubScope(Scope):
     def __init__(self, name, parent):
