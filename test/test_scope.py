@@ -171,6 +171,23 @@ class ScopeLeakingTest(tornado.testing.AsyncTestCase):
         assert rw.scope.get_current_scope() is None
 
 
+@tornado.gen.coroutine
+def check_a():
+    assert rw.scope.get('name') == 'a'
+
+
+class ConcurrencyTestWithoutWithStatement(tornado.testing.AsyncTestCase):
+    @tornado.testing.gen_test
+    def test_stuff(self):
+        """Setup two scopes and two "locks"."""
+        self.scope_a = rw.scope.Scope()
+        self.scope_a['name'] = 'a'
+        yield self.scope_a.run(check_a)
+
+
+
+
+
 class ConcurrencyTest(tornado.testing.AsyncTestCase):
     """test concurrent ioloop futures inside different scopes
 
@@ -206,6 +223,17 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
             future_b = thread_b()
 
         return future_a, future_b
+
+    @tornado.testing.gen_test
+    def test_concurrent_scopes_both(self):
+        """set both results before yield-ing"""
+        future_a, future_b = self.setup()
+
+        self.lock_a.set_result(None)
+        self.lock_b.set_result(None)
+
+        assert (yield future_b) == 'b'
+        assert (yield future_a) == 'a'
 
     @tornado.testing.gen_test
     def test_concurrent_scopes_both(self):
