@@ -20,13 +20,16 @@ Signal
 """
 from __future__ import absolute_import, division, print_function, with_statement
 
-import traceback
-
 from tornado import gen
-import rw.scope
 
 
 class Event(set):
+    """
+    A simple within-process pub/sub event system.
+
+    If multiple callbacks are provided and raise exceptions,
+    the first detected exception is re-raised and all successive exceptions are ignored.
+    """
     def __init__(self, name, accumulator=None):
         super(Event, self).__init__()
         self.name = name
