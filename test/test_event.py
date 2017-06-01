@@ -23,17 +23,8 @@ class MyTestCase(tornado.testing.AsyncTestCase):
         def fail():
             1 / 0
 
-        with pytest.raises(rw.event.EventException):
+        with pytest.raises(ZeroDivisionError):
             yield MY_EVENT()
-
-        try:
-            yield MY_EVENT()
-            assert False  # this line should never be reached
-        except rw.event.EventException as e:
-            # the original traceback should be get printed
-            assert 'in fail' in str(e)  # function name of the actual exception
-            assert '1 / 0' in str(e)  # the source line of the exception
-            assert 'ZeroDivisionError' in str(e)
 
     @tornado.testing.gen_test
     def test_event_listener(self):
@@ -87,14 +78,5 @@ class MyTestCase(tornado.testing.AsyncTestCase):
         MY_EVENT = rw.event.Event('MY_EVENT')
         MY_EVENT.add(something_lazy_failing)
 
-        with pytest.raises(rw.event.EventException):
+        with pytest.raises(ZeroDivisionError):
             yield MY_EVENT()
-
-        try:
-            yield MY_EVENT()
-            assert False  # this line should never be reached
-        except rw.event.EventException as e:
-            # the original traceback should be get printed
-            assert 'in something_lazy_failing' in str(e)  # function name of the actual exception
-            assert '1 / 0' in str(e)  # the source line of the exception
-            assert 'ZeroDivisionError' in str(e)
