@@ -20,22 +20,16 @@ Signal
 """
 from __future__ import absolute_import, division, print_function, with_statement
 
-import traceback
-
 from tornado import gen
-import rw.scope
-
-
-class EventException(Exception):
-    def __init__(self, exceptions):
-        self.exceptions = exceptions
-        message = '{} exceptions encountered:\n'.format(len(exceptions))
-        for func, e in exceptions:
-            message += '{}:\n{}'.format(func, e)
-        Exception.__init__(self, ''.join(message))
 
 
 class Event(set):
+    """
+    A simple within-process pub/sub event system.
+
+    If multiple callbacks are provided and raise exceptions,
+    the first detected exception is re-raised and all successive exceptions are ignored.
+    """
     def __init__(self, name, accumulator=None):
         super(Event, self).__init__()
         self.name = name
@@ -43,38 +37,24 @@ class Event(set):
 
     @gen.coroutine
     def __call__(self, *args, **kwargs):
-        scope = rw.scope.get_current_scope()
-        rw_tracing = scope.get('rw_trace', None) if scope else None
-
         re = []
-        exceptions = []
         futures = []
         for func in self:
-            try:
-                result = func(*args, **kwargs)
-                if isinstance(result, gen.Future):
-                    # we are not waiting for future objects result here
-                    # so they evaluate in parallel
-                    futures.append((func, result))
-                else:
-                    re.append(result)
-            except Exception:
-                exceptions.append((func, traceback.format_exc()))
+            result = func(*args, **kwargs)
+            if isinstance(result, gen.Future):
+                # we are not waiting for future objects result here
+                # so they evaluate in parallel
+                futures.append((func, result))
+            else:
+                re.append(result)
 
         # wait for results
         for func, future in futures:
-            try:
-                if not future.done():
-                    yield future
-                re.append(future.result())
+            if not future.done():
+                yield future
+            re.append(future.result())
 
-            except Exception:
-                exceptions.append((func, traceback.format_exc()))
-
-        if exceptions:
-            raise EventException(exceptions)
-
-        # apply accumolator
+        # apply accumulator
         if self.accumulator:
             re = self.accumulator(re)
 
