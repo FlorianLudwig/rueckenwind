@@ -117,9 +117,17 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
     def _handle_request(self, request_scope, request):
         handler = self.handler(self, request)
         request_scope['handler'] = handler
-        yield PRE_REQUEST()
-        yield handler._execute([])
-        yield POST_REQUEST()
+        try:
+            yield PRE_REQUEST()
+            yield handler._execute([])
+            yield POST_REQUEST()
+        except Exception as e:
+            # Ensure exceptions in PRE and POST_REQUEST are
+            # also forwarded to the exception handler.
+            # It is not just important for logging but making
+            # `raise HTTPError()` in event handlers work.
+            handler._transforms = []
+            handler._handle_request_exception(e)
 
     def _request_finished(self, request_future):
         # access result to throw exceptions that might have occurred during
