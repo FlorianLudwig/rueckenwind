@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, with_statement
 
 import pytest
+import sys
 from tornado import concurrent
 
 import tornado.gen
@@ -264,3 +265,9 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
 
         self.lock_b.set_result(None)
         assert (yield future_b) == 'b'
+
+
+if sys.version_info >= (3, 0):
+    def test_scope_with_hint():
+        from test.scope_py3 import test_python3_typehinted_injection
+        test_python3_typehinted_injection()

@@ -144,7 +144,10 @@ def get(key, default=NOT_PROVIDED):
 
 def inject(fn):
     fn_inspect = getattr(fn, '_rw_wrapped_function', fn)
-    arg_spec = inspect.getargspec(fn_inspect)
+    getargspec = inspect.getargspec
+    if sys.version_info >= (3, 0):
+        getargspec = inspect.getfullargspec
+    arg_spec = getargspec(fn_inspect)
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
