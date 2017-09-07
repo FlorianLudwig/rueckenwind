@@ -15,8 +15,8 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 setup(
-    name="rueckenwind",
-    version="0.5.0",
+    name='rueckenwind',
+    version='0.5.0',
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     long_description=readme,
