@@ -49,48 +49,6 @@ def command(func):
     return func
 
 
-def create_skel(src, dst, data):
-    """generate skeleton rw project"""
-    dst = dst.format(**data)
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-
-    for fname in pkg_resources.resource_listdir(__name__, src):
-        path = os.path.join(src, fname)
-        dest_fname = os.path.join(dst, fname.format(**data))
-        ext = os.path.splitext(fname)[1].lower()
-
-        if pkg_resources.resource_isdir(__name__, path):
-            create_skel(path, dst + '/' + fname, data)
-        elif ext in ('.py', '.svg', '.yml'):
-            tpl = pkg_resources.resource_string(__name__, path)
-            tpl = tpl.decode('utf-8')
-            content = jinja2.Template(tpl).render(**data)
-            with open(dest_fname, 'wb') as dest:
-                dest.write(content.encode('utf-8'))
-        elif ext in ('.css', '.png', '.html'):
-            src = pkg_resources.resource_filename(__name__, path)
-            shutil.copy(src, dest_fname)
-
-
-@command
-def skel(args):
-    """Generate a skeleton project"""
-    if args.name:
-        name = args.name
-    else:
-        name = raw_input('Name: ')
-    if os.path.exists(name):
-        print('Already exists')
-        sys.exit(1)
-
-    os.mkdir(name)
-    create_skel('skel', os.path.abspath(name), {'name': name})
-
-skel.parser.add_argument('--name', type=str,
-                         help='Name of the module to be created')
-
-
 @command
 def serv(args):
     """Serve a rueckenwind application"""
