@@ -27,6 +27,6 @@ python3.5:
 pep8:
   image: python:2.7
   script:
-    - pip install pylint
+    - pip install pep8
     - pip install -e .
     - pep8 rw
