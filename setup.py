@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
 import sys
@@ -8,6 +9,10 @@ import setuptools.command.test
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 version_suffix = ''
+
+
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
 
 
 class TestCommand(setuptools.command.test.test):
@@ -47,6 +52,7 @@ setup(
     version="0.5.0",
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
+    long_description=readme,
     author='Florian Ludwig',
     author_email='vierzigundzwei@gmail.com',
     install_requires=['tornado>=4.0.0,<5.0',
@@ -78,6 +84,7 @@ setup(
     },
     license="http://www.apache.org/licenses/LICENSE-2.0",
     classifiers=[
+        'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
