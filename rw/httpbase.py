@@ -48,7 +48,6 @@ class Application(tornado.httputil.HTTPServerConnectionDelegate):
         :param handler: The request handler (should subclass `tornado.web.RequestHandler`)
         :param extra_configs: path to alternative config file for rueckenwind
         """
-        self.io_loop = tornado.ioloop.IOLoop.current()
         self.settings = {}
         self.rw_settings = {}
         self.root = root
@@ -186,7 +185,8 @@ class RequestDispatcher(tornado.httputil.HTTPMessageDelegate):
             request_scope = rw.scope.Scope()
             with request_scope():
                 request_handling = app._handle_request(request_scope, self.request)
-                app.io_loop.add_future(request_handling, app._request_finished)
+                io_loop = tornado.ioloop.IOLoop.current()
+                io_loop.add_future(request_handling, app._request_finished)
 
 
 class RequestHandler(tornado.web.RequestHandler, dict):
