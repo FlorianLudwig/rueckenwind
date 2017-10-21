@@ -26,8 +26,8 @@ def init(template_env):
 
 
 @root.get('/')
-def index():
-    return 'Hello World'
+def index(handler):
+    handler.finish('Hello World')
 
 
 @root.get('/hello_handler')
