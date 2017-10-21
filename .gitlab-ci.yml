@@ -24,6 +24,11 @@ python3.5:
   image: python:3.5
 
 
+python3.6:
+  <<: *test_def
+  image: python:3.6
+
+
 pep8:
   image: python:2.7
   script:
