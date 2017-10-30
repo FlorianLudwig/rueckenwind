@@ -162,7 +162,8 @@ def init(scope, app, settings):
                 full_paths.append(full_path.format(**os.environ))
                 continue
             elif ',' in source:
-                module_name, path = [part.strip() for part in source.split(',')]
+                module_name, path = [part.strip()
+                                     for part in source.split(',')]
             else:
                 module_name = source
                 path = 'static'

@@ -110,7 +110,6 @@ class HTTPTest(tornado.testing.AsyncTestCase):
         module = rw.http.Module('test.example')
 
         env = rw.template.create_template_env(['test.example'])
-        result = ''
 
         def render(template):
             return module.render_template(template, env, handler=None)

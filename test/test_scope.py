@@ -191,6 +191,7 @@ class ConcurrencyTest(tornado.testing.AsyncTestCase):
 
     Three tests with different resolution order
     """
+
     def setup(self):
         """Setup two scopes and two "locks"."""
         self.scope_a = rw.scope.Scope()

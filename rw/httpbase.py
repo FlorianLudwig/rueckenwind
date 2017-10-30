@@ -234,6 +234,15 @@ class RequestHandler(tornado.web.RequestHandler, dict):
     def options(self, *args, **kwargs):
         return self.handle_request()
 
+    def send_error(self, status_code=500, **kwargs):
+        if status_code == 500:
+            handle = rw.scope.get('rw.httpbase:handle_exception', None)
+            if handle:
+                handle(self, kwargs)
+                return
+
+        tornado.web.RequestHandler.send_error(self, status_code, **kwargs)
+
     def handle_request(self):
         routing_table = rw.scope.get('rw.http')['routing_table']
         prefix, module, fn, args = routing_table.find_route(self.request.method, self.request.path)

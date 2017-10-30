@@ -17,7 +17,6 @@
 """rueckenwind command line tool"""
 from __future__ import absolute_import, division, print_function, with_statement
 
-import shutil
 import sys
 import os
 import argparse
@@ -66,7 +65,8 @@ def serv(args):
 
     listen = (int(args.port), args.address)
     ioloop = tornado.ioloop.IOLoop.instance()
-    setup_app(app=args.MODULE, extra_configs=extra, ioloop=ioloop, listen=listen)
+    setup_app(app=args.MODULE, extra_configs=extra,
+              ioloop=ioloop, listen=listen)
     ioloop.start()
 
 

@@ -32,6 +32,7 @@ def compare_perc(baseline, current):
     # TODO color
     return '{:10}\t{:10}\t{:10.2f} %'.format(baseline, current, p)
 
+
 def compare():
     baseline = read(CSV_BASELINE)
     current = read(CSV_CURRENT)
@@ -60,7 +61,6 @@ def main():
 
     if os.path.exists(CSV_CURRENT) and os.path.exists(CSV_BASELINE):
         compare()
-
 
 
 if __name__ == '__main__':

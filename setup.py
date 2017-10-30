@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-import sys
 
-from distutils.command.sdist import sdist
 from setuptools import setup, find_packages
 import setuptools.command.test
 

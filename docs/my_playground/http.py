@@ -6,9 +6,11 @@ import rw.gen
 
 registration = rw.http.Module('my_playground')
 
+
 @registration.get('/')
 def register(handler):
     handler.render_template(template='register.html')
+
 
 @registration.post('/')
 def register_post(handler):
@@ -18,6 +20,8 @@ def register_post(handler):
 
 
 root = rw.http.Module('my_playground')
+
+
 @root.get('/')
 def main(handler):
     handler['time'] = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
@@ -29,5 +33,6 @@ def main(handler):
 def entry(self, id):
     self['entries'] = yield get_entry_from_id(id)
     self.finish(template='my_playground/main.html')
+
 
 root.mount('/register', registration)

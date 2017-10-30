@@ -1,7 +1,6 @@
 """An example using as many different features of rueckenwind as possible
 
 """
-import os
 import time
 
 import tornado.web
