@@ -17,6 +17,7 @@ import sys
 import contextlib
 import functools
 import inspect
+import logging
 
 from tornado import stack_context
 
@@ -26,6 +27,7 @@ from . import gen
 
 NOT_PROVIDED = object()
 SCOPE_CHAIN = None
+LOG = logging.getLogger(__name__)
 
 
 class OutsideScopeError(Exception):

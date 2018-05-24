@@ -12,10 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
+
 import tornado.gen
 
 from . import event
 
+
+LOG = logging.getLogger(__name__)
 
 PHASE_CONFIGURATION = event.Event('PHASE_CONFIGURATION')
 PHASE_SETUP = event.Event('PHASE_SETUP')
@@ -25,7 +29,13 @@ PHASE_POST_START = event.Event('PHASE_POST_START')
 
 @tornado.gen.coroutine
 def start():
+    LOG.info('server startup: configuration phase')
     yield PHASE_CONFIGURATION()
+    LOG.info('server startup: setup phase')
     yield PHASE_SETUP()
+    LOG.info('server startup: start phase')
     yield PHASE_START()
+    LOG.info('server startup: post start phase')
     yield PHASE_POST_START()
+    LOG.info('server startup done')
+    
