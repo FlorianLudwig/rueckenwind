@@ -17,6 +17,7 @@ import sys
 import contextlib
 import functools
 import inspect
+import logging
 
 from tornado import stack_context
 
@@ -25,6 +26,7 @@ import rw.gen
 
 NOT_PROVIDED = object()
 SCOPE_CHAIN = None
+LOG = logging.getLogger(__name__)
 
 
 class OutsideScopeError(Exception):
@@ -179,6 +181,7 @@ def setup_app_scope(name, scope, settings):
     # load plugins
     plugins = []
     for plugin_name, active in settings.get('rw.plugins', {}).items():
+        LOG.info('loading plugin %s', plugin_name)
         plugin = __import__(plugin_name)
         plugin_path = plugin_name.split('.')[1:] + ['plugin']
         for sub in plugin_path:
@@ -186,4 +189,5 @@ def setup_app_scope(name, scope, settings):
         plugins.append(scope.activate(plugin))
 
     yield plugins
+    LOG.info('done loading plugins')
     raise rw.gen.Return(settings)

@@ -41,6 +41,7 @@ import rw.httpbase
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawTextHelpFormatter)
 SUB_PARSER = ARG_PARSER.add_subparsers(help='Command help')
+LOG = logging.getLogger(__name__)
 
 
 def command(func):
