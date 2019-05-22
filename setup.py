@@ -14,7 +14,7 @@ with open('README.rst') as readme_file:
 
 setup(
     name='rueckenwind',
-    version='0.5.2',
+    version='0.5.3',
     url='https://github.com/FlorianLudwig/rueckenwind',
     description='tornado based webframework',
     long_description=readme,
