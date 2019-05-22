@@ -22,7 +22,9 @@ import sys
 import os
 import argparse
 import logging
+import logging.config
 
+import yaml
 import argcomplete
 import pkg_resources
 import tornado.httpserver
@@ -38,6 +40,7 @@ import rw.server
 import rw.httpbase
 
 
+CONFIG_FORMATTER = '%(asctime)s %(name)s[%(levelname)s] %(message)s'
 ARG_PARSER = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawTextHelpFormatter)
 SUB_PARSER = ARG_PARSER.add_subparsers(help='Command help')
@@ -145,6 +148,45 @@ def setup_app(app, extra_configs=None, ioloop=None, listen=None):
     return app.scope
 
 
+def _add_config_defauts(config):
+    config.setdefault('version', 1)
+    config.setdefault('disable_existing_loggers', False)
+    config.setdefault('formatters', {
+        'standard': {
+            'format': CONFIG_FORMATTER
+        },
+    })
+
+
+def configure_logging_from_env():
+    """
+LOG_CONFIG Example:
+
+handlers:
+  graypy:
+    class: graypy.GELFHTTPHandler
+    level: INFO
+    host: '192.168.91.182'
+    port: 12201
+
+loggers:
+  '':
+    level: DEBUG
+    handlers: ['graypy']
+    """
+
+    if 'LOG_CONFIG' in os.environ:
+        print('using configuration from LOG_CONFIG')
+        log_config = yaml.safe_load(os.environ['LOG_CONFIG'])
+        _add_config_defauts(log_config)
+        print(repr(log_config))
+        logging.config.dictConfig(log_config)
+    else:
+        log_level = os.environ.get('LOG_LEVEL', 'INFO')
+        log_level = getattr(logging, log_level)
+        logging.basicConfig(level=log_level, format=CONFIG_FORMATTER)
+
+
 serv.parser.add_argument('-p', '--port', type=str, default='8000',
                          help='Specify port to run http server on')
 serv.parser.add_argument('-a', '--address', type=str,
@@ -160,10 +202,7 @@ serv.parser.add_argument('MODULE',
 def main():
     """Entry point of rw cli"""
     # check logging
-    log_level = os.environ.get('LOG_LEVEL', 'INFO')
-    logging.basicConfig(level=getattr(logging, log_level),
-                        format='%(asctime)s %(name)s[%(levelname)s] %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
+    configure_logging_from_env()
 
     current_path = os.path.abspath('.')
     if current_path not in sys.path:
