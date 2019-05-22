@@ -12,6 +12,7 @@ version_suffix = ''
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
+
 setup(
     name='rueckenwind',
     version='0.6.x',
@@ -24,12 +25,10 @@ setup(
                       'jinja2',
                       'babel',
                       'argcomplete>=0.6.6,<1.0',
-                      'configobj',
                       'chardet',
                       'pytz',
                       'PyYAML>=3.10',
-                      'future'
-                      ],
+    ],
     extras_requires={
         'test': ['pytest', 'pep8'],
         'docs': ['sphinx_rtd_theme']
@@ -48,7 +47,6 @@ setup(
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
