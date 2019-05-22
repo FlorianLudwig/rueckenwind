@@ -15,7 +15,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
 """rueckenwind command line tool"""
-from __future__ import absolute_import, division, print_function, with_statement
 
 import sys
 import os

@@ -11,11 +11,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from __future__ import absolute_import, division, print_function, with_statement
 
 import re
 
-from future.builtins import range
 from tornado import util
 import tornado.web
 

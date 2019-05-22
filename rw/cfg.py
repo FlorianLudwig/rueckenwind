@@ -13,7 +13,6 @@
 # under the License.
 
 """Load yaml based configuration"""
-from __future__ import absolute_import, division, print_function, with_statement
 
 import os
 import pkg_resources
