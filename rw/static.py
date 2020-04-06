@@ -13,12 +13,17 @@ import rw.plugin
 import rw.scope
 
 
+DEV_MODE = True
+STATIC_URL_CACHE = {}
+
+
 class StaticHandler(tornado.web.StaticFileHandler):
     def get(self, path, include_body=True, h=None):
-        # TODO only in development mode
-        self.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-        self.set_header('Pragma', 'no-cache')
-        self.set_header('Expires', '0')
+        if DEV_MODE:
+            self.set_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.set_header('Expires', '0')
+        else:
+            self.set_header('max-age=2592000')  # 30 days
         return super(StaticHandler, self).get(path, include_body)
 
     @classmethod
@@ -120,6 +125,9 @@ class Static(object):
         else:
             uri = '/static' + path
 
+        if not DEV_MODE and uri in STATIC_URL_CACHE:
+            return STATIC_URL_CACHE[uri]
+
         for base_uri, handler_class, roots in self.handlers:
             if uri.startswith('/' + base_uri + '/'):
                 path = uri[len(base_uri) + 2:]  # remove /base_uri/
@@ -138,7 +146,11 @@ class Static(object):
             raise Exception('File Not Found %s' % repr(path))
 
         h = file_hash(content)[:6]
-        return '/{}/{}/{}'.format(base_uri, h, path)
+        result = '/{}/{}/{}'.format(base_uri, h, path)
+        if not DEV_MODE:
+            STATIC_URL_CACHE[uri] = result
+
+        return result
 
     def setup(self):
         self.handlers.sort(key=lambda x: len(x[0]), reverse=True)
@@ -150,11 +162,19 @@ plugin = rw.plugin.Plugin(__name__)
 @plugin.init
 def init(scope, app, settings):
     """Plugin for serving static files in development mode"""
+    global DEV_MODE
+
     cfg = settings.get('rw.static', {})
     static = Static()
     scope['static'] = static
     scope['template_env'].globals['static'] = static
+
+    DEV_MODE = cfg.get("DEV_MODE", True)
+
     for base_uri, sources in cfg.items():
+        if base_uri == "DEV_MODE":
+            continue
+
         full_paths = []
         for source in sources:
             if isinstance(source, dict):
