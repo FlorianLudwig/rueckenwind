@@ -48,6 +48,14 @@ class Module(rw.plugin.Plugin):
         template = template_env.get_template(template_name)
         handler.finish(template.render(**handler))
 
+    def _generate_decorator(self, method, path):
+        def decorator(fn):
+            fn = scope.inject(fn)
+            fn.rw_route = self.routes.append((method, path, self, fn))
+            return fn
+
+        return decorator
+
     def get(self, path):
         """Expose a function for HTTP GET requests
 
@@ -57,11 +65,8 @@ class Module(rw.plugin.Plugin):
             def index(handler):
                 ...
         """
-        def wrapper(fn):
-            fn = scope.inject(fn)
-            fn.rw_route = self.routes.append(('get', path, self, fn))
-            return fn
-        return wrapper
+
+        return self._generate_decorator('get', path)
 
     def post(self, path):
         """Expose a function for HTTP POST requests
@@ -72,11 +77,7 @@ class Module(rw.plugin.Plugin):
             def save(self):
                 ...
         """
-        def wrapper(fn):
-            fn = scope.inject(fn)
-            fn.rw_route = self.routes.append(('post', path, self, fn))
-            return fn
-        return wrapper
+        return self._generate_decorator('post', path)
 
     def put(self, path):
         """Expose a function for HTTP PUT requests
@@ -87,11 +88,7 @@ class Module(rw.plugin.Plugin):
             def save(self, name):
                 ...
         """
-        def wrapper(fn):
-            fn = scope.inject(fn)
-            fn.rw_route = self.routes.append(('put', path, self, fn))
-            return fn
-        return wrapper
+        return self._generate_decorator('put', path)
 
     def delete(self, path):
         """Expose a function for HTTP DELETE requests
@@ -102,11 +99,7 @@ class Module(rw.plugin.Plugin):
             def delete(self, name):
                 ...
         """
-        def wrapper(fn):
-            fn = scope.inject(fn)
-            fn.rw_route = self.routes.append(('delete', path, self, fn))
-            return fn
-        return wrapper
+        return self._generate_decorator('delete', path)
 
     def options(self, path):
         """Expose a function for HTTP OPTIONS requests
@@ -117,11 +110,7 @@ class Module(rw.plugin.Plugin):
             def server_options(self, name):
                 ...
         """
-        def wrapper(fn):
-            fn = scope.inject(fn)
-            fn.rw_route = self.routes.append(('options', path, self, fn))
-            return fn
-        return wrapper
+        return self._generate_decorator('options', path)
 
     def mount(self, path, module, handler_args=None, name=None):
         if handler_args is None:

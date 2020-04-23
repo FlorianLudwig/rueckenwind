@@ -30,6 +30,7 @@ class Event(set):
     If multiple callbacks are provided and raise exceptions,
     the first detected exception is re-raised and all successive exceptions are ignored.
     """
+
     def __init__(self, name, accumulator=None):
         super(Event, self).__init__()
         self.name = name
