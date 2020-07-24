@@ -181,6 +181,8 @@ def setup_app_scope(name, scope, settings):
     # load plugins
     plugins = []
     for plugin_name, active in settings.get('rw.plugins', {}).items():
+        if not active:
+            continue
         LOG.info('loading plugin %s', plugin_name)
         plugin = __import__(plugin_name)
         plugin_path = plugin_name.split('.')[1:] + ['plugin']
